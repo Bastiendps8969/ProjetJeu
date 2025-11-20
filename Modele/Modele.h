@@ -3,6 +3,8 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 
+#include "Player.h"
+
 namespace Modele
 {
     class Modele
@@ -10,6 +12,7 @@ namespace Modele
     private:
         // Joueur
         sf::RectangleShape joueur;
+        Player player;
 
         // Vecteur d'obstacles de type pointeur
         std::vector<sf::Shape*> obstacles;
@@ -34,6 +37,8 @@ namespace Modele
 
         // Destructeur car liste de pointeurs à gérer
         ~Modele();
+
+        Player getPlayer();
 
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }

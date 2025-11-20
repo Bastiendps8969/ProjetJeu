@@ -2,11 +2,15 @@
 #include <cmath>
 #include <limits>
 
+#include "Player.h"
+
 namespace Modele {
     // Constructeur : création des formes obstacles rouges
     // qui sont ajoutées au vecteur obstacles de pointeurs d'obstacles
     Modele::Modele()
     {
+        player = Player();
+
         // Détermine la résolution du bureau pour adapter tailles et points de patrouille
         sf::VideoMode dm = sf::VideoMode::getDesktopMode();
         float W = static_cast<float>(dm.width);
@@ -50,6 +54,10 @@ namespace Modele {
     {
         for (auto obs : obstacles)
         {   delete obs;         }
+    }
+
+    Player Modele::getPlayer() {
+        return player;
     }
 
     void Modele::mettreAJourObstacles()
@@ -220,4 +228,5 @@ namespace Modele {
         if (len < 1e-5f) return sf::Vector2f(1.f, 0.f);
         return sf::Vector2f(dir.x / len, dir.y / len);
     }
+
 }

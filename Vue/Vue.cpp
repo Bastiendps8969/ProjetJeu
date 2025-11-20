@@ -23,7 +23,7 @@ namespace Vue
 
             // Texte pour détection joueur (sous le message de collision)
             joueurDetecteText.setFont(font);
-            joueurDetecteText.setString("Joueur detecte !");
+            joueurDetecteText.setString(modele.getPlayer().getPlayerName() + " detecte !");
             joueurDetecteText.setCharacterSize(22);
             joueurDetecteText.setFillColor(sf::Color::Yellow);
             joueurDetecteText.setStyle(sf::Text::Bold);

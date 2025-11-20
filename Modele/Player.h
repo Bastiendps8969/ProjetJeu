@@ -12,7 +12,8 @@ class Player {
         std::string playerName;
         //  1 Tuto
         //  1 Mission test
-        //  10 Missions
+        //  10 Missions ->  Temporaire, juste dans l'hypothèse d'un jeu complet
+        //  1 + 1 + 10 = 12
         int playerScore[12];
 
     public:
