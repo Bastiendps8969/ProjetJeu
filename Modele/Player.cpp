@@ -3,7 +3,7 @@
 //
 
 #include "Player.h"
-
+//  Bastien fait des rapports moches
 //  Créer un joueur avec un nom par défaut
 Player::Player() {
     setPlayerName("James Adams");
