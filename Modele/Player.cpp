@@ -13,7 +13,9 @@ Player::Player() {
 //  Créer un joueur avec un nom spécifique
 Player::Player(std::string name) {
     setPlayerName(name);
-    playerScore[12] = {0};
+    for (int i = 0; i < 12; i++) {
+        playerScore[i] = 0;
+    }
 }
 
 //  Détruire un joueur
@@ -50,6 +52,7 @@ int Player::getPlayerTotalScore() {
     for (int i = 0; i < 12; i++) {
         totalScore += playerScore[i];
     }
+    return totalScore;
 }
 
 
