@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <SFML/Graphics.hpp>
@@ -30,6 +29,5 @@ namespace Controleur
 
         // Boucle principale
         void gererBoucle();
-
     };
 }

@@ -17,6 +17,10 @@ add_executable(TestCollision
         Controleur/Controleur.cpp
         Modele/Player.cpp
         Modele/Player.h
+        Vue/HomePage.cpp
+        Vue/HomePage.h
+        Vue/LevelPage.cpp
+        Vue/LevelPage.h
 )
 
 # Inclusion des headers (optionnel si bien organisés)
