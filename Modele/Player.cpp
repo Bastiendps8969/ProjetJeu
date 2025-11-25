@@ -7,14 +7,16 @@
 //  Créer un joueur avec un nom par défaut
 Player::Player() {
     setPlayerName("James Adams");
-    playerScore[12] = {0};
+    for (int & i : playerScore) {
+        i = 0;
+    }
 }
 
 //  Créer un joueur avec un nom spécifique
-Player::Player(std::string name) {
+Player::Player(const std::string &name) {
     setPlayerName(name);
-    for (int i = 0; i < 12; i++) {
-        playerScore[i] = 0;
+    for (int & i : playerScore) {
+        i = 0;
     }
 }
 

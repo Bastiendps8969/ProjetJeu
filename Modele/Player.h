@@ -18,7 +18,7 @@ class Player {
 
     public:
         Player();
-        Player(std::string name);
+        Player(const std::string &name);
         ~Player();
 
         void setPlayerName(std::string name);

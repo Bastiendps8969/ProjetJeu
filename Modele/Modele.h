@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 
+#include "Agent.h"
 #include "Player.h"
 
 namespace Modele
@@ -13,6 +14,7 @@ namespace Modele
         // Joueur
         sf::RectangleShape joueur;
         Player player;
+        Agent agent;
 
         // Vecteur d'obstacles de type pointeur
         std::vector<sf::Shape*> obstacles;
@@ -39,6 +41,7 @@ namespace Modele
         ~Modele();
 
         Player getPlayer();
+        Agent getAgent();
 
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }

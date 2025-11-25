@@ -10,6 +10,7 @@ namespace Modele {
     Modele::Modele()
     {
         player = Player();
+        agent = Agent();
 
         // Détermine la résolution du bureau pour adapter tailles et points de patrouille
         sf::VideoMode dm = sf::VideoMode::getDesktopMode();
@@ -58,6 +59,9 @@ namespace Modele {
 
     Player Modele::getPlayer() {
         return player;
+    }
+    Agent Modele::getAgent() {
+        return agent;
     }
 
     void Modele::mettreAJourObstacles()

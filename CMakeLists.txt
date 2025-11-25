@@ -17,6 +17,8 @@ add_executable(TestCollision
         Controleur/Controleur.cpp
         Modele/Player.cpp
         Modele/Player.h
+        Modele/Agent.cpp
+        Modele/Agent.h
 )
 
 # Inclusion des headers (optionnel si bien organisés)
