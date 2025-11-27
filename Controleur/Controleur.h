@@ -23,6 +23,9 @@ namespace Controleur
         void gererEntree();
         void mettreAJour();
 
+        // --- NOUVEAU: Vérification des portes ---
+        void verifierPorte();
+
     public:
         // Constructeur
         Controleur(Modele::Modele& modele, Vue::Vue& vue);

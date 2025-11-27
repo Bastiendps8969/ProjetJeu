@@ -2,59 +2,105 @@
 
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <map>
+#include <string>
+#include <memory>
+
+// NÉCESSAIRE: L'import spécifié par l'utilisateur
+#include "../cmake-build-debug/json.hpp"
 
 namespace Modele
 {
+    // Définition simplifiée d'un obstacle pour le JSON
+    struct ObstacleDefinition
+    {
+        std::string type;
+        sf::Vector2f position;
+        sf::Vector2f size;
+    };
+
+    // Définition d'une porte et de la pièce cible
+    struct Door
+    {
+        std::string direction;
+        int targetRoomIndex;
+        sf::FloatRect bounds;
+        // Utilise unique_ptr pour la forme visuelle de la porte
+        std::unique_ptr<sf::Shape> visualShape;
+    };
+
+    // Définition de la pièce
+    struct Room
+    {
+        std::string name;
+        std::vector<ObstacleDefinition> obstacleDefs;
+        std::vector<Door> doors;
+        // Utilise unique_ptr pour les formes d'obstacles physiques (murs, etc.)
+        std::vector<std::unique_ptr<sf::Shape>> obstacleShapes;
+    };
+
     class Modele
     {
     private:
         // Joueur
         sf::RectangleShape joueur;
 
-        // Vecteur d'obstacles de type pointeur
-        std::vector<sf::Shape*> obstacles;
-
-        // Vitesse de déplacement de l'obstacle
+        // --- Membres d'IA et de collision (pour le premier obstacle) ---
         sf::Vector2f obstacleVitesse;
-
-        // Points de patrouille
         std::vector<sf::Vector2f> pointsPatrouille;
         int pointCibleIndex;
         float vitessePatrouille;
+        bool collisionDetectee; // <--- Ce membre était celui qui manquait
+        bool joueurDetecte;     // <--- Ce membre était celui qui manquait
 
-        // Indicateur de collision
-        bool collisionDetectee;
+        // --- Membres de la carte/pièce ---
+        std::map<int, Room> rooms_; // <--- Ce membre était celui qui manquait
+        int currentRoomIndex_;      // <--- Ce membre était celui qui manquait
+        float screenW, screenH;
 
-        // Indicateur détection joueur par le champ de vision de l'obstacle
-        bool joueurDetecte;
+        // Méthodes privées
+        bool loadRoomsFromJson(const std::string& filename);
+        void initializeRoomShapes(Room& room);
+
+        // Constantes de porte
+        const float DOOR_SIZE = 120.f;
+        const float DOOR_THICKNESS = 100.f;
 
     public:
         // Constructeur
         Modele();
 
-        // Destructeur car liste de pointeurs à gérer
-        ~Modele();
+        // Destructeur (géré par unique_ptr)
+        ~Modele() = default;
 
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }
-        const std::vector<sf::Shape*>& getObstacles() const { return obstacles; }
 
-        // Méthode pour mettre à jour la position de l'obstacle
-        void mettreAJourObstacles();
+        // Retourne les obstacles physiques (qui bloquent)
+        const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
+        const std::vector<Door>& getCurrentRoomDoors() const;
+        std::string getCurrentRoomName() const;
+
+        // NOUVEAU: Getters pour les dimensions de l'écran (maintenant dans la classe)
+        float getScreenW() const { return screenW; }
+        float getScreenH() const { return screenH; }
+
+        // Méthode pour mettre à jour la position de l'obstacle (logique d'IA)
+        void mettreAJourObstacles(); // <--- Cette déclaration était manquante
 
         // Accesseurs pour l'indicateur de collision
-        void setCollisionDetectee(bool v) { collisionDetectee = v; }
-        bool isCollisionDetectee() const { return collisionDetectee; }
+        void setCollisionDetectee(bool v) { collisionDetectee = v; } // <--- Corrigé
+        bool isCollisionDetectee() const { return collisionDetectee; } // <--- Corrigé
 
         // Accesseurs pour détection joueur (champ de vision)
         void setJoueurDetecte(bool v) { joueurDetecte = v; }
-        bool isJoueurDetecte() const { return joueurDetecte; }
+        bool isJoueurDetecte() const { return joueurDetecte; } // <--- Corrigé
 
         // Exposer centre et direction avant d'un obstacle (index par défaut 0)
-        sf::Vector2f getObstacleCenter(size_t idx = 0) const;
-        sf::Vector2f getObstacleForward(size_t idx = 0) const;
-        // FOV doublé
-        float getFovRange() const { return 440.f; }
-        float getFovAngleDeg() const { return 60.f; }
+        sf::Vector2f getObstacleCenter(size_t idx = 0) const; // <--- Corrigé
+        sf::Vector2f getObstacleForward(size_t idx = 0) const; // <--- Corrigé
+
+        // Changement de pièce
+        bool changeRoom(int newRoomIndex, const std::string& entryDirection);
     };
 }

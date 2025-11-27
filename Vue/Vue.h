@@ -18,6 +18,9 @@ namespace Vue
         // Texte pour détection joueur
         sf::Text joueurDetecteText;
 
+        // --- NOUVEAU: Nom de la pièce ---
+        sf::Text roomNameText;
+
         // --- Menu de démarrage ---
         bool menuActif = true;
         std::string playerName;

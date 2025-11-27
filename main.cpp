@@ -1,6 +1,8 @@
-#include "Modele/Modele.h"
-#include "Vue/Vue.h"
+
+
 #include "Controleur.h"
+#include "Modele.h"
+#include "Vue.h"
 
 int main()
 {
