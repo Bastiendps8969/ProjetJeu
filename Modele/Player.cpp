@@ -10,6 +10,7 @@ Player::Player() {
     for (int & i : playerScore) {
         i = 0;
     }
+    setNbLife(3);
 }
 
 //  Créer un joueur avec un nom spécifique
@@ -18,6 +19,7 @@ Player::Player(const std::string &name) {
     for (int & i : playerScore) {
         i = 0;
     }
+    setNbLife(3);
 }
 
 //  Détruire un joueur
@@ -40,16 +42,17 @@ void Player::setPlayerScore(int missionIndex, int newScore) {
     }
 }
 
+
 //  Récupérer le nom du joueur
 std::string Player::getPlayerName() {
     return playerName;
 }
 //  Récupérer le score du joueur pour une mission
-int Player::getPlayerScore(int missionIndex) {
+int Player::getPlayerScore(int missionIndex) const {
     return playerScore[missionIndex];
 }
 //  Récupérer le score total du joueur
-int Player::getPlayerTotalScore() {
+int Player::getPlayerTotalScore() const {
     int totalScore = 0;
     for (int i = 0; i < 12; i++) {
         totalScore += playerScore[i];

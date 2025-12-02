@@ -25,8 +25,8 @@ class Player {
         void setPlayerScore(int missionIndex, int newScore);
 
         std::string getPlayerName();
-        int getPlayerScore(int missionIndex);
-        int getPlayerTotalScore();
+        int getPlayerScore(int missionIndex) const;
+        int getPlayerTotalScore() const;
 
 };
 

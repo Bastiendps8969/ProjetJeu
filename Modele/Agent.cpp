@@ -8,16 +8,16 @@
 
 Agent::Agent() {
     setAgentName("James Adams");
-    setSpriteFile(std::string("Resources/Sprites/Agent/Agent_Sprite.png"));
-
+    setTextureFile(std::string("Resources/Textures/Agent/Agent_Sprite.png"));
+    setNbLife(3);
     posX = 0;
     posY = 0;
 }
 
 Agent::Agent(const std::string& name) {
     setAgentName(name);
-    setSpriteFile(std::string("Resources/Sprites/Agent/Agent_Sprite.png"));
-
+    setTextureFile(std::string("Resources/Textures/Agent/Agent_Sprite.png"));
+    setNbLife(3);
     posX = 0;
     posY = 0;
 }
@@ -32,10 +32,13 @@ void Agent::setAgentName(const std::string& name) {
         agentName = name;
     }
 }
-void Agent::setSpriteFile(const std::string& path) {
+void Agent::setTextureFile(const std::string& path) {
     if (!path.empty()) {
-        spriteFile = path;
+        textureFile = path;
     }
+}
+void Agent::setNbLife(int nb) {
+    nbLife = nb;
 }
 void Agent::setPosX(int x) {
     posX = x;
@@ -50,8 +53,11 @@ void Agent::setPosY(int y) {
 std::string Agent::getAgentName() const {
     return agentName;
 }
-std::string Agent::getSpriteFile() const {
-    return spriteFile;
+std::string Agent::getTextureFile() const {
+    return textureFile;
+}
+int Agent::getNbLife() const {
+    return nbLife;
 }
 int Agent::getPosX() const {
     return posX;

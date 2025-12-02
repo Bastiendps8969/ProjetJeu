@@ -10,8 +10,8 @@
 class Agent {
     private:
         std::string agentName;
-        std::string spriteFile;
-
+        std::string textureFile;
+        int nbLife;
         int posX;
         int posY;
 
@@ -21,12 +21,14 @@ class Agent {
         ~Agent();
 
         void setAgentName(const std::string& name);
-        void setSpriteFile(const std::string& sprite);
+        void setTextureFile(const std::string& texture);
+        void setNbLife(int nb);
         void setPosX(int x);
         void setPosY(int y);
 
         std::string getAgentName() const;
-        std::string getSpriteFile() const;
+        std::string getTextureFile() const;
+        int getNbLife() const;
         int getPosX() const;
         int getPosY() const;
 
