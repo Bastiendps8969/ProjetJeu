@@ -121,14 +121,49 @@ namespace Vue
         {
             // --- Dessiner le Jeu ---
 
-            // Affichage du nom de la pièce (positionné en haut au centre)
-            if (fontCharge)
+            // 0) Dessiner la grille de tuiles du sol (matrice)
             {
-                roomNameText.setString(modele.getCurrentRoomName());
-                roomNameText.setOrigin(roomNameText.getLocalBounds().left + roomNameText.getLocalBounds().width / 2.0f,
-                                       roomNameText.getLocalBounds().top + roomNameText.getLocalBounds().height / 2.0f);
-                roomNameText.setPosition(modele.getScreenW() / 2.0f, 10.f);
-                fenetre.draw(roomNameText);
+                const auto& matrix = modele.getFloorMatrix();
+                const sf::Texture& tex = modele.getFloorTexture();
+                const auto& wallTexs = modele.getWallTextures();
+                int tileSize = modele.getTileSize();
+                if (!matrix.empty())
+                {
+                    sf::Sprite tileSprite;
+                    // Floor sprite
+                    bool hasFloor = (tex.getSize().x > 0);
+                    if (hasFloor) tileSprite.setTexture(tex);
+                    // Wall sprite (we'll setTexture per tile)
+                    for (size_t r = 0; r < matrix.size(); ++r)
+                    {
+                        for (size_t c = 0; c < matrix[r].size(); ++c)
+                        {
+                            int val = matrix[r][c];
+                            if (val == 1 && hasFloor)
+                            {
+                                float sx = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().x);
+                                float sy = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().y);
+                                tileSprite.setScale(sx, sy);
+                                tileSprite.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
+                                fenetre.draw(tileSprite);
+                            }
+                            else if (val >= 11 && val <= 18)
+                            {
+                                int wi = val - 11;
+                                if (wi >= 0 && static_cast<size_t>(wi) < wallTexs.size() && wallTexs[wi].getSize().x > 0)
+                                {
+                                    sf::Sprite w;
+                                    w.setTexture(wallTexs[wi]);
+                                    float sx = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().x);
+                                    float sy = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().y);
+                                    w.setScale(sx, sy);
+                                    w.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
+                                    fenetre.draw(w);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // 1. Dessine le champ de vision de l'obstacle

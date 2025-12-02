@@ -44,6 +44,13 @@ namespace Modele
     private:
         // Joueur
         sf::RectangleShape joueur;
+        // Sol en tuiles
+        sf::Texture floorTexture;
+        std::vector<std::vector<int>> floorMatrix; // 2D matrix: 1 = floor tile (Floor5.png)
+        int tileSize = 64; // taille en pixels d'une tuile (modifiable)
+
+        // Textures pour murs (8 images Wall1_1 .. Wall1_8)
+        std::vector<sf::Texture> wallTextures;
 
         // --- Membres d'IA et de collision (pour le premier obstacle) ---
         sf::Vector2f obstacleVitesse;
@@ -75,6 +82,10 @@ namespace Modele
 
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }
+        const std::vector<std::vector<int>>& getFloorMatrix() const { return floorMatrix; }
+        const sf::Texture& getFloorTexture() const { return floorTexture; }
+        int getTileSize() const { return tileSize; }
+        const std::vector<sf::Texture>& getWallTextures() const { return wallTextures; }
 
         // Retourne les obstacles physiques (qui bloquent)
         const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;

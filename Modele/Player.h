@@ -6,7 +6,6 @@
 #define TESTCOLLISION_PLAYER_H
 #include <string>
 
-
 class Player {
     private:
         std::string playerName;

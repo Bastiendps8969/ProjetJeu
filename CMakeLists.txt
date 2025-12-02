@@ -13,14 +13,12 @@ find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 add_executable(TestCollision
         main.cpp
         Modele/Modele.cpp
+        Modele/Modele.h
         Vue/Vue.cpp
         Controleur/Controleur.cpp
+        Controleur/Controleur.h
         Modele/Player.cpp
         Modele/Player.h
-        Vue/HomePage.cpp
-        Vue/HomePage.h
-        Vue/LevelPage.cpp
-        Vue/LevelPage.h
 )
 
 # Inclusion des headers (optionnel si bien organisés)

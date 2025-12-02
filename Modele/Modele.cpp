@@ -153,6 +153,126 @@ namespace Modele {
         joueur.setSize(sf::Vector2f(boxSize, boxSize));
         joueur.setFillColor(sf::Color::Green);
 
+        // --- Chargement de la texture de sol (Floor5.png) ---
+        // On tente quelques chemins relatifs usuels. Adaptez si nécessaire.
+        bool loaded = false;
+        const std::vector<std::string> tryPaths = {
+            "cmake-build-debug/Asset/Floor/Floor5.png",
+            "Asset/Floor/Floor5.png",
+            "Floor5.png"
+        };
+        for (const auto& p : tryPaths) {
+            if (floorTexture.loadFromFile(p)) { loaded = true; break; }
+        }
+        if (!loaded) {
+            std::cerr << "Avertissement: impossible de charger Floor5.png. Vérifiez le chemin.\n";
+        }
+
+        // --- Chargement des textures de murs (Wall1_1 .. Wall1_8) ---
+        // Hypothèse d'association (si différent, réordonnez tryPathsWall) :
+        // Wall1_1 = coin supérieur gauche
+        // Wall1_5 = mur supérieur (horizontal)
+        // Wall1_6 = coin supérieur droit
+        // Wall1_7 = mur gauche (vertical)  <-- hypothèse (le user a indiqué "mur droite" deux fois)
+        // Wall1_2 = mur droit (vertical)
+        // Wall1_3 = coin inférieur gauche
+        // Wall1_4 = mur inférieur (horizontal)
+        // Wall1_8 = coin inférieur droit
+        const std::vector<std::string> tryPathsWall = {
+            "cmake-build-debug/Asset/Wall/Wall1_1.png",
+            "cmake-build-debug/Asset/Wall/Wall1_5.png",
+            "cmake-build-debug/Asset/Wall/Wall1_6.png",
+            "cmake-build-debug/Asset/Wall/Wall1_7.png",
+            "cmake-build-debug/Asset/Wall/Wall1_2.png",
+            "cmake-build-debug/Asset/Wall/Wall1_3.png",
+            "cmake-build-debug/Asset/Wall/Wall1_4.png",
+            "cmake-build-debug/Asset/Wall/Wall1_8.png"
+        };
+        wallTextures.clear();
+        wallTextures.resize(8);
+        for (size_t i = 0; i < tryPathsWall.size(); ++i)
+        {
+            if (!wallTextures[i].loadFromFile(tryPathsWall[i]))
+            {
+                // Essayer chemins alternatifs courts si besoin
+                std::string shortPath = "Asset/Wall/Wall1_" + std::to_string(i+1) + ".png";
+                if (!wallTextures[i].loadFromFile(shortPath))
+                {
+                    std::cerr << "Avertissement: impossible de charger " << tryPathsWall[i] << " ni " << shortPath << "\n";
+                }
+            }
+        }
+
+        // Recalcul de la matrice du sol / murs (cols, rows calculés plus haut)
+        int cols = static_cast<int>(std::ceil(screenW / static_cast<float>(tileSize)));
+        int rows = static_cast<int>(std::ceil(screenH / static_cast<float>(tileSize)));
+        floorMatrix.assign(rows, std::vector<int>(cols, 1)); // remplir tout l'écran avec la tuile sol (1)
+
+        // Codes pour murs : 11..18 (correspondent aux wallTextures[0..7])
+        const int WALL_TL = 11;   // top-left
+        const int WALL_TOP = 12;  // top edge
+        const int WALL_TR = 13;   // top-right
+        const int WALL_LEFT = 14; // left edge
+        const int WALL_RIGHT = 15;// right edge
+        const int WALL_BL = 16;   // bottom-left
+        const int WALL_BOTTOM = 17;// bottom edge
+        const int WALL_BR = 18;   // bottom-right
+
+        // Remplissage des bords avec permutation demandée :
+        // - bord haut <- ancienne droite
+        // - bord gauche <- ancien haut
+        // - bord bas <- ancien gauche
+        // - bord droit <- ancien bas
+        // - coins : échanger coin haut-droit <-> coin bas-gauche
+        for (int r = 0; r < rows; ++r)
+        {
+            for (int c = 0; c < cols; ++c)
+            {
+                // coins particuliers (on applique l'échange TR <-> BL)
+                if (r == 0 && c == 0)
+                {
+                    // coin haut-gauche : on conserve TL
+                    floorMatrix[r][c] = WALL_TL;
+                }
+                else if (r == 0 && c == cols - 1)
+                {
+                    // coin haut-droit devient coin bas-gauche (swap demandé)
+                    floorMatrix[r][c] = WALL_BL;
+                }
+                else if (r == rows - 1 && c == 0)
+                {
+                    // coin bas-gauche devient coin haut-droit (swap demandé)
+                    floorMatrix[r][c] = WALL_TR;
+                }
+                else if (r == rows - 1 && c == cols - 1)
+                {
+                    // coin bas-droit : on conserve BR
+                    floorMatrix[r][c] = WALL_BR;
+                }
+                else if (r == 0)
+                {
+                    // bord haut -> prendre l'ancienne droite
+                    floorMatrix[r][c] = WALL_RIGHT;
+                }
+                else if (r == rows - 1)
+                {
+                    // bord bas -> prendre l'ancienne gauche
+                    floorMatrix[r][c] = WALL_LEFT;
+                }
+                else if (c == 0)
+                {
+                    // bord gauche -> prendre l'ancienne haut
+                    floorMatrix[r][c] = WALL_TOP;
+                }
+                else if (c == cols - 1)
+                {
+                    // bord droit -> prendre l'ancienne bas
+                    floorMatrix[r][c] = WALL_BOTTOM;
+                }
+                // else: leave as 1 (floor)
+            }
+        }
+
         // Chargement des pièces
         if (loadRoomsFromJson("rooms.json") && rooms_.count(0))
         {
