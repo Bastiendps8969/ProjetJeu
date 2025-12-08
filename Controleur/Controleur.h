@@ -1,9 +1,9 @@
-
 #pragma once
 
 #include <SFML/Graphics.hpp>
 #include "Modele.h"
 #include "Vue.h"
+#include "HomePage.h"
 
 namespace Controleur
 {
@@ -27,6 +27,9 @@ namespace Controleur
     public:
         // Constructeur
         Controleur(Modele::Modele& modele, Vue::Vue& vue);
+
+        // Menu d'accueil
+        void afficherMenuAccueil();
 
         // Boucle principale
         void gererBoucle();

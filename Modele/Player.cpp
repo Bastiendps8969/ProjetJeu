@@ -33,10 +33,10 @@ void Player::setPlayerScore(int missionIndex, int newScore) {
 std::string Player::getPlayerName() {
     return playerName;
 }
-int getPlayerScore(int missionIndex) {
+int Player::getPlayerScore(int missionIndex) {
     return playerScore[missionIndex];
 }
-int getPlayerTotalScore() {
+int Player::getPlayerTotalScore() {
     int totalScore = 0;
     for (int i = 0; i < 12; i++) {
         totalScore += playerScore[i];

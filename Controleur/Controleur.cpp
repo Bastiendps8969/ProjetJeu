@@ -1,5 +1,6 @@
 #include "Controleur.h"
 #include <SFML/Window.hpp>
+
 namespace Controleur
 {
     // Constructeur
@@ -9,6 +10,37 @@ namespace Controleur
           fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen),
           mouvement(0.f, 0.f)
     {}
+
+    // Affiche le menu d'accueil
+    void Controleur::afficherMenuAccueil()
+    {
+        // Lambda pour récupérer les scores du joueur
+        auto getScores = [this]() -> std::vector<int> {
+            std::vector<int> scores(12, 0); // Placeholder: 12 niveaux avec score 0
+            return scores;
+        };
+
+        Vue::HomePage homePage(getScores);
+
+        while (fenetre.isOpen() && homePage.isActive())
+        {
+            sf::Event evenement;
+            while (fenetre.pollEvent(evenement))
+            {
+                if (evenement.type == sf::Event::Closed)
+                    fenetre.close();
+
+                if ((evenement.type == sf::Event::KeyPressed)
+                    && (evenement.key.code == sf::Keyboard::Escape))
+                    fenetre.close();
+
+                homePage.handleEvent(evenement, fenetre);
+            }
+
+            homePage.draw(fenetre);
+        }
+    }
+
     // Boucle principale
     void Controleur::gererBoucle()
     {
