@@ -9,8 +9,6 @@ namespace Vue
     Vue::Vue(Modele::Modele& modele)
     : modele(modele)
     {
-        // Tentative de chargement d'une police système (Windows). Si vous êtes sur un autre OS,
-        // ajustez le chemin vers une police disponible.
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontCharge = true;
@@ -19,9 +17,8 @@ namespace Vue
             collisionText.setCharacterSize(24);
             collisionText.setFillColor(sf::Color::Red);
             collisionText.setStyle(sf::Text::Bold);
-            collisionText.setPosition(10.f, 10.f); // en haut à gauche
+            collisionText.setPosition(10.f, 10.f);
 
-            // Texte pour détection joueur (sous le message de collision)
             joueurDetecteText.setFont(font);
             joueurDetecteText.setString("Joueur detecte !");
             joueurDetecteText.setCharacterSize(22);
@@ -33,26 +30,23 @@ namespace Vue
 
     void Vue::dessiner(sf::RenderWindow& fenetre)
     {
-        // Vide l'écran
-        fenetre.clear();
+        // NE PAS appeler fenetre.clear() ni fenetre.display() ici.
+        // Se contenter de dessiner les éléments sur la fenêtre fournie.
 
         // Dessine le champ de vision de l'obstacle (couleur claire, transparente)
-        if (!modele.getObstacles().empty())
+        const auto& obstacles = modele.getObstacles(); // cache la référence
+        if (!obstacles.empty())
         {
-            // Récupère paramètres depuis le modèle
             sf::Vector2f center = modele.getObstacleCenter(0);
             sf::Vector2f forward = modele.getObstacleForward(0);
             float range = modele.getFovRange();
             float angleDeg = modele.getFovAngleDeg();
 
-            // Calcul des deux directions bord gauche/droite du cône
             const float pi = 3.14159265f;
             float halfRad = (angleDeg * 0.5f) * pi / 180.f;
             float c = std::cos(halfRad), s = std::sin(halfRad);
-            // rotation +half
             sf::Vector2f leftDir( c * forward.x - s * forward.y,
                                   s * forward.x + c * forward.y );
-            // rotation -half
             sf::Vector2f rightDir( c * forward.x + s * forward.y,
                                   -s * forward.x + c * forward.y );
 
@@ -64,8 +58,7 @@ namespace Vue
             cone.setPoint(0, center);
             cone.setPoint(1, leftPoint);
             cone.setPoint(2, rightPoint);
-            // Couleur claire + transparence (alpha ~100)
-            cone.setFillColor(sf::Color(173, 216, 230, 100)); // light blue, semi-transparent
+            cone.setFillColor(sf::Color(173, 216, 230, 100));
             cone.setOutlineColor(sf::Color(173, 216, 230, 120));
             cone.setOutlineThickness(0.f);
             fenetre.draw(cone);
@@ -75,7 +68,7 @@ namespace Vue
         fenetre.draw(modele.getJoueur());
 
         // Dessine les obstacles du vecteur
-        for (const auto& obs : modele.getObstacles())
+        for (const auto& obs : obstacles)
         {   fenetre.draw(*obs); }
 
         // Si le modèle indique une collision, affiche le texte (si police disponible)
@@ -89,7 +82,5 @@ namespace Vue
         {
             fenetre.draw(joueurDetecteText);
         }
-
-        fenetre.display();
     }
 }
