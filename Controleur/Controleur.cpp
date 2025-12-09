@@ -2,24 +2,64 @@
 #include <SFML/Window.hpp>
 #include "Modele.h"
 #include "Vue.h"
-#include <cmath>    // Nécessaire pour std::sqrt
-#include <iostream> // Ajouté pour std::cout
+#include "HomePage.h"
+#include "DialogueManager.h"
+#include <cmath>
+#include <iostream>
 
 namespace Controleur
 {
-    // DÉFINITION : Constructeur
+    // Constructeur
     Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
         : modele(modele), vue(vue),
-          // Ouvre en plein écran sur la résolution du bureau
           fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen),
           mouvement(0.f, 0.f)
     {
         fenetre.setFramerateLimit(60);
     }
 
+    // Affiche le menu d'accueil (importé de ProjetJeu)
+    void Controleur::afficherMenuAccueil()
+    {
+        // Lambda pour récupérer les scores du joueur
+        auto getScores = [this]() -> std::vector<int> {
+            std::vector<int> scores(12, 0); // Placeholder: 12 niveaux avec score 0
+            return scores;
+        };
+
+        Vue::HomePage homePage(getScores);
+
+        while (fenetre.isOpen() && homePage.isActive())
+        {
+            sf::Event evenement;
+            while (fenetre.pollEvent(evenement))
+            {
+                if (evenement.type == sf::Event::Closed)
+                    fenetre.close();
+
+                if ((evenement.type == sf::Event::KeyPressed)
+                    && (evenement.key.code == sf::Keyboard::Escape))
+                    fenetre.close();
+
+                homePage.handleEvent(evenement, fenetre);
+            }
+
+            homePage.draw(fenetre);
+        }
+
+        fenetre.setFramerateLimit(60);
+    }
+
     // DÉFINITION : Boucle principale
     void Controleur::gererBoucle()
     {
+        afficherMenuAccueil();
+
+        Vue::DialogueManager dialogueManager;
+
+        sf::Clock fpsTimer;
+        int fpsFrames = 0;
+
         while (fenetre.isOpen())
         {
             sf::Event evenement;
@@ -32,18 +72,41 @@ namespace Controleur
                     && (evenement.key.code == sf::Keyboard::Escape))
                 {   fenetre.close();    }
 
-                vue.handleEvent(evenement, fenetre);
+                dialogueManager.handleEvent(evenement);
             }
 
-            if (!vue.isMenuActive())
+            fenetre.clear(sf::Color::Black);
+
+            // Lancer le dialogue UNE SEULE FOIS si collision ET flag pas encore activé
+            if (modele.isCollisionDetectee() && !modele.isJoueurDetecte())
+            {
+                dialogueManager.startDialogueSequence("agent_detected");
+                modele.setJoueurDetecte(true);
+            }
+
+            // Geler le gameplay si un dialogue est actif
+            if (!dialogueManager.isDialogueActive())
             {
                 gererEntree();
                 mettreAJour();
                 modele.mettreAJourObstacles();
-                verifierPorte(); // Nouvelle méthode pour vérifier le changement de pièce
+                verifierPorte();
             }
 
             vue.dessiner(fenetre);
+
+            dialogueManager.update(fenetre.getSize());
+            dialogueManager.draw(fenetre);
+
+            fenetre.display();
+
+            ++fpsFrames;
+            if (fpsTimer.getElapsedTime().asSeconds() >= 1.0f)
+            {
+                std::cout << "FPS: " << fpsFrames << std::endl;
+                fpsFrames = 0;
+                fpsTimer.restart();
+            }
         }
     }
 

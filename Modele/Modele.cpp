@@ -161,7 +161,6 @@ namespace Modele {
 
 
         // --- Chargement de la spritesheet du joueur ---
-        // Chemin attendu : cmake-build-debug/Asset/Human/james_adams_textures.png
         const std::vector<std::string> tryPlayerPaths = {
             "cmake-build-debug/Asset/Human/james_adams_textures.png",
             "Asset/Human/james_adams_textures.png",
@@ -170,10 +169,16 @@ namespace Modele {
         };
         bool playerLoaded = false;
         for (const auto& p : tryPlayerPaths) {
-            if (playerTexture.loadFromFile(p)) { playerLoaded = true; break; }
+            if (playerTexture.loadFromFile(p)) {
+                playerLoaded = true;
+                std::cout << "[DEBUG] Spritesheet joueur chargée : " << p << std::endl;
+                break;
+            } else {
+                std::cout << "[DEBUG] Echec chargement spritesheet joueur : " << p << std::endl;
+            }
         }
         if (!playerLoaded) {
-            std::cerr << "Avertissement: impossible de charger la spritesheet joueur (james_adams_textures.png)\n";
+            std::cerr << "[DEBUG] Avertissement: impossible de charger la spritesheet joueur (james_adams_textures.png)\n";
         } else {
             playerSprite.setTexture(playerTexture);
             // Initialiser le sprite sur la frame 0 de la row par défaut (playerRow)
@@ -194,7 +199,6 @@ namespace Modele {
         }
 
         // --- Chargement de la texture de sol (Floor5.png) ---
-        // On tente quelques chemins relatifs usuels. Adaptez si nécessaire.
         bool loaded = false;
         const std::vector<std::string> tryPaths = {
             "cmake-build-debug/Asset/Floor/Floor5.png",
@@ -202,22 +206,19 @@ namespace Modele {
             "Floor5.png"
         };
         for (const auto& p : tryPaths) {
-            if (floorTexture.loadFromFile(p)) { loaded = true; break; }
+            if (floorTexture.loadFromFile(p)) {
+                loaded = true;
+                std::cout << "[DEBUG] Texture sol chargée : " << p << std::endl;
+                break;
+            } else {
+                std::cout << "[DEBUG] Echec chargement texture sol : " << p << std::endl;
+            }
         }
         if (!loaded) {
-            std::cerr << "Avertissement: impossible de charger Floor5.png. Vérifiez le chemin.\n";
+            std::cerr << "[DEBUG] Avertissement: impossible de charger Floor5.png. Vérifiez le chemin.\n";
         }
 
         // --- Chargement des textures de murs (Wall1_1 .. Wall1_8) ---
-        // Hypothèse d'association (si différent, réordonnez tryPathsWall) :
-        // Wall1_1 = coin supérieur gauche
-        // Wall1_5 = mur supérieur (horizontal)
-        // Wall1_6 = coin supérieur droit
-        // Wall1_7 = mur gauche (vertical)  <-- hypothèse (le user a indiqué "mur droite" deux fois)
-        // Wall1_2 = mur droit (vertical)
-        // Wall1_3 = coin inférieur gauche
-        // Wall1_4 = mur inférieur (horizontal)
-        // Wall1_8 = coin inférieur droit
         const std::vector<std::string> tryPathsWall = {
             "cmake-build-debug/Asset/Wall/Wall1_1.png",
             "cmake-build-debug/Asset/Wall/Wall1_5.png",
@@ -232,14 +233,24 @@ namespace Modele {
         wallTextures.resize(8);
         for (size_t i = 0; i < tryPathsWall.size(); ++i)
         {
+            // Correction : chaque wallTextures[i] doit correspondre à Asset/Wall/Wall1_{i+1}.png
+            std::string assetPath = "Asset/Wall/Wall1_" + std::to_string(i+1) + ".png";
             if (!wallTextures[i].loadFromFile(tryPathsWall[i]))
             {
-                // Essayer chemins alternatifs courts si besoin
-                std::string shortPath = "Asset/Wall/Wall1_" + std::to_string(i+1) + ".png";
-                if (!wallTextures[i].loadFromFile(shortPath))
+                std::cout << "[DEBUG] Echec chargement mur : " << tryPathsWall[i] << std::endl;
+                if (!wallTextures[i].loadFromFile(assetPath))
                 {
-                    std::cerr << "Avertissement: impossible de charger " << tryPathsWall[i] << " ni " << shortPath << "\n";
+                    std::cout << "[DEBUG] Echec chargement mur : " << assetPath << std::endl;
+                    std::cerr << "[DEBUG] Avertissement: impossible de charger " << tryPathsWall[i] << " ni " << assetPath << "\n";
                 }
+                else
+                {
+                    std::cout << "[DEBUG] Texture mur chargée : " << assetPath << std::endl;
+                }
+            }
+            else
+            {
+                std::cout << "[DEBUG] Texture mur chargée : " << tryPathsWall[i] << std::endl;
             }
         }
 

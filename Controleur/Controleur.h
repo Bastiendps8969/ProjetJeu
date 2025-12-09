@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include "Modele.h"
 #include "Vue.h"
+#include "DialogueManager.h"
 
 namespace Controleur
 {
@@ -25,6 +26,9 @@ namespace Controleur
 
         // --- NOUVEAU: Vérification des portes ---
         void verifierPorte();
+
+        // --- NOUVEAU: Affichage du menu d'accueil ---
+        void afficherMenuAccueil();
 
     public:
         // Constructeur
