@@ -45,9 +45,7 @@ namespace Controleur
 
             homePage.draw(fenetre);
         }
-    }
 
-    {
         fenetre.setFramerateLimit(6000);
     }
 
