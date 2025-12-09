@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.22)
 project(TestCollision)
 
 set(CMAKE_CXX_STANDARD 20)
-changement
 # Chemin vers SFML
 set(SFML_DIR "C:/SFML/lib/cmake/SFML")
 
@@ -19,6 +18,13 @@ add_executable(TestCollision
         Controleur/Controleur.h
         Modele/Player.cpp
         Modele/Player.h
+        Modele/Modele.cpp
+        Vue/CreditsWindow.cpp
+        Vue/DialogueBox.cpp
+        Vue/DialogueManager.cpp
+        Vue/HomePage.cpp
+        Vue/LevelPage.cpp
+        Vue/ScoreWindow.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)
