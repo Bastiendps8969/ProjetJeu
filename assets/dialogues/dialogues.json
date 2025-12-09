@@ -1,0 +1,76 @@
+{
+  "dialogues": {
+    "welcome": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/john_jones.png",
+        "text": "Here is the time for your first mission.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/agent.png",
+        "text": "I'm feeling a bit nervous.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/john_jones.png",
+        "text": "Do not worry, you're trained for that.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/john_jones.png",
+        "text": "Remember, you can use ZQSD to move.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/john_jones.png",
+        "text": "And use E to interact with something.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/john_jones.png",
+        "text": "Good luck James.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/agent.png",
+        "text": "Alright, let's do it.",
+        "displayDuration": 3.0
+      }
+    ],
+    "agent_detected": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/john_jones.png",
+        "text": "You've been detected!",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/agent.png",
+        "text": "Scheiss!",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/agent.png",
+        "text": "Do you want me to restart?",
+        "displayDuration": 2.0
+      }
+    ],
+    "mission_complete": [
+      {
+        "characterName": "Guide",
+        "characterPortraitPath": "assets/portraits/guide.png",
+        "text": "Excellente performance!",
+        "displayDuration": 3.0
+      }
+    ]
+  }
+}

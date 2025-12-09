@@ -132,6 +132,14 @@ namespace Modele
 
         // Accesseurs pour détection joueur (champ de vision)
         void setJoueurDetecte(bool v) { joueurDetecte = v; }
+        bool isJoueurDetecte() const { return joueurDetecte; }
+
+        // Vérifie si le dialogue a été déclenché
+        bool hasDialogueTriggered() const { return dialogueDeclenche; }
+        // Définit l'état du déclenchement du dialogue
+        void setDialogueTriggered(bool v) { dialogueDeclenche = v; }
+        // Réinitialise l'état du déclenchement du dialogue
+        void resetDialogueTriggered() { dialogueDeclenche = false; }
         bool isJoueurDetecte() const { return joueurDetecte; } // <--- Corrigé
 
         // Exposer centre et direction avant d'un obstacle (index par défaut 0)
