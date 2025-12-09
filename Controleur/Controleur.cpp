@@ -59,6 +59,9 @@ namespace Controleur
         int fpsFrames = 0;
         bool debug_skip_obstacles = false;
 
+        //  Starting dialogue
+        dialogueManager.startDialogueSequence("welcome");
+
         while (fenetre.isOpen())
         {
             // Gestion des événements
@@ -85,6 +88,8 @@ namespace Controleur
                 dialogueManager.startDialogueSequence("agent_detected");
                 modele.setDialogueTriggered(true);
             }
+
+
 
             // Réinitialiser le flag quand le dialogue est terminé
             // if (!dialogueManager.isDialogueActive() && modele.hasDialogueTriggered())
