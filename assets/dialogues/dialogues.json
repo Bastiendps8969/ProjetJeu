@@ -1,0 +1,40 @@
+{
+  "dialogues": {
+    "agent_detected": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/agent.png",
+        "text": "Here is the time for your first mission.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James",
+        "characterPortraitPath": "C:/Users/bertr/CLionProjects/TestCollision/assets/portraits/agent.png",
+        "text": "I'm feeling a bit nervous.",
+        "displayDuration": 3.0
+      }
+    ],
+    "welcome": [
+      {
+        "characterName": "Guide",
+        "characterPortraitPath": "assets/portraits/agent.png",
+        "text": "Bienvenue dans le jeu!",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "Guide",
+        "characterPortraitPath": "assets/portraits/agent.png",
+        "text": "Fais attention aux obstacles!",
+        "displayDuration": 2.0
+      }
+    ],
+    "mission_complete": [
+      {
+        "characterName": "Guide",
+        "characterPortraitPath": "assets/portraits/guide.png",
+        "text": "Excellente performance!",
+        "displayDuration": 3.0
+      }
+    ]
+  }
+}

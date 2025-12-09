@@ -46,11 +46,7 @@ namespace Modele {
     }
 
     // Destructeur
-    Modele::~Modele()
-    {
-        for (auto obs : obstacles)
-        {   delete obs;         }
-    }
+    Modele::~Modele() = default;
 
     void Modele::mettreAJourObstacles()
     {

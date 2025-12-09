@@ -2,6 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <memory>
 
 namespace Modele
 {
@@ -12,7 +13,7 @@ namespace Modele
         sf::RectangleShape joueur;
 
         // Vecteur d'obstacles de type pointeur
-        std::vector<sf::Shape*> obstacles;
+        std::vector<std::unique_ptr<sf::Shape>> obstacles;
 
         // Vitesse de déplacement de l'obstacle
         sf::Vector2f obstacleVitesse;
@@ -23,10 +24,13 @@ namespace Modele
         float vitessePatrouille;
 
         // Indicateur de collision
-        bool collisionDetectee;
+        bool collisionDetectee = false;
 
         // Indicateur détection joueur par le champ de vision de l'obstacle
-        bool joueurDetecte;
+        bool joueurDetecte = false;
+
+        // Flag pour tracker si le dialogue a été lancé
+        bool dialogueDeclenche = false; // Flag pour empêcher relance du dialogue
 
     public:
         // Constructeur
@@ -36,8 +40,10 @@ namespace Modele
         ~Modele();
 
         // Getters
-        sf::RectangleShape& getJoueur() { return joueur; }
-        const std::vector<sf::Shape*>& getObstacles() const { return obstacles; }
+        // Retour par référence pour éviter copies coûteuses
+        const std::vector<std::unique_ptr<sf::Shape>>& getObstacles() const noexcept { return obstacles; }
+        // Retour par référence pour modifier la forme sans copier
+        sf::RectangleShape& getJoueur() noexcept { return joueur; }
 
         // Méthode pour mettre à jour la position de l'obstacle
         void mettreAJourObstacles();
@@ -49,6 +55,13 @@ namespace Modele
         // Accesseurs pour détection joueur (champ de vision)
         void setJoueurDetecte(bool v) { joueurDetecte = v; }
         bool isJoueurDetecte() const { return joueurDetecte; }
+
+        // Vérifie si le dialogue a été déclenché
+        bool hasDialogueTriggered() const { return dialogueDeclenche; }
+        // Définit l'état du déclenchement du dialogue
+        void setDialogueTriggered(bool v) { dialogueDeclenche = v; }
+        // Réinitialise l'état du déclenchement du dialogue
+        void resetDialogueTriggered() { dialogueDeclenche = false; }
 
         // Exposer centre et direction avant d'un obstacle (index par défaut 0)
         sf::Vector2f getObstacleCenter(size_t idx = 0) const;

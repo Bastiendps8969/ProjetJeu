@@ -1,5 +1,7 @@
 #include "Controleur.h"
+#include "DialogueManager.h"
 #include <SFML/Window.hpp>
+#include <iostream>
 
 namespace Controleur
 {
@@ -9,6 +11,11 @@ namespace Controleur
           // Ouvre en plein écran sur la résolution du bureau
           fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen),
           mouvement(0.f, 0.f)
+    {
+        // limiter le framerate pour éviter saccades et surchauffe
+        fenetre.setFramerateLimit(60);
+        // ou fenetre.setVerticalSyncEnabled(true);
+    }
     {}
 
     // Affiche le menu d'accueil
@@ -44,7 +51,13 @@ namespace Controleur
     // Boucle principale
     void Controleur::gererBoucle()
     {
-        // Tant que la fenêtre est ouverte
+        Vue::DialogueManager dialogueManager;
+
+        // FPS / debug helpers
+        sf::Clock fpsTimer;
+        int fpsFrames = 0;
+        bool debug_skip_obstacles = false;
+
         while (fenetre.isOpen())
         {
             // Gestion des événements
@@ -60,13 +73,51 @@ namespace Controleur
                     && (evenement.key.code == sf::Keyboard::Escape))
                 {   fenetre.close();    }
 
+                dialogueManager.handleEvent(evenement);
             }
-            // Gestion des entrées clavier
-            gererEntree();
-            // Mise à jour de la logique du jeu
-            mettreAJour();
-            // Dessin de la vue
-            vue.dessiner(fenetre);
+
+            fenetre.clear(sf::Color::Black);
+
+            // Lancer le dialogue UNE SEULE FOIS si collision ET flag pas encore activé
+            if (modele.isCollisionDetectee() && !modele.hasDialogueTriggered())
+            {
+                dialogueManager.startDialogueSequence("agent_detected");
+                modele.setDialogueTriggered(true);
+            }
+
+            // Réinitialiser le flag quand le dialogue est terminé
+            // if (!dialogueManager.isDialogueActive() && modele.hasDialogueTriggered())
+            // {
+            //     modele.resetDialogueTriggered();
+            // }
+
+            // Geler le gameplay si un dialogue est actif
+            if (!dialogueManager.isDialogueActive())
+            {
+                // Le jeu continue normalement
+                gererEntree();
+                mettreAJour();
+            }
+            // Si dialogue actif : ne pas appeler gererEntree() ni mettreAJour()
+            // => le joueur et obstacles restent immobiles
+
+            if (!debug_skip_obstacles)
+                vue.dessiner(fenetre);
+            else
+                fenetre.draw(modele.getJoueur());
+
+            dialogueManager.update(fenetre.getSize());
+            dialogueManager.draw(fenetre);
+
+            fenetre.display();
+
+            ++fpsFrames;
+            if (fpsTimer.getElapsedTime().asSeconds() >= 1.0f)
+            {
+                std::cout << "FPS: " << fpsFrames << std::endl;
+                fpsFrames = 0;
+                fpsTimer.restart();
+            }
         }
     }
     // Gestion des entrées clavier : flèches !
@@ -80,14 +131,6 @@ namespace Controleur
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
             mouvement.x -= 0.5f;
-
-        //OU if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-        //{
-        //    mouvement.x = -0.125f;
-        //    mouvement.y = 0.f;
-        //}
-
-
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
             mouvement.x = 0.5f;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
@@ -122,7 +165,8 @@ namespace Controleur
             nouveauJoueurBounds.top += mouvement.y;
 
             // Vérification des collisions avec CHAQUE obstacle
-            for (const auto& obs : modele.getObstacles())
+            const auto& obstacles = modele.getObstacles(); // cache la référence une fois
+            for (const auto& obs : obstacles)
             {
                 if (nouveauJoueurBounds.intersects(obs->getGlobalBounds()))
                 {    collision = true;
@@ -135,7 +179,7 @@ namespace Controleur
             else
             {
                 // Gestion des collisions avec les obstacles
-                for (const auto& obs : modele.getObstacles())
+                for (const auto& obs : obstacles)
                 {
                     sf::FloatRect obstacleBounds = obs->getGlobalBounds();
                     if (joueurBounds.intersects(obstacleBounds))
