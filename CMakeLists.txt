@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(TestCollision)
 
 set(CMAKE_CXX_STANDARD 20)
-
+changement
 # Chemin vers SFML
 set(SFML_DIR "C:/SFML/lib/cmake/SFML")
 
