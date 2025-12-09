@@ -1,18 +1,28 @@
 #include "Vue.h"
-
 #include <cmath>
 #include <memory> // pour std::make_unique
-
 #include "Modele.h"
+#include <iostream>
+#include <fstream>
+#include "../cmake-build-debug/json.hpp"
+using json = nlohmann::json;
+
+// Définition de PI pour le cône de vision
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 #include "HomePage.h"
 #include "Player.h"
 
 namespace Vue
 {
+    // DÉFINITION : Constructeur
     Vue::Vue(Modele::Modele& modele)
     : modele(modele)
     {
-        // charge police pour les textes de jeu (collision / détection)
+        // ... (Code de chargement de police et initialisation du menu) ...
+        // 1. Chargement de la police
+        // Le chemin peut varier sur d'autres OS.
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontCharge = true;
@@ -60,8 +70,8 @@ namespace Vue
             sf::Vector2f rightDir( c * forward.x + s * forward.y,
                                   -s * forward.x + c * forward.y );
 
-            sf::Vector2f leftPoint  = center + leftDir  * range;
-            sf::Vector2f rightPoint = center + rightDir * range;
+                sf::Vector2f leftPoint  = center + leftDir  * fovRange;
+                sf::Vector2f rightPoint = center + rightDir * fovRange;
 
             sf::ConvexShape cone;
             cone.setPointCount(3);

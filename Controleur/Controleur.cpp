@@ -1,11 +1,14 @@
 #include "Controleur.h"
 #include "DialogueManager.h"
 #include <SFML/Window.hpp>
-#include <iostream>
+#include "Modele.h"
+#include "Vue.h"
+#include <cmath>    // Nécessaire pour std::sqrt
+#include <iostream> // Ajouté pour std::cout
 
 namespace Controleur
 {
-    // Constructeur
+    // DÉFINITION : Constructeur
     Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
         : modele(modele), vue(vue),
           // Ouvre en plein écran sur la résolution du bureau
@@ -49,7 +52,7 @@ namespace Controleur
         fenetre.setFramerateLimit(6000);
     }
 
-    // Boucle principale
+    // DÉFINITION : Boucle principale
     void Controleur::gererBoucle()
     {
         Vue::DialogueManager dialogueManager;
@@ -64,15 +67,12 @@ namespace Controleur
 
         while (fenetre.isOpen())
         {
-            // Gestion des événements
             sf::Event evenement;
             while (fenetre.pollEvent(evenement))
             {
-                // Evénement de type "fermeture de fenêtre"
                 if (evenement.type == sf::Event::Closed)
                 {   fenetre.close();    }
 
-                // Evénement de type "Escape"
                 if ((evenement.type == sf::Event::KeyPressed)
                     && (evenement.key.code == sf::Keyboard::Escape))
                 {   fenetre.close();    }
@@ -103,6 +103,8 @@ namespace Controleur
                 // Le jeu continue normalement
                 gererEntree();
                 mettreAJour();
+                modele.mettreAJourObstacles();
+                verifierPorte(); // Nouvelle méthode pour vérifier le changement de pièce
             }
             // Si dialogue actif : ne pas appeler gererEntree() ni mettreAJour()
             // => le joueur et obstacles restent immobiles
@@ -164,61 +166,107 @@ namespace Controleur
         // Déclare le flag collision ici pour l'utiliser et le transmettre au modèle
         bool collision = false;
 
-        // Vérification que la nouvelle position est dans les limites de la fenêtre
-        sf::Vector2u winSize = fenetre.getSize();
-        float winW = static_cast<float>(winSize.x);
-        float winH = static_cast<float>(winSize.y);
-        if (nouvellePosition.x >= 0 && nouvellePosition.x + modele.getJoueur().getSize().x <= winW &&
-            nouvellePosition.y >= 0 && nouvellePosition.y + modele.getJoueur().getSize().y <= winH)
+        float playerW = modele.getJoueur().getSize().x;
+        float playerH = modele.getJoueur().getSize().y;
+
+        // Utilisation des dimensions de l'écran du Modèle
+        float screenW = modele.getScreenW();
+        float screenH = modele.getScreenH();
+
+
+        // ===================================
+        // A) Tenter le déplacement sur X
+        // ===================================
+        modele.getJoueur().move(deplacement.x, 0.f);
+        sf::FloatRect joueurBounds = modele.getJoueur().getGlobalBounds();
+
+        // **CORRECTION ICI : getObstacles() -> getObstacleShapes()**
+        for (const auto& obsPtr : modele.getObstacleShapes())
         {
-            // Récupération des limites actuelles du joueur
-            sf::FloatRect joueurBounds = modele.getJoueur().getGlobalBounds();
-            // Calcul des nouvelles limites du joueur après le mouvement
-            sf::FloatRect nouveauJoueurBounds = joueurBounds;
-            nouveauJoueurBounds.left += mouvement.x;
-            nouveauJoueurBounds.top += mouvement.y;
-
-            for (const auto& obs : modele.getObstacles())
+            if (modele.getJoueur().getGlobalBounds().intersects(obsPtr->getGlobalBounds()))
             {
-                if (nouveauJoueurBounds.intersects(obs->getGlobalBounds()))
-                {
-                    collision = true;
-                    break;
-                }
+                // Collision sur X. Annuler le mouvement X et replacer le joueur
+                sf::FloatRect obstacleBounds = obsPtr->getGlobalBounds();
+                if (deplacement.x > 0) // Mouvement vers la droite
+                    modele.getJoueur().setPosition(obstacleBounds.left - playerW, modele.getJoueur().getPosition().y);
+                else // Mouvement vers la gauche
+                    modele.getJoueur().setPosition(obstacleBounds.left + obstacleBounds.width, modele.getJoueur().getPosition().y);
+
+                collision = true;
+                break;
             }
+        }
 
-            if (!collision)
+        // Vérification des limites de la carte sur X (Clamping)
+        joueurBounds = modele.getJoueur().getGlobalBounds();
+        if (joueurBounds.left < 0) {
+            modele.getJoueur().setPosition(0.f, modele.getJoueur().getPosition().y);
+            collision = true;
+        } else if (joueurBounds.left + playerW > screenW) {
+            modele.getJoueur().setPosition(screenW - playerW, modele.getJoueur().getPosition().y);
+            collision = true;
+        }
+
+
+        // ===================================
+        // B) Tenter le déplacement sur Y
+        // ===================================
+        modele.getJoueur().move(0.f, deplacement.y);
+        joueurBounds = modele.getJoueur().getGlobalBounds(); // Mettre à jour la bounding box
+
+        // **CORRECTION ICI : getObstacles() -> getObstacleShapes()**
+        for (const auto& obsPtr : modele.getObstacleShapes())
+        {
+            if (modele.getJoueur().getGlobalBounds().intersects(obsPtr->getGlobalBounds()))
             {
-                modele.getJoueur().setPosition(nouvellePosition);
+                // Collision sur Y. Annuler le mouvement Y.
+                sf::FloatRect obstacleBounds = obsPtr->getGlobalBounds();
+                if (deplacement.y > 0) // Mouvement vers le bas
+                    modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top - playerH);
+                else // Mouvement vers le haut
+                    modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top + obstacleBounds.height);
+
+                collision = true;
+                break;
+            }
+        }
+
+        // Vérification des limites de la carte sur Y (Clamping)
+        joueurBounds = modele.getJoueur().getGlobalBounds();
+        if (joueurBounds.top < 0) {
+            modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, 0.f);
+            collision = true;
+        } else if (joueurBounds.top + playerH > screenH) {
+            modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, screenH - playerH);
+            collision = true;
+        } // FIN de la gestion des limites Y
+
+        // Transmet l'état de collision au modèle
+        modele.setCollisionDetectee(collision);
+
+        // Détermine si le joueur bouge (après normalisation)
+        bool isMoving = (std::abs(deplacement.x) > 0.001f || std::abs(deplacement.y) > 0.001f);
+
+        // Définir la direction d'animation selon le vecteur de déplacement
+        if (isMoving)
+        {
+            // Prioriser l'axe dominant
+            if (std::abs(deplacement.x) > std::abs(deplacement.y))
+            {
+                if (deplacement.x > 0) modele.setPlayerDirection(4); // 4 = right
+                else modele.setPlayerDirection(2); // 2 = left
             }
             else
             {
-                // Ajustements post-collision
-                for (const auto& obs : modele.getObstacles())
-                {
-                    sf::FloatRect obstacleBounds = obs->getGlobalBounds();
-                    if (joueurBounds.intersects(obstacleBounds))
-                    {
-                        // Ajustement de la position du joueur en fonction de la direction du mouvement
-                        if (mouvement.x > 0)
-                            modele.getJoueur().setPosition(obstacleBounds.left - joueurBounds.width, modele.getJoueur().getPosition().y);
-                        if (mouvement.x < 0)
-                            modele.getJoueur().setPosition(obstacleBounds.left + obstacleBounds.width, modele.getJoueur().getPosition().y);
-                        if (mouvement.y > 0)
-                            modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top - joueurBounds.height);
-                        if (mouvement.y < 0)
-                            modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top + obstacleBounds.height);
-                    }
-                }
+                if (deplacement.y < 0) modele.setPlayerDirection(1); // 1 = up (Y négatif vers le haut)
+                else modele.setPlayerDirection(3); // 3 = down
             }
         }
-        else
-        {
-            // Hors limites de la fenêtre -> pas une collision avec obstacle par défaut
-            collision = false;
-        }
 
-        // Transmet l'état de collision au modèle (ne pas écraser une collision déjà vraie)
-        modele.setCollisionDetectee(collision || modele.isCollisionDetectee());
-    }
-}
+        // Mettre à jour l'animation du joueur (fait avancer la frame si moving)
+        modele.updatePlayerAnimation(isMoving);
+
+        // Synchroniser le sprite interne du modèle (échelle + position)
+        modele.syncPlayerSprite();
+    } // FIN de la fonction mettreAJour()
+} // FIN du namespace Controleur
