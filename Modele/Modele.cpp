@@ -135,12 +135,12 @@ namespace Modele {
 
     // Constructeur : toutes les variables membres sont maintenant initialisées
     Modele::Modele()
-        : currentRoomIndex_(-1),
-          collisionDetectee(false),
-          joueurDetecte(false),
-          pointCibleIndex(0),
-          vitessePatrouille(0.125f),
-          obstacleVitesse(0.3f, 0.2f)
+    : currentRoomIndex_(-1),
+      collisionDetectee(false),
+      joueurDetecte(false),
+      pointCibleIndex(0),
+      vitessePatrouille(0.125f),
+      obstacleVitesse(0.3f, 0.2f)
     {
         // Détermine la résolution du bureau
         sf::VideoMode dm = sf::VideoMode::getDesktopMode();
@@ -150,8 +150,48 @@ namespace Modele {
         float boxSize = std::max(8.f, std::min(screenW, screenH) * 0.08f);
 
         // Création du rectangle joueur
-        joueur.setSize(sf::Vector2f(boxSize, boxSize));
+        float playerCollisionW = boxSize * playerSpriteDisplayScaleX;
+        float playerCollisionH = boxSize * playerSpriteDisplayScaleY;
+        const float HITBOX_REDUCTION_FACTOR = 0.8f;
+        joueur.setSize(sf::Vector2f(
+            boxSize * HITBOX_REDUCTION_FACTOR,
+            boxSize * HITBOX_REDUCTION_FACTOR
+        ));
         joueur.setFillColor(sf::Color::Green);
+
+
+        // --- Chargement de la spritesheet du joueur ---
+        // Chemin attendu : cmake-build-debug/Asset/Human/james_adams_textures.png
+        const std::vector<std::string> tryPlayerPaths = {
+            "cmake-build-debug/Asset/Human/james_adams_textures.png",
+            "Asset/Human/james_adams_textures.png",
+            "Human/james_adams_textures.png",
+            "james_adams_textures.png"
+        };
+        bool playerLoaded = false;
+        for (const auto& p : tryPlayerPaths) {
+            if (playerTexture.loadFromFile(p)) { playerLoaded = true; break; }
+        }
+        if (!playerLoaded) {
+            std::cerr << "Avertissement: impossible de charger la spritesheet joueur (james_adams_textures.png)\n";
+        } else {
+            playerSprite.setTexture(playerTexture);
+            // Initialiser le sprite sur la frame 0 de la row par défaut (playerRow)
+            playerFrameIndex = 0;
+            playerClock.restart();
+            // Définit la zone initiale (en tenant compte du zoom)
+            playerSprite.setTextureRect(computePlayerTextureRect());
+            // Origine initiale au centre du recadrage (sera mise à jour dans syncPlayerSprite)
+            // note: origin en px du recadrage sera défini dans syncPlayerSprite()
+            playerSprite.setOrigin(0.f, 0.f);
+
+            // position temporaire centrée sur le rectangle joueur
+            sf::Vector2f ppos = joueur.getPosition();
+            playerSprite.setPosition(ppos.x + joueur.getSize().x/2.f, ppos.y + joueur.getSize().y/2.f);
+
+            // Mettre à l'échelle le sprite pour remplir la taille du RectangleShape joueur
+            syncPlayerSprite();
+        }
 
         // --- Chargement de la texture de sol (Floor5.png) ---
         // On tente quelques chemins relatifs usuels. Adaptez si nécessaire.
@@ -445,4 +485,132 @@ namespace Modele {
         else
             return sf::Vector2f(1.f, 0.f);
     }
+
+    // Calcule la textureRect (recadrée au centre) pour la frame courante selon playerTextureZoom.
+    // NOTE: les frames de déplacement sont sur les rows 1..4 ; les frames "idle" (2 frames)
+    // sont sur les rows 5..8 (i.e. playerRow + 4), colonnes 0..idleFrameCount-1.
+    sf::IntRect Modele::computePlayerTextureRect() const
+    {
+        int frameSize = playerTileSize;
+        int cropSize = static_cast<int>(std::round(frameSize / playerTextureZoom));
+        if (cropSize < 1) cropSize = 1;
+
+        int movementFramesCount = std::max(1, playerFrameCount - idleFrameCount);
+        int col = 0;
+        int rowIndex = std::max(0, playerRow - 1);
+
+        if (playerIsMoving)
+        {
+            // colonne issue des frames de déplacement (0 .. movementFramesCount-1)
+            col = playerFrameIndex % movementFramesCount;
+            rowIndex = std::max(0, playerRow - 1); // 0..3
+        }
+        else
+        {
+            // idle -> utiliser la ligne idle (playerRow + 4 -> 4..7) et les colonnes 0..idleFrameCount-1
+            int idleCols = std::max(1, idleFrameCount);
+            col = playerFrameIndex % idleCols;
+            rowIndex = std::max(0, playerRow - 1) + 4;
+        }
+
+        int frameX = col * frameSize;
+        int frameY = rowIndex * frameSize;
+
+        int offsetX = frameX + (frameSize - cropSize) / 2;
+        int offsetY = frameY + (frameSize - cropSize) / 2;
+        return sf::IntRect(offsetX, offsetY, cropSize, cropSize);
+    }
+
+    void Modele::setPlayerDirection(int row)
+    {
+        if (row < 1) row = 1;
+        if (row > 4) row = 4;
+        if (playerRow != row) {
+            playerRow = row;
+            playerFrameIndex = 0;
+            playerClock.restart();
+            if (playerTexture.getSize().x > 0)
+                playerSprite.setTextureRect(computePlayerTextureRect());
+        }
+    }
+
+    void Modele::updatePlayerAnimation(bool moving)
+    {
+        if (playerTexture.getSize().x == 0) return; // pas de texture
+
+        int movementFramesCount = std::max(1, playerFrameCount - idleFrameCount);
+        int idleCols = std::max(1, idleFrameCount);
+
+        // choisir la durée selon l'état (moving vs idle)
+        float frameDuration = moving ? playerFrameDuration : playerIdleFrameDuration;
+        float elapsed = playerClock.getElapsedTime().asSeconds();
+
+        // Si changement d'état, réinitialiser l'index de frame
+        if (moving != playerIsMoving)
+        {
+            playerIsMoving = moving;
+            playerFrameIndex = 0;
+            playerSprite.setTextureRect(computePlayerTextureRect());
+            playerClock.restart();
+            // continuer pour permettre incrément immédiat si elapsed >= duration
+        }
+
+        if (playerIsMoving)
+        {
+            if (elapsed >= playerFrameDuration)
+            {
+                playerFrameIndex = (playerFrameIndex + 1) % movementFramesCount;
+                playerSprite.setTextureRect(computePlayerTextureRect());
+                playerClock.restart();
+            }
+        }
+        else // idle
+        {
+            if (idleCols <= 0)
+            {
+                playerFrameIndex = 0;
+                playerSprite.setTextureRect(computePlayerTextureRect());
+                playerClock.restart();
+                return;
+            }
+
+            if (elapsed >= playerIdleFrameDuration)
+            {
+                playerFrameIndex = (playerFrameIndex + 1) % idleCols;
+                playerSprite.setTextureRect(computePlayerTextureRect());
+                playerClock.restart();
+            }
+        }
+    }
+
+    // Synchronise l'échelle et position du sprite du joueur pour remplir la taille du RectangleShape joueur
+    void Modele::syncPlayerSprite()
+    {
+        if (playerTexture.getSize().x == 0) return;
+        // Taille du rectangle joueur (la Hitbox réduite)
+        sf::Vector2f size = joueur.getSize();
+        // Taille du recadrage courant (crop)
+        sf::IntRect rect = computePlayerTextureRect();
+        int cropSize = rect.width; // square crop
+
+        // Taille affichée souhaitée (maintenant égale à la taille de la Hitbox puisque scale = 1.0f)
+        float displayW = size.x * playerSpriteDisplayScaleX; // 👈 Ceci utilise 1.0f
+        float displayH = size.y * playerSpriteDisplayScaleY; // 👈 Ceci utilise 1.0f
+
+        // Calculer l'échelle nécessaire pour mapper la zone recadrée (cropSize) à la taille affichée
+        float sx = displayW / static_cast<float>(cropSize);
+        float sy = displayH / static_cast<float>(cropSize);
+        playerSprite.setScale(sx, sy);
+
+        // Origine au centre du recadrage (en coordonnées texture avant scale)
+        playerSprite.setOrigin(static_cast<float>(cropSize) * 0.5f, static_cast<float>(cropSize) * 0.5f);
+
+        // Positionner le sprite centré sur le RectangleShape (la Hitbox)
+        sf::Vector2f pos = joueur.getPosition();
+        playerSprite.setPosition(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f); // 👈 Centrage
+    }
+
+    // Helper: sync playerSprite position to rectangle joueur (call this if joueur moved)
+    // We'll update sprite position from Controleur after movement.
+    void syncPlayerSpritePosition(Modele& m); // forward decl (no-op here)
 }

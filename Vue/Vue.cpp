@@ -2,6 +2,9 @@
 #include <cmath>
 #include "Modele.h"
 #include <iostream>
+#include <fstream>
+#include "../cmake-build-debug/json.hpp"
+using json = nlohmann::json;
 
 // Définition de PI pour le cône de vision
 #ifndef M_PI
@@ -101,71 +104,160 @@ namespace Vue
                                 playLabel.getLocalBounds().top + playLabel.getLocalBounds().height / 2.0f);
             playLabel.setPosition(playButton.getPosition());
         }
-    }
 
-    // DÉFINITION : Méthode de dessin principale
-    void Vue::dessiner(sf::RenderWindow& fenetre)
-    {
-        fenetre.clear(sf::Color(30, 30, 30)); // Fond gris foncé
-
-        if (menuActif)
+        // --- Charger dialogues depuis dialogue.json (nouveau format: { "events": { "start_game": [...] } }) ---
         {
-            // --- Dessiner le Menu de Démarrage ---
-            fenetre.draw(titleText);
-            fenetre.draw(inputBox);
-            fenetre.draw(inputText);
-            fenetre.draw(playButton);
-            fenetre.draw(playLabel);
-        }
-        else
-        {
-            // --- Dessiner le Jeu ---
-
-            // 0) Dessiner la grille de tuiles du sol (matrice)
+            std::ifstream f("dialogue.json");
+            if (f.is_open())
             {
-                const auto& matrix = modele.getFloorMatrix();
-                const sf::Texture& tex = modele.getFloorTexture();
-                const auto& wallTexs = modele.getWallTextures();
-                int tileSize = modele.getTileSize();
-                if (!matrix.empty())
-                {
-                    sf::Sprite tileSprite;
-                    // Floor sprite
-                    bool hasFloor = (tex.getSize().x > 0);
-                    if (hasFloor) tileSprite.setTexture(tex);
-                    // Wall sprite (we'll setTexture per tile)
-                    for (size_t r = 0; r < matrix.size(); ++r)
+                try {
+                    json j; f >> j;
+                    if (j.is_object())
                     {
-                        for (size_t c = 0; c < matrix[r].size(); ++c)
+                        // Nouveau format : events.start_game
+                        if (j.contains("events") && j["events"].is_object())
                         {
-                            int val = matrix[r][c];
-                            if (val == 1 && hasFloor)
+                            const auto& events = j["events"];
+                            if (events.contains("start_game") && events["start_game"].is_array())
                             {
-                                float sx = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().x);
-                                float sy = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().y);
-                                tileSprite.setScale(sx, sy);
-                                tileSprite.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
-                                fenetre.draw(tileSprite);
-                            }
-                            else if (val >= 11 && val <= 18)
-                            {
-                                int wi = val - 11;
-                                if (wi >= 0 && static_cast<size_t>(wi) < wallTexs.size() && wallTexs[wi].getSize().x > 0)
+                                for (const auto& el : events["start_game"])
                                 {
-                                    sf::Sprite w;
-                                    w.setTexture(wallTexs[wi]);
-                                    float sx = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().x);
-                                    float sy = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().y);
-                                    w.setScale(sx, sy);
-                                    w.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
-                                    fenetre.draw(w);
+                                    if (el.is_string()) dialogues.emplace_back(el.get<std::string>());
+                                    else if (el.is_object() && el.contains("text") && el["text"].is_string())
+                                        dialogues.emplace_back(el["text"].get<std::string>());
                                 }
                             }
                         }
+                        // Compatibilité : ancien format top-level "dialogs"
+                        else if (j.contains("dialogs") && j["dialogs"].is_array())
+                        {
+                            for (const auto& el : j["dialogs"])
+                            {
+                                if (el.is_string()) dialogues.emplace_back(el.get<std::string>());
+                                else if (el.is_object() && el.contains("text") && el["text"].is_string())
+                                    dialogues.emplace_back(el["text"].get<std::string>());
+                            }
+                        }
+                        dialoguesLoaded = !dialogues.empty();
                     }
+                } catch (const std::exception& e) {
+                } catch (...) {
                 }
+            } else {
             }
 
+            // Fallback : si le JSON n'a pas été chargé, proposer des dialogues par défaut
+            if (!dialoguesLoaded)
+            {
+                dialogues = {
+                    "Dialogue par défault : Bienvenue, aventurier. Appuyez sur une touche ou cliquez pour avancer.",
+                    "Cette demeure cache bien des secrets. Explorez prudemment.",
+                    "Utilisez ZSQD pour vous déplacer. Bonne chance !"
+                };
+                dialoguesLoaded = true;
+            }
+ 
+             // Préparer la boîte de dialogue (position/forme/texte)
+             if (fontCharge)
+             {
+                 sf::VideoMode dm = sf::VideoMode::getDesktopMode();
+                 float W = static_cast<float>(dm.width);
+                 float H = static_cast<float>(dm.height);
+ 
+                 dialogBox.setSize(sf::Vector2f(W * 0.92f, H * 0.18f));
+                 dialogBox.setFillColor(sf::Color(0, 0, 0, 200)); // fond sombre, semi-transparent
+                 dialogBox.setOutlineColor(sf::Color(255,255,255,40));
+                 dialogBox.setOutlineThickness(2.f);
+                 dialogBox.setPosition(W * 0.04f, H - dialogBox.getSize().y - 30.f);
+ 
+                 dialogText.setFont(font);
+                 dialogText.setCharacterSize(24);
+                 dialogText.setFillColor(sf::Color::White);
+                 dialogText.setStyle(sf::Text::Regular);
+                 dialogText.setPosition(dialogBox.getPosition().x + 20.f, dialogBox.getPosition().y + 12.f);
+                 dialogText.setString("");
+             }
+         }
+     }
+ 
+     // DÉFINITION : Méthode de dessin principale
+     void Vue::dessiner(sf::RenderWindow& fenetre)
+     {
+         fenetre.clear(sf::Color(30, 30, 30)); // Fond gris foncé
+ 
+         if (menuActif)
+         {
+             // --- Dessiner le Menu de Démarrage ---
+             fenetre.draw(titleText);
+             fenetre.draw(inputBox);
+             fenetre.draw(inputText);
+             fenetre.draw(playButton);
+             fenetre.draw(playLabel);
+         }
+         else
+         {
+            // Lancer le premier dialogue automatiquement une seule fois après sortie du menu
+            // uniquement si la sortie du menu a été effectuée via le bouton JOUER
+            if (dialoguesLoaded && !dialogStarted && startedByPlayButton)
+            {
+                dialogStarted = true;
+                dialogActive = true;
+                currentDialogueIndex = 0;
+                if (!dialogues.empty()) {
+                    dialogText.setString(dialogues[0]);
+                    dialogClock.restart();
+                } else {
+                    dialogActive = false;
+                }
+            }
+ 
+             // --- Dessiner le Jeu ---
+ 
+             // 0) Dessiner la grille de tuiles du sol (matrice)
+             {
+                 const auto& matrix = modele.getFloorMatrix();
+                 const sf::Texture& tex = modele.getFloorTexture();
+                 const auto& wallTexs = modele.getWallTextures();
+                 int tileSize = modele.getTileSize();
+                 if (!matrix.empty())
+                 {
+                     sf::Sprite tileSprite;
+                     // Floor sprite
+                     bool hasFloor = (tex.getSize().x > 0);
+                     if (hasFloor) tileSprite.setTexture(tex);
+                     // Wall sprite (we'll setTexture per tile)
+                     for (size_t r = 0; r < matrix.size(); ++r)
+                     {
+                         for (size_t c = 0; c < matrix[r].size(); ++c)
+                         {
+                             int val = matrix[r][c];
+                             if (val == 1 && hasFloor)
+                             {
+                                 float sx = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().x);
+                                 float sy = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().y);
+                                 tileSprite.setScale(sx, sy);
+                                 tileSprite.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
+                                 fenetre.draw(tileSprite);
+                             }
+                             else if (val >= 11 && val <= 18)
+                             {
+                                 int wi = val - 11;
+                                 if (wi >= 0 && static_cast<size_t>(wi) < wallTexs.size() && wallTexs[wi].getSize().x > 0)
+                                 {
+                                     sf::Sprite w;
+                                     w.setTexture(wallTexs[wi]);
+                                     float sx = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().x);
+                                     float sy = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().y);
+                                     w.setScale(sx, sy);
+                                     w.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
+                                     fenetre.draw(w);
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }
+ 
             // 1. Dessine le champ de vision de l'obstacle
             // **CORRECTION ICI : getObstacles() -> getObstacleShapes()**
             if (modele.getObstacleShapes().size() > 0)
@@ -205,7 +297,17 @@ namespace Vue
             {   fenetre.draw(*obsPtr); }
 
             // 3. Dessine le rectangle joueur
-            fenetre.draw(modele.getJoueur());
+            // Dessin du sprite animé si disponible, sinon fallback au rectangle
+            const sf::Sprite& ps = modele.getPlayerSprite();
+            if (ps.getTexture() && ps.getTexture()->getSize().x > 0)
+            {
+                // Le sprite interne a déjà été synchronisé (scale + position)
+                fenetre.draw(ps);
+            }
+            else
+            {
+                fenetre.draw(modele.getJoueur());
+            }
 
             // 4. Dessine les portes (visuel)
             for (const auto& door : modele.getCurrentRoomDoors())
@@ -224,6 +326,19 @@ namespace Vue
             if (fontCharge && modele.isJoueurDetecte())
             {
                  fenetre.draw(joueurDetecteText);
+            }
+
+            // 5bis. Dessiner la boîte de dialogue en bas si active
+            if (dialogActive && fontCharge)
+            {
+                fenetre.draw(dialogBox);
+                fenetre.draw(dialogText);
+
+                // auto-advance si le temps est écoulé
+                if (dialogClock.getElapsedTime().asSeconds() >= dialogDisplayDuration)
+                {
+                    advanceDialogue();
+                }
             }
         }
 
@@ -247,6 +362,20 @@ namespace Vue
                         if (!playerName.empty())
                         {
                             menuActif = false;
+                            // Indiquer que la sortie du menu provient du clic sur JOUER
+                            startedByPlayButton = true;
+                            // Lancer immédiatement le premier dialogue si on en a
+                            if (dialoguesLoaded && !dialogues.empty())
+                            {
+                                dialogStarted = true;
+                                dialogActive = true;
+                                currentDialogueIndex = 0;
+                                // repositionner le texte au cas où
+                                dialogText.setPosition(dialogBox.getPosition().x + 20.f, dialogBox.getPosition().y + 12.f);
+                                dialogText.setString(dialogues[0]);
+                                dialogClock.restart();
+                            } else {
+                            }
                         } else {
                             // Afficher un message d'erreur si le nom est vide
                             titleText.setString("Entrez un nom pour jouer!");
@@ -298,5 +427,34 @@ namespace Vue
                 }
             }
         }
+        else
+        {
+            // si boîte de dialogue active, avancer au clic ou à la touche
+            if (dialogActive)
+            {
+                if (event.type == sf::Event::MouseButtonPressed || event.type == sf::Event::KeyPressed || event.type == sf::Event::TouchBegan)
+                {
+                    advanceDialogue();
+                    return; // consommer l'évènement pour éviter actions simultanées
+                }
+            }
+        }
     }
+
+    // Implémentation de l'avance de dialogue
+    void Vue::advanceDialogue()
+    {
+        if (!dialoguesLoaded) return;
+        currentDialogueIndex++;
+        if (currentDialogueIndex >= dialogues.size())
+        {
+            dialogActive = false; // fini
+        }
+        else
+        {
+            dialogText.setString(dialogues[currentDialogueIndex]);
+            dialogClock.restart();
+        }
+    }
+
 }

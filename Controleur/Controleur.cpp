@@ -199,5 +199,30 @@ namespace Controleur
 
         // Transmet l'état de collision au modèle
         modele.setCollisionDetectee(collision);
+
+        // Détermine si le joueur bouge (après normalisation)
+        bool isMoving = (std::abs(deplacement.x) > 0.001f || std::abs(deplacement.y) > 0.001f);
+
+        // Définir la direction d'animation selon le vecteur de déplacement
+        if (isMoving)
+        {
+            // Prioriser l'axe dominant
+            if (std::abs(deplacement.x) > std::abs(deplacement.y))
+            {
+                if (deplacement.x > 0) modele.setPlayerDirection(4); // 4 = right
+                else modele.setPlayerDirection(2); // 2 = left
+            }
+            else
+            {
+                if (deplacement.y < 0) modele.setPlayerDirection(1); // 1 = up (Y négatif vers le haut)
+                else modele.setPlayerDirection(3); // 3 = down
+            }
+        }
+
+        // Mettre à jour l'animation du joueur (fait avancer la frame si moving)
+        modele.updatePlayerAnimation(isMoving);
+
+        // Synchroniser le sprite interne du modèle (échelle + position)
+        modele.syncPlayerSprite();
     } // FIN de la fonction mettreAJour()
 } // FIN du namespace Controleur
