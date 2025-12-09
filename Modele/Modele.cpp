@@ -594,8 +594,8 @@ namespace Modele {
         int cropSize = rect.width; // square crop
 
         // Taille affichée souhaitée (maintenant égale à la taille de la Hitbox puisque scale = 1.0f)
-        float displayW = size.x * playerSpriteDisplayScaleX; // 👈 Ceci utilise 1.0f
-        float displayH = size.y * playerSpriteDisplayScaleY; // 👈 Ceci utilise 1.0f
+        float displayW = size.x * playerSpriteDisplayScaleX;
+        float displayH = size.y * playerSpriteDisplayScaleY;
 
         // Calculer l'échelle nécessaire pour mapper la zone recadrée (cropSize) à la taille affichée
         float sx = displayW / static_cast<float>(cropSize);
@@ -607,7 +607,7 @@ namespace Modele {
 
         // Positionner le sprite centré sur le RectangleShape (la Hitbox)
         sf::Vector2f pos = joueur.getPosition();
-        playerSprite.setPosition(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f); // 👈 Centrage
+        playerSprite.setPosition(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f);
     }
 
     // Helper: sync playerSprite position to rectangle joueur (call this if joueur moved)
