@@ -16,7 +16,6 @@ namespace Controleur
         fenetre.setFramerateLimit(60);
         // ou fenetre.setVerticalSyncEnabled(true);
     }
-    {}
 
     // Affiche le menu d'accueil
     void Controleur::afficherMenuAccueil()

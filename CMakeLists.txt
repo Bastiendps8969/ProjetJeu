@@ -30,8 +30,8 @@ add_executable(TestCollision
         Vue/HomePage.cpp
         Vue/ScoreWindow.cpp
         Vue/CreditsWindow.cpp
-
-        Controleur/Controleur.cpp
+        Vue/DialogueManager.cpp
+        Vue/DialogueBox.cpp
 )
 
 # Inclusion des headers

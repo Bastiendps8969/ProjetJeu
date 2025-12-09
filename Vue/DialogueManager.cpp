@@ -12,66 +12,66 @@ namespace Vue
 
     void DialogueManager::loadDialoguesFromJSON(const std::string& filePath)
     {
-        try
+        namespace fs = std::filesystem;
+
+        // chemins candidats (relatif à l'exécutable / repo)
+        std::vector<fs::path> candidates = {
+            filePath,
+            "assets/dialogues/dialogues.json",
+            fs::current_path() / "assets/dialogues/dialogues.json",
+            fs::current_path().parent_path() / "assets/dialogues/dialogues.json",
+            fs::path(__FILE__).parent_path().parent_path() / "assets/dialogues/dialogues.json"
+        };
+
+        std::ifstream file;
+        fs::path foundPath;
+
+        std::cerr << "DialogueManager: cwd=" << fs::current_path() << std::endl;
+        for (const auto& p : candidates)
         {
-            // Essayer plusieurs chemins possibles
-            std::vector<std::string> possiblePaths = {
-                filePath,
-                "../" + filePath,
-                "../../" + filePath,
-                "C:/Users/bertr/CLionProjects/TestCollision/" + filePath
-            };
-
-            std::ifstream file;
-            std::string foundPath;
-
-            for (const auto& path : possiblePaths)
+            std::error_code ec;
+            if (p.empty()) continue;
+            fs::path abs = fs::absolute(p, ec);
+            if (!ec && fs::exists(abs))
             {
-                file.open(path);
+                file.open(abs.string());
                 if (file.is_open())
                 {
-                    foundPath = path;
-                    std::cout << "Fichier JSON trouvé: " << foundPath << std::endl;
+                    foundPath = abs;
+                    std::cout << "DialogueManager: using JSON " << abs << std::endl;
                     break;
                 }
             }
-
-            if (!file.is_open())
-            {
-                std::cerr << "Erreur: impossible d'ouvrir le fichier JSON" << std::endl;
-                std::cerr << "Répertoire courant: " << std::filesystem::current_path() << std::endl;
-                return;
-            }
-
-            json jsonData;
-            file >> jsonData;
-            file.close();
-
-            // Parcourir chaque séquence de dialogues
-            for (auto& [sequenceId, dialogueArray] : jsonData["dialogues"].items())
-            {
-                std::vector<DialogueData> sequence;
-
-                for (const auto& dialogueObj : dialogueArray)
-                {
-                    DialogueData dialogue;
-                    dialogue.characterName = dialogueObj["characterName"].get<std::string>();
-                    dialogue.characterPortraitPath = dialogueObj["characterPortraitPath"].get<std::string>();
-                    dialogue.text = dialogueObj["text"].get<std::string>();
-                    dialogue.displayDuration = dialogueObj["displayDuration"].get<float>();
-
-                    sequence.push_back(dialogue);
-                }
-
-                addDialogueSequence(sequenceId, sequence);
-            }
-
-            std::cout << "Dialogues chargés avec succès depuis " << foundPath << std::endl;
         }
-        catch (const std::exception& e)
+
+        if (!file.is_open())
         {
-            std::cerr << "Erreur lors du chargement des dialogues: " << e.what() << std::endl;
+            std::cerr << "DialogueManager: unable to open any JSON. Tried paths:" << std::endl;
+            for (const auto& p : candidates) std::cerr << "  - " << p << std::endl;
+            return;
         }
+
+        // lecture JSON (inchangée)
+        json jsonData;
+        file >> jsonData;
+        file.close();
+
+        for (auto& [sequenceId, dialogueArray] : jsonData["dialogues"].items())
+        {
+            std::vector<DialogueData> sequence;
+            for (const auto& dialogueObj : dialogueArray)
+            {
+                DialogueData dialogue;
+                dialogue.characterName = dialogueObj.value("characterName", std::string());
+                dialogue.characterPortraitPath = dialogueObj.value("characterPortraitPath", std::string());
+                dialogue.text = dialogueObj.value("text", std::string());
+                dialogue.displayDuration = dialogueObj.value("displayDuration", 0.0f);
+                sequence.push_back(dialogue);
+            }
+            addDialogueSequence(sequenceId, sequence);
+        }
+
+        std::cout << "DialogueManager: loaded dialogues from " << foundPath << std::endl;
     }
 
     void DialogueManager::addDialogueSequence(const std::string& id, const std::vector<DialogueData>& sequence)
@@ -86,8 +86,8 @@ namespace Vue
         {
             currentSequenceId = sequenceId;
             currentSequenceIndex = 0;
-            sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
-            sf::Vector2u windowSize(desktopMode.width, desktopMode.height);
+            sf::VideoMode dm = sf::VideoMode::getDesktopMode();
+            sf::Vector2u windowSize(static_cast<unsigned int>(dm.width), static_cast<unsigned int>(dm.height));
             dialogueBox.startDialogue(it->second[0], windowSize);
         }
     }
@@ -95,20 +95,20 @@ namespace Vue
     void DialogueManager::nextDialogue()
     {
         auto it = dialogueSequences.find(currentSequenceId);
-        if (it != dialogueSequences.end())
+        if (it == dialogueSequences.end()) return;
+
+        currentSequenceIndex++;
+        if (currentSequenceIndex < it->second.size())
         {
-            currentSequenceIndex++;
-            if (currentSequenceIndex < it->second.size())
-            {
-                sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
-                sf::Vector2u windowSize(desktopMode.width, desktopMode.height);
-                dialogueBox.startDialogue(it->second[currentSequenceIndex], windowSize);
-            }
-            else
-            {
-                dialogueBox.endDialogue();
-                currentSequenceIndex = 0;
-            }
+            sf::VideoMode dm = sf::VideoMode::getDesktopMode();
+            sf::Vector2u windowSize(static_cast<unsigned int>(dm.width), static_cast<unsigned int>(dm.height));
+            dialogueBox.startDialogue(it->second[currentSequenceIndex], windowSize);
+        }
+        else
+        {
+            dialogueBox.endDialogue();
+            currentSequenceIndex = 0;
+            currentSequenceId.clear();
         }
     }
 
@@ -116,15 +116,14 @@ namespace Vue
     {
         if (dialogueBox.isActive())
         {
-            if ((event.type == sf::Event::MouseButtonPressed ||
-                 event.type == sf::Event::KeyPressed) &&
+            // advance on click/any key
+            if ((event.type == sf::Event::MouseButtonPressed || event.type == sf::Event::KeyPressed) &&
                 dialogueBox.shouldClose())
             {
                 nextDialogue();
                 return;
             }
         }
-
         dialogueBox.handleEvent(event);
     }
 
