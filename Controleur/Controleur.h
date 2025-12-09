@@ -33,6 +33,5 @@ namespace Controleur
 
         // Boucle principale
         void gererBoucle();
-
     };
 }

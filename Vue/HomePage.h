@@ -1,4 +1,12 @@
 #pragma once
+//
+// Created by bertr on 25-11-25.
+//
+
+#ifndef TESTCOLLISION_HOMEPAGE_H
+#define TESTCOLLISION_HOMEPAGE_H
+
+
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <functional>
@@ -55,3 +63,5 @@ namespace Vue
         void draw(sf::RenderWindow& fenetre);
     };
 }
+
+#endif //TESTCOLLISION_HOMEPAGE_H

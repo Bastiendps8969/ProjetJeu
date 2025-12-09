@@ -13,7 +13,7 @@ namespace Controleur
           mouvement(0.f, 0.f)
     {
         // limiter le framerate pour éviter saccades et surchauffe
-        fenetre.setFramerateLimit(60);
+        fenetre.setFramerateLimit(6000);
         // ou fenetre.setVerticalSyncEnabled(true);
     }
 
@@ -45,6 +45,10 @@ namespace Controleur
 
             homePage.draw(fenetre);
         }
+    }
+
+    {
+        fenetre.setFramerateLimit(6000);
     }
 
     // Boucle principale
@@ -130,12 +134,20 @@ namespace Controleur
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
             mouvement.x -= 0.5f;
+
+        //OU if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        //{
+        //    mouvement.x = -0.125f;
+        //    mouvement.y = 0.f;
+        //}
+
+
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
             mouvement.x = 0.5f;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-            mouvement.y -= 0.5;
+            mouvement.y -= 0.5f;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-            mouvement.y = 0.5;
+            mouvement.y = 0.5f;
     }
     // Mise à jour de la position du joueur et gestion des collisions
     void Controleur::mettreAJour()
@@ -149,7 +161,7 @@ namespace Controleur
         // Déclare le flag collision ici pour l'utiliser et le transmettre au modèle
         bool collision = false;
 
-        // Vérification que la nouvelle position est dans les limites de la fenêtre (adapté au fullscreen)
+        // Vérification que la nouvelle position est dans les limites de la fenêtre
         sf::Vector2u winSize = fenetre.getSize();
         float winW = static_cast<float>(winSize.x);
         float winH = static_cast<float>(winSize.y);
@@ -163,22 +175,23 @@ namespace Controleur
             nouveauJoueurBounds.left += mouvement.x;
             nouveauJoueurBounds.top += mouvement.y;
 
-            // Vérification des collisions avec CHAQUE obstacle
-            const auto& obstacles = modele.getObstacles(); // cache la référence une fois
-            for (const auto& obs : obstacles)
+            for (const auto& obs : modele.getObstacles())
             {
                 if (nouveauJoueurBounds.intersects(obs->getGlobalBounds()))
-                {    collision = true;
+                {
+                    collision = true;
                     break;
                 }
             }
-            // Si aucune collision n'est détectée, mise à jour de la position du joueur
+
             if (!collision)
-            {   modele.getJoueur().setPosition(nouvellePosition);    }
+            {
+                modele.getJoueur().setPosition(nouvellePosition);
+            }
             else
             {
-                // Gestion des collisions avec les obstacles
-                for (const auto& obs : obstacles)
+                // Ajustements post-collision
+                for (const auto& obs : modele.getObstacles())
                 {
                     sf::FloatRect obstacleBounds = obs->getGlobalBounds();
                     if (joueurBounds.intersects(obstacleBounds))
@@ -202,8 +215,7 @@ namespace Controleur
             collision = false;
         }
 
-        // Transmet l'état de collision au modèle (utilisé par la Vue)
-        // Ne pas écraser une collision déjà détectée par le modèle (obstacle -> joueur)
+        // Transmet l'état de collision au modèle (ne pas écraser une collision déjà vraie)
         modele.setCollisionDetectee(collision || modele.isCollisionDetectee());
     }
 }

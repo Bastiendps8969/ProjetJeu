@@ -1,17 +1,22 @@
 #include "Vue.h"
 
 #include <cmath>
+#include <memory> // pour std::make_unique
 
 #include "Modele.h"
+#include "HomePage.h"
+#include "Player.h"
 
 namespace Vue
 {
     Vue::Vue(Modele::Modele& modele)
     : modele(modele)
     {
+        // charge police pour les textes de jeu (collision / détection)
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontCharge = true;
+
             collisionText.setFont(font);
             collisionText.setString("Collision detectee !");
             collisionText.setCharacterSize(24);
@@ -19,6 +24,7 @@ namespace Vue
             collisionText.setStyle(sf::Text::Bold);
             collisionText.setPosition(10.f, 10.f);
 
+            // Texte pour détection joueur (sous le message de collision)
             joueurDetecteText.setFont(font);
             joueurDetecteText.setString("Joueur detecte !");
             joueurDetecteText.setCharacterSize(22);
@@ -37,16 +43,20 @@ namespace Vue
         const auto& obstacles = modele.getObstacles(); // cache la référence
         if (!obstacles.empty())
         {
+            // Récupère paramètres depuis le modèle
             sf::Vector2f center = modele.getObstacleCenter(0);
             sf::Vector2f forward = modele.getObstacleForward(0);
             float range = modele.getFovRange();
             float angleDeg = modele.getFovAngleDeg();
 
+            // Calcul des deux directions bord gauche/droite du cône
             const float pi = 3.14159265f;
             float halfRad = (angleDeg * 0.5f) * pi / 180.f;
             float c = std::cos(halfRad), s = std::sin(halfRad);
+            // rotation +half
             sf::Vector2f leftDir( c * forward.x - s * forward.y,
                                   s * forward.x + c * forward.y );
+            // rotation -half
             sf::Vector2f rightDir( c * forward.x + s * forward.y,
                                   -s * forward.x + c * forward.y );
 
@@ -68,7 +78,7 @@ namespace Vue
         fenetre.draw(modele.getJoueur());
 
         // Dessine les obstacles du vecteur
-        for (const auto& obs : obstacles)
+        for (const auto& obs : modele.getObstacles())
         {   fenetre.draw(*obs); }
 
         // Si le modèle indique une collision, affiche le texte (si police disponible)

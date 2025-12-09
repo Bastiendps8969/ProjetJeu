@@ -6,20 +6,24 @@
 
 Player::Player() {
     setPlayerName("James Adams");
-    playerScore[12] = {0};
+    for (int i = 0; i < playerName.length(); i++) {
+        playerScore[i] = 0;
+    }
 }
 
-Player::Player(std::string name) {
+Player::Player(const std::string& name) {
     setPlayerName(name);
-    playerScore[12] = {0};
+    for (int i = 0; i < playerName.length(); i++) {
+        playerScore[i] = 0;
+    }
 }
 
 Player::~Player() {
     // Todo
 }
 
-void Player::setPlayerName(std::string name) {
-    if (name != "") {
+void Player::setPlayerName(const std::string& name) {
+    if (!name.empty()) {
         playerName = name;
     }
 }
@@ -33,14 +37,16 @@ void Player::setPlayerScore(int missionIndex, int newScore) {
 std::string Player::getPlayerName() {
     return playerName;
 }
-int Player::getPlayerScore(int missionIndex) {
+int Player::getPlayerScore(int missionIndex) const {
     return playerScore[missionIndex];
 }
-int Player::getPlayerTotalScore() {
+int Player::getPlayerTotalScore() const {
     int totalScore = 0;
-    for (int i = 0; i < 12; i++) {
-        totalScore += playerScore[i];
+    for (int i : playerScore) {
+        totalScore += i;
     }
+
+    return totalScore;
 }
 
 
