@@ -5,8 +5,6 @@
 #include <map>
 #include <string>
 #include <memory>
-
-// NÉCESSAIRE: L'import spécifié par l'utilisateur
 #include "../cmake-build-debug/json.hpp"
 
 namespace Modele
