@@ -27,10 +27,11 @@ add_executable(testCollision
         Vue/LevelPage.cpp
         Vue/ScoreWindow.cpp
         Modele/Agent.cpp
+        Modele/RoomManager.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)
-target_include_directories(testCollision2 PRIVATE
+target_include_directories(testCollision PRIVATE
         Modele
         Vue
         Controleur

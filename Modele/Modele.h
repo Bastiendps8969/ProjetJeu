@@ -7,37 +7,10 @@
 #include <memory>
 #include "../cmake-build-debug/json.hpp"
 #include "Agent.h"
+#include "RoomManager.h"
 
 namespace Modele
 {
-    // Définition simplifiée d'un obstacle pour le JSON
-    struct ObstacleDefinition
-    {
-        std::string type;
-        sf::Vector2f position;
-        sf::Vector2f size;
-    };
-
-    // Définition d'une porte et de la pièce cible
-    struct Door
-    {
-        std::string direction;
-        int targetRoomIndex;
-        sf::FloatRect bounds;
-        // Utilise unique_ptr pour la forme visuelle de la porte
-        std::unique_ptr<sf::Shape> visualShape;
-    };
-
-    // Définition de la pièce
-    struct Room
-    {
-        std::string name;
-        std::vector<ObstacleDefinition> obstacleDefs;
-        std::vector<Door> doors;
-        // Utilise unique_ptr pour les formes d'obstacles physiques (murs, etc.)
-        std::vector<std::unique_ptr<sf::Shape>> obstacleShapes;
-    };
-
     class Modele
     {
     private:
@@ -85,13 +58,9 @@ namespace Modele
         bool collisionDetectee;
 
         // --- Membres de la carte/pièce ---
-        std::map<int, Room> rooms_; // <--- Ce membre était celui qui manquait
+        std::unique_ptr<RoomManager> roomManager;
         int currentRoomIndex_;      // <--- Ce membre était celui qui manquait
         float screenW, screenH;
-
-        // Méthodes privées
-        bool loadRoomsFromJson(const std::string& filename);
-        void initializeRoomShapes(Room& room);
 
         // Constantes de porte
         const float DOOR_SIZE = 120.f;
@@ -111,14 +80,9 @@ namespace Modele
         int getTileSize() const { return tileSize; }
         const std::vector<sf::Texture>& getWallTextures() const { return wallTextures; }
 
-        // Retourne les obstacles physiques (qui bloquent)
-        const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
-        const std::vector<Door>& getCurrentRoomDoors() const;
-        std::string getCurrentRoomName() const;
-
         // NOUVEAU: Getters pour les dimensions de l'écran (maintenant dans la classe)
-        float getScreenW() const { return screenW; }
-        float getScreenH() const { return screenH; }
+        float getScreenW() const { return roomManager->getScreenW(); }
+        float getScreenH() const { return roomManager->getScreenH(); }
 
         // Méthode pour mettre à jour la position de l'obstacle (logique d'IA)
         void mettreAJourObstacles();
@@ -131,9 +95,6 @@ namespace Modele
         sf::Vector2f getObstacleCenter(size_t idx = 0) const { return agent ? agent->getObstacleCenter(idx) : sf::Vector2f(); }
         sf::Vector2f getObstacleForward(size_t idx = 0) const { return agent ? agent->getObstacleForward(idx) : sf::Vector2f(); }
 
-        // Changement de pièce
-        bool changeRoom(int newRoomIndex, const std::string& entryDirection);
-
         // Player animation API
         void setPlayerDirection(int row); // 1..4
         void updatePlayerAnimation(bool moving); // avancer l'animation si moving
@@ -145,5 +106,23 @@ namespace Modele
         // Accesseurs pour l'indicateur de collision
         void setCollisionDetectee(bool v);
         bool isCollisionDetectee() const;
+
+        // Expose les obstacles physiques (qui bloquent) de la pièce actuelle
+        const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const {
+            return roomManager->getObstacleShapes();
+        }
+
+        // Expose les portes de la pièce actuelle
+        const std::vector<Door>& getCurrentRoomDoors() const {
+            return roomManager->getCurrentRoomDoors();
+        }
+
+        // Changement de pièce
+        bool changeRoom(int newRoomIndex, const std::string& entryDirection) {
+            bool ok = roomManager->changeRoom(newRoomIndex, entryDirection, joueur);
+            setCollisionDetectee(false);
+            setJoueurDetecte(false);
+            return ok;
+        }
     };
 }
