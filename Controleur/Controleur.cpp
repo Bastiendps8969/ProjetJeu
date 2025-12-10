@@ -90,6 +90,7 @@ namespace Controleur
                 gererEntree();
                 mettreAJour();
                 modele.mettreAJourObstacles();
+                modele.updateEnemies(); // <-- Ajout ici
                 verifierPorte();
             }
 
@@ -199,23 +200,6 @@ namespace Controleur
         modele.getJoueur().move(deplacement.x, 0.f);
         sf::FloatRect joueurBounds = modele.getJoueur().getGlobalBounds();
 
-        // **CORRECTION ICI : getObstacles() -> getObstacleShapes()**
-        for (const auto& obsPtr : modele.getObstacleShapes())
-        {
-            if (modele.getJoueur().getGlobalBounds().intersects(obsPtr->getGlobalBounds()))
-            {
-                // Collision sur X. Annuler le mouvement X et replacer le joueur
-                sf::FloatRect obstacleBounds = obsPtr->getGlobalBounds();
-                if (deplacement.x > 0) // Mouvement vers la droite
-                    modele.getJoueur().setPosition(obstacleBounds.left - playerW, modele.getJoueur().getPosition().y);
-                else // Mouvement vers la gauche
-                    modele.getJoueur().setPosition(obstacleBounds.left + obstacleBounds.width, modele.getJoueur().getPosition().y);
-
-                collision = true;
-                break;
-            }
-        }
-
         // Vérification des limites de la carte sur X (Clamping)
         joueurBounds = modele.getJoueur().getGlobalBounds();
         if (joueurBounds.left < 0) {
@@ -232,23 +216,6 @@ namespace Controleur
         // ===================================
         modele.getJoueur().move(0.f, deplacement.y);
         joueurBounds = modele.getJoueur().getGlobalBounds(); // Mettre à jour la bounding box
-
-        // **CORRECTION ICI : getObstacles() -> getObstacleShapes()**
-        for (const auto& obsPtr : modele.getObstacleShapes())
-        {
-            if (modele.getJoueur().getGlobalBounds().intersects(obsPtr->getGlobalBounds()))
-            {
-                // Collision sur Y. Annuler le mouvement Y.
-                sf::FloatRect obstacleBounds = obsPtr->getGlobalBounds();
-                if (deplacement.y > 0) // Mouvement vers le bas
-                    modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top - playerH);
-                else // Mouvement vers le haut
-                    modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top + obstacleBounds.height);
-
-                collision = true;
-                break;
-            }
-        }
 
         // Vérification des limites de la carte sur Y (Clamping)
         joueurBounds = modele.getJoueur().getGlobalBounds();

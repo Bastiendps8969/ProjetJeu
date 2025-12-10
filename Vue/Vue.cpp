@@ -45,44 +45,6 @@ namespace Vue
         // NE PAS appeler fenetre.clear() ni fenetre.display() ici.
         // Se contenter de dessiner les éléments sur la fenêtre fournie.
 
-        // Dessine le champ de vision de l'obstacle (couleur claire, transparente)
-        const auto& obstacles = modele.getObstacleShapes();
-        if (!obstacles.empty())
-        {
-            sf::Vector2f center = modele.getObstacleCenter(0);
-            sf::Vector2f forward = modele.getObstacleForward(0);
-            float range = 440.f;
-            float angleDeg = 60.f;
-
-            const float pi = 3.14159265f;
-            float halfRad = (angleDeg * 0.5f) * pi / 180.f;
-            float c = std::cos(halfRad), s = std::sin(halfRad);
-            sf::Vector2f leftDir( c * forward.x - s * forward.y,
-                                  s * forward.x + c * forward.y );
-            sf::Vector2f rightDir( c * forward.x + s * forward.y,
-                                  -s * forward.x + c * forward.y );
-
-            sf::Vector2f leftPoint  = center + leftDir  * range;
-            sf::Vector2f rightPoint = center + rightDir * range;
-
-            sf::ConvexShape cone;
-            cone.setPointCount(3);
-            cone.setPoint(0, center);
-            cone.setPoint(1, leftPoint);
-            cone.setPoint(2, rightPoint);
-            cone.setFillColor(sf::Color(173, 216, 230, 100));
-            cone.setOutlineColor(sf::Color(173, 216, 230, 120));
-            cone.setOutlineThickness(0.f);
-            fenetre.draw(cone);
-        }
-
-        // Dessine le rectangle jaune
-        fenetre.draw(modele.getJoueur());
-
-        // Dessine les obstacles du vecteur
-        for (const auto& obs : modele.getObstacleShapes())
-        {   fenetre.draw(*obs); }
-
         // Dessine la grille de tuiles du sol (matrice)
         const auto& matrix = modele.getFloorMatrix();
         const sf::Texture& tex = modele.getFloorTexture();
@@ -137,11 +99,8 @@ namespace Vue
             }
         }
 
-        // 2. Dessiner les obstacles physiques (ennemis, murs rouges, etc.)
-        for (const auto& obsPtr : modele.getObstacleShapes())
-        {
-            fenetre.draw(*obsPtr);
-        }
+        // 2. (SUPPRIMER) Dessiner les obstacles physiques (ennemis, murs rouges, etc.)
+        // for (const auto& obsPtr : modele.getObstacleShapes()) { fenetre.draw(*obsPtr); }
 
         // 3. Dessiner le joueur (sprite animé si dispo, sinon rectangle)
         const sf::Sprite& ps = modele.getPlayerSprite();
@@ -154,14 +113,17 @@ namespace Vue
             fenetre.draw(modele.getJoueur());
         }
 
-        // 4. Dessiner le champ de vision de l'obstacle (ennemi)
-        if (!obstacles.empty())
-        {
-            sf::Vector2f center = modele.getObstacleCenter(0);
-            sf::Vector2f forward = modele.getObstacleForward(0);
-            float range = 440.f;
-            float angleDeg = 60.f;
+        // 4. (SUPPRIMER) Dessiner le champ de vision de l'obstacle (ennemi) lié à l'ancien système
+        // if (!obstacles.empty()) { ... }
 
+        // --- DESSIN DES ENNEMIS ET DE LEUR CONE DE VISION ---
+        for (const auto& enemy : modele.getEnemies())
+        {
+            // Dessin du cône de vision
+            sf::Vector2f center = enemy->position;
+            sf::Vector2f forward = enemy->direction;
+            float range = 300.f;
+            float angleDeg = 60.f;
             const float pi = 3.14159265f;
             float halfRad = (angleDeg * 0.5f) * pi / 180.f;
             float c = std::cos(halfRad), s = std::sin(halfRad);
@@ -169,19 +131,24 @@ namespace Vue
                                   s * forward.x + c * forward.y );
             sf::Vector2f rightDir( c * forward.x + s * forward.y,
                                   -s * forward.x + c * forward.y );
-
             sf::Vector2f leftPoint  = center + leftDir  * range;
             sf::Vector2f rightPoint = center + rightDir * range;
-
             sf::ConvexShape cone;
             cone.setPointCount(3);
             cone.setPoint(0, center);
             cone.setPoint(1, leftPoint);
             cone.setPoint(2, rightPoint);
-            cone.setFillColor(sf::Color(173, 216, 230, 100));
-            cone.setOutlineColor(sf::Color(173, 216, 230, 120));
+            cone.setFillColor(sf::Color(255, 200, 0, 80));
+            cone.setOutlineColor(sf::Color(255, 200, 0, 120));
             cone.setOutlineThickness(0.f);
             fenetre.draw(cone);
+
+            // Dessin de l'ennemi (cercle rouge)
+            sf::CircleShape enemyShape(30.f);
+            enemyShape.setOrigin(30.f, 30.f);
+            enemyShape.setPosition(center);
+            enemyShape.setFillColor(sf::Color::Red);
+            fenetre.draw(enemyShape);
         }
 
         // 5. Textes d'état
