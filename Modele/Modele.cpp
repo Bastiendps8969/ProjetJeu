@@ -226,11 +226,20 @@ namespace Modele {
     void Modele::reloadEnemiesForCurrentRoom()
     {
         enemies.clear();
+        float refW = 2560.f; // résolution de référence (modifiez selon votre design JSON)
+        float refH = 1440.f;
+        float scaleW = getScreenW() / refW;
+        float scaleH = getScreenH() / refH;
+
         for (const auto& ed : roomManager->getCurrentRoomEnemies())
         {
-            std::vector<sf::Vector2f> patrol = ed.patrolPoints;
-            if (patrol.empty()) patrol.push_back(ed.position);
-            enemies.push_back(std::make_unique<EnemyAgent>(ed.position, patrol, ed.speed, ed.textureName)); // Ajout du nom de texture
+            std::vector<sf::Vector2f> patrol;
+            for (const auto& pt : ed.patrolPoints) {
+                // Mise à l'échelle des points de patrouille
+                patrol.push_back(sf::Vector2f(pt.x * scaleW, pt.y * scaleH));
+            }
+            sf::Vector2f pos(ed.position.x * scaleW, ed.position.y * scaleH);
+            enemies.push_back(std::make_unique<EnemyAgent>(pos, patrol, ed.speed, ed.textureName));
         }
     }
 
