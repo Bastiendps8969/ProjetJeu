@@ -230,7 +230,7 @@ namespace Modele {
         {
             std::vector<sf::Vector2f> patrol = ed.patrolPoints;
             if (patrol.empty()) patrol.push_back(ed.position);
-            enemies.push_back(std::make_unique<EnemyAgent>(ed.position, patrol, ed.speed));
+            enemies.push_back(std::make_unique<EnemyAgent>(ed.position, patrol, ed.speed, ed.textureName)); // Ajout du nom de texture
         }
     }
 
@@ -238,7 +238,8 @@ namespace Modele {
     {
         for (auto& e : enemies) {
             e->update();
-            e->detectPlayer(joueur); // Ajout : détection du joueur
+            e->updateAnimation(); // Ajout : animation frame
+            e->detectPlayer(joueur);
         }
     }
 

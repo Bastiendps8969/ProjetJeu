@@ -56,6 +56,7 @@ namespace Controleur
         afficherMenuAccueil();
 
         Vue::DialogueManager dialogueManager;
+        bool agentDialogueLaunched = false; // Ajout
 
         sf::Clock fpsTimer;
         int fpsFrames = 0;
@@ -77,11 +78,15 @@ namespace Controleur
 
             fenetre.clear(sf::Color::Black);
 
-            // Lancer le dialogue UNE SEULE FOIS si collision ET flag pas encore activé
-            if (modele.isCollisionDetectee() && !modele.isJoueurDetecte())
+            // Lancer le dialogue UNE SEULE FOIS si le joueur est détecté par un ennemi ET flag pas encore activé
+            if (modele.isJoueurDetecte() && !agentDialogueLaunched && !dialogueManager.isDialogueActive())
             {
                 dialogueManager.startDialogueSequence("agent_detected");
-                modele.setJoueurDetecte(true);
+                agentDialogueLaunched = true;
+            }
+            if (!modele.isJoueurDetecte())
+            {
+                agentDialogueLaunched = false; // Réinitialise si le joueur n'est plus détecté
             }
 
             // Geler le gameplay si un dialogue est actif

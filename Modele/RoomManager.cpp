@@ -63,6 +63,7 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                             ed.patrolPoints.push_back(p);
                         }
                     }
+                    ed.textureName = enemyJson.value("texture", "ennemy_textures1"); // Ajout
                     newRoom.enemyDefs.push_back(ed);
                 }
             }

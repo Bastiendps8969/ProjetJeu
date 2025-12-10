@@ -143,12 +143,18 @@ namespace Vue
             cone.setOutlineThickness(0.f);
             fenetre.draw(cone);
 
-            // Dessin de l'ennemi (cercle rouge)
-            sf::CircleShape enemyShape(30.f);
-            enemyShape.setOrigin(30.f, 30.f);
-            enemyShape.setPosition(center);
-            enemyShape.setFillColor(sf::Color::Red);
-            fenetre.draw(enemyShape);
+            // Dessin du sprite ennemi animé si texture chargée, sinon cercle rouge
+            if (enemy->texture.getSize().x > 0) {
+                enemy->sprite.setPosition(center);
+                // Le rect de texture est déjà mis à jour dans updateAnimation()
+                fenetre.draw(enemy->sprite);
+            } else {
+                sf::CircleShape enemyShape(30.f);
+                enemyShape.setOrigin(30.f, 30.f);
+                enemyShape.setPosition(center);
+                enemyShape.setFillColor(sf::Color::Red);
+                fenetre.draw(enemyShape);
+            }
         }
 
         // 5. Textes d'état

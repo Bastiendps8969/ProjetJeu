@@ -34,13 +34,44 @@ public:
     int patrolIndex = 0;
     float speed = 2.0f;
     sf::Vector2f direction = {1.f, 0.f};
-    bool joueurDetecte = false; // Ajout
+    bool joueurDetecte = false;
+    std::string textureName;
+    sf::Texture texture;
+    sf::Sprite sprite;
 
-    EnemyAgent(const sf::Vector2f& pos, const std::vector<sf::Vector2f>& patrol, float spd)
-        : position(pos), patrolPoints(patrol), speed(spd)
+    // Animation
+    int frameCount = 9; // frames par ligne (comme agent)
+    int frameIndex = 0;
+    int row = 3; // 1=up,2=left,3=down,4=right (par défaut bas)
+    float frameDuration = 0.08f;
+    float idleFrameDuration = 0.24f;
+    int idleFrameCount = 2;
+    bool isMoving = false;
+    int tileSize = 64;
+    sf::Clock animClock;
+
+    EnemyAgent(const sf::Vector2f& pos, const std::vector<sf::Vector2f>& patrol, float spd, const std::string& texName)
+        : position(pos), patrolPoints(patrol), speed(spd), textureName(texName)
     {
         if (!patrolPoints.empty())
             direction = normalize(patrolPoints[0] - position);
+
+        // Chargement de la texture (chemins possibles)
+        const std::vector<std::string> tryPaths = {
+            "cmake-build-debug/Asset/Human/" + textureName + ".png",
+            "Asset/Human/" + textureName + ".png",
+            "Human/" + textureName + ".png",
+            textureName + ".png"
+        };
+        for (const auto& p : tryPaths) {
+            if (texture.loadFromFile(p)) {
+                sprite.setTexture(texture);
+                break;
+            }
+        }
+        sprite.setOrigin(tileSize / 2.f, tileSize / 2.f);
+        sprite.setScale(2.5f, 2.5f); // même échelle que l'agent
+        animClock.restart();
     }
 
     void update()
@@ -49,6 +80,7 @@ public:
         sf::Vector2f target = patrolPoints[patrolIndex];
         sf::Vector2f toTarget = target - position;
         float dist = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
+        isMoving = dist > 1.f;
         if (dist < speed)
         {
             position = target;
@@ -60,6 +92,51 @@ public:
             direction = normalize(toTarget);
             position += direction * speed;
         }
+        // Déterminer la row d'animation selon la direction
+        float dx = direction.x, dy = direction.y;
+        if (std::abs(dx) > std::abs(dy)) {
+            row = (dx > 0) ? 4 : 2; // droite/gauche
+        } else {
+            row = (dy < 0) ? 1 : 3; // haut/bas
+        }
+    }
+
+    void updateAnimation()
+    {
+        if (texture.getSize().x == 0) return;
+        int movementFramesCount = std::max(1, frameCount - idleFrameCount);
+        int idleCols = std::max(1, idleFrameCount);
+        float elapsed = animClock.getElapsedTime().asSeconds();
+        float duration = isMoving ? frameDuration : idleFrameDuration;
+
+        if (elapsed >= duration) {
+            if (isMoving)
+                frameIndex = (frameIndex + 1) % movementFramesCount;
+            else
+                frameIndex = (frameIndex + 1) % idleCols;
+            animClock.restart();
+        }
+        sprite.setTextureRect(computeTextureRect());
+    }
+
+    sf::IntRect computeTextureRect() const
+    {
+        int frameSize = tileSize;
+        int col = 0;
+        int rowIndex = std::max(0, row - 1);
+        int movementFramesCount = std::max(1, frameCount - idleFrameCount);
+
+        if (isMoving) {
+            col = frameIndex % movementFramesCount;
+            rowIndex = std::max(0, row - 1);
+        } else {
+            int idleCols = std::max(1, idleFrameCount);
+            col = frameIndex % idleCols;
+            rowIndex = std::max(0, row - 1) + 4;
+        }
+        int frameX = col * frameSize;
+        int frameY = rowIndex * frameSize;
+        return sf::IntRect(frameX, frameY, frameSize, frameSize);
     }
 
     void detectPlayer(const sf::RectangleShape& joueur)

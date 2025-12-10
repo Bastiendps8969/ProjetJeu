@@ -18,6 +18,7 @@ struct EnemyDefinition {
     sf::Vector2f position;
     std::vector<sf::Vector2f> patrolPoints;
     float speed = 2.0f;
+    std::string textureName; // Ajout
 };
 
 struct Room {
