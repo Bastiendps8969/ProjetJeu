@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include "Objective.h"
+
 // Alias de namespace pour nlohmann/json
 using json = nlohmann::json;
 
@@ -91,6 +93,7 @@ namespace Modele {
                     {
                         ObstacleDefinition def;
                         def.type = obsJson.at("type").get<std::string>();
+
                         def.position.x = obsJson.at("x").get<float>();
                         def.position.y = obsJson.at("y").get<float>();
                         def.size.x = obsJson.at("w").get<float>();
@@ -107,6 +110,36 @@ namespace Modele {
                         door.direction = doorIt.key();
                         door.targetRoomIndex = doorIt.value().get<int>();
                         newRoom.doors.emplace_back(std::move(door));
+                    }
+                }
+
+                if (roomJson.contains("objectives")) {
+                    for (const auto& obsJson : roomJson.at("objectives"))
+                    {
+                        //  Remplacer par un constructeur avec arguments
+                        //  pour que ce soit plus simple
+                        Objective objective;
+                        objective.setTitle(obsJson.at("title").get<std::string>());
+                        objective.setDescription(obsJson.at("description").get<std::string>());
+                        objective.setTexture(obsJson.at("texture").get<std::string>());
+                        objective.setPrimary(obsJson.at("primary").get<bool>());
+
+                        objective.setHitboxPosition(
+                            obsJson.at("x").get<float>(),
+                            obsJson.at("y").get<float>()
+                        );
+                        objective.setHitboxSize(
+                            obsJson.at("w").get<float>(),
+                            obsJson.at("h").get<float>()
+                        );
+
+                        objective.getSprite().setTexture(objective.getTexture());
+
+                        objective.getHitbox();
+
+                        std::cout << objective.getTitle() << " has been loaded" << std::endl;
+
+                        newRoom.objectives.emplace_back(std::move(objective));
                     }
                 }
 
@@ -370,6 +403,16 @@ namespace Modele {
         }
         return emptyDoors;
     }
+
+    const std::vector<Objective> &Modele::getCurrentRoomObjectives() const {
+        static const std::vector<Objective> emptyObjectives;
+        auto it = rooms_.find(currentRoomIndex_);
+        if (it != rooms_.end()) {
+            return it->second.objectives;
+        }
+        return emptyObjectives;
+    }
+
 
     // Retourne le nom de la pièce actuelle
     std::string Modele::getCurrentRoomName() const

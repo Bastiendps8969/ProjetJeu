@@ -25,6 +25,8 @@ add_executable(TestCollision
         Vue/HomePage.cpp
         Vue/LevelPage.cpp
         Vue/ScoreWindow.cpp
+        Modele/Objective.cpp
+        Modele/Objective.h
 )
 
 # Inclusion des headers (optionnel si bien organisés)

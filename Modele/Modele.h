@@ -5,6 +5,8 @@
 #include <map>
 #include <string>
 #include <memory>
+
+#include "Objective.h"
 #include "../cmake-build-debug/json.hpp"
 
 namespace Modele
@@ -35,6 +37,7 @@ namespace Modele
         std::vector<Door> doors;
         // Utilise unique_ptr pour les formes d'obstacles physiques (murs, etc.)
         std::vector<std::unique_ptr<sf::Shape>> obstacleShapes;
+        std::vector<Objective> objectives;
     };
 
     class Modele
@@ -118,6 +121,7 @@ namespace Modele
         const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
         const std::vector<Door>& getCurrentRoomDoors() const;
         std::string getCurrentRoomName() const;
+        const std::vector<Objective>& getCurrentRoomObjectives() const;
 
         // NOUVEAU: Getters pour les dimensions de l'écran (maintenant dans la classe)
         float getScreenW() const { return screenW; }
@@ -135,12 +139,11 @@ namespace Modele
         bool isJoueurDetecte() const { return joueurDetecte; }
 
         // Vérifie si le dialogue a été déclenché
-        bool hasDialogueTriggered() const { return dialogueDeclenche; }
+        bool hasDialogueTriggered() const;
         // Définit l'état du déclenchement du dialogue
-        void setDialogueTriggered(bool v) { dialogueDeclenche = v; }
+        void setDialogueTriggered(bool v);
         // Réinitialise l'état du déclenchement du dialogue
-        void resetDialogueTriggered() { dialogueDeclenche = false; }
-        bool isJoueurDetecte() const { return joueurDetecte; } // <--- Corrigé
+        void resetDialogueTriggered();
 
         // Exposer centre et direction avant d'un obstacle (index par défaut 0)
         sf::Vector2f getObstacleCenter(size_t idx = 0) const; // <--- Corrigé

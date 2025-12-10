@@ -111,8 +111,10 @@ namespace Vue
 
     void DialogueBox::handleEvent(const sf::Event& event)
     {
+        //  Pour le merge
+        //  Modification des touches pour passer les dialogues
         if ((event.type == sf::Event::MouseButtonPressed ||
-             event.type == sf::Event::KeyPressed) &&
+             (event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Space))) &&
             waitingForClick)
         {
             handleMouseClick(); // Marquer comme cliqué

@@ -143,6 +143,10 @@ namespace Vue
             fenetre.draw(*obsPtr);
         }
 
+        for (const auto& objective: modele.getCurrentRoomObjectives()) {
+            fenetre.draw(objective.getHitbox());
+        }
+
         // 3. Dessiner le joueur (sprite animé si dispo, sinon rectangle)
         const sf::Sprite& ps = modele.getPlayerSprite();
         if (ps.getTexture() && ps.getTexture()->getSize().x > 0)
