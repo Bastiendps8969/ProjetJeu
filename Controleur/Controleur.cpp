@@ -216,6 +216,7 @@ namespace Controleur
             }
         }
 
+
         // Vérification des limites de la carte sur X (Clamping)
         joueurBounds = modele.getJoueur().getGlobalBounds();
         if (joueurBounds.left < 0) {
@@ -245,6 +246,22 @@ namespace Controleur
                 else // Mouvement vers le haut
                     modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top + obstacleBounds.height);
 
+                collision = true;
+                break;
+            }
+        }
+
+        //  Collision avec les objectifs
+        for (const auto& objectivePtr : modele.getCurrentRoomObjectives()) {
+            if (modele.getJoueur().getGlobalBounds().intersects(objectivePtr.getHitbox().getGlobalBounds())) {
+                sf::FloatRect objectiveBounds = objectivePtr.getHitbox().getGlobalBounds();
+
+                if (deplacement.y > 0) {
+                    modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, objectiveBounds.top - playerH);
+                } else {
+                    modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, objectiveBounds.top + objectiveBounds.height);
+                }
+                
                 collision = true;
                 break;
             }

@@ -11,8 +11,8 @@ Objective::Objective() {
     hitbox = sf::RectangleShape();
     hitbox.setSize(sf::Vector2f(32.f, 32.f));
     hitbox.setPosition(sf::Vector2f(0.f, 0.f));
-    hitbox.setFillColor(sf::Color::White);
-    hitbox.setOutlineColor(sf::Color::White);
+    hitbox.setFillColor(sf::Color::Magenta);
+    hitbox.setOutlineColor(sf::Color::Magenta);
     hitbox.setOutlineThickness(1.f);
 
     // Charger une texture par défaut si disponible
@@ -24,15 +24,16 @@ Objective::Objective() {
     }
 }
 
-Objective::Objective(std::string t, std::string d, sf::Texture textureParam,
+Objective::Objective(std::string t, std::string d, sf::Texture texture,
                      float x, float y, float w, float h) {
     // titre / description
     title = t.empty() ? "Objective" : t;
-    description = d.empty() ? "" : d;
+    description = d.empty() ? "Objective's description" : d;
     accomplished = false;
+    primary = true;
 
     // stocker la texture fournie (copie/move)
-    texture = std::move(textureParam);
+    texture = std::move(texture);
     if (texture.getSize().x > 0 && texture.getSize().y > 0)
         sprite.setTexture(texture);
 

@@ -134,8 +134,10 @@ namespace Modele {
                         );
 
                         objective.getSprite().setTexture(objective.getTexture());
-
-                        objective.getHitbox();
+                        objective.getSprite().setPosition(
+                            obsJson.at("x").get<float>(),
+                            obsJson.at("y").get<float>()
+                        );
 
                         std::cout << objective.getTitle() << " has been loaded" << std::endl;
 
