@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
-project(TestCollision)
+project(testCollision)
 
 set(CMAKE_CXX_STANDARD 20)
+
 # Chemin vers SFML
 set(SFML_DIR "C:/SFML/lib/cmake/SFML")
 
@@ -9,7 +10,7 @@ set(SFML_DIR "C:/SFML/lib/cmake/SFML")
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
 # Fichiers sources
-add_executable(TestCollision
+add_executable(testCollision
         main.cpp
         Modele/Modele.cpp
         Modele/Modele.h
@@ -25,17 +26,18 @@ add_executable(TestCollision
         Vue/HomePage.cpp
         Vue/LevelPage.cpp
         Vue/ScoreWindow.cpp
+        Modele/Agent.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)
-target_include_directories(TestCollision PRIVATE
+target_include_directories(testCollision2 PRIVATE
         Modele
         Vue
         Controleur
 )
 
 # Lien avec les bibliothèques SFML
-target_link_libraries(TestCollision
+target_link_libraries(testCollision
         sfml-graphics
         sfml-window
         sfml-system

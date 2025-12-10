@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include "../cmake-build-debug/json.hpp"
+#include "Agent.h"
 
 namespace Modele
 {
@@ -80,12 +81,8 @@ namespace Modele
         std::vector<sf::Texture> wallTextures;
 
         // --- Membres d'IA et de collision (pour le premier obstacle) ---
-        sf::Vector2f obstacleVitesse;
-        std::vector<sf::Vector2f> pointsPatrouille;
-        int pointCibleIndex;
-        float vitessePatrouille;
-        bool collisionDetectee; // <--- Ce membre était celui qui manquait
-        bool joueurDetecte;     // <--- Ce membre était celui qui manquait
+        std::unique_ptr<Agent> agent;
+        bool collisionDetectee;
 
         // --- Membres de la carte/pièce ---
         std::map<int, Room> rooms_; // <--- Ce membre était celui qui manquait
@@ -124,27 +121,15 @@ namespace Modele
         float getScreenH() const { return screenH; }
 
         // Méthode pour mettre à jour la position de l'obstacle (logique d'IA)
-        void mettreAJourObstacles(); // <--- Cette déclaration était manquante
-
-        // Accesseurs pour l'indicateur de collision
-        void setCollisionDetectee(bool v) { collisionDetectee = v; } // <--- Corrigé
-        bool isCollisionDetectee() const { return collisionDetectee; } // <--- Corrigé
+        void mettreAJourObstacles();
 
         // Accesseurs pour détection joueur (champ de vision)
-        void setJoueurDetecte(bool v) { joueurDetecte = v; }
-        bool isJoueurDetecte() const { return joueurDetecte; }
-
-        // Vérifie si le dialogue a été déclenché
-        bool hasDialogueTriggered() const { return dialogueDeclenche; }
-        // Définit l'état du déclenchement du dialogue
-        void setDialogueTriggered(bool v) { dialogueDeclenche = v; }
-        // Réinitialise l'état du déclenchement du dialogue
-        void resetDialogueTriggered() { dialogueDeclenche = false; }
-        bool isJoueurDetecte() const { return joueurDetecte; } // <--- Corrigé
+        bool isJoueurDetecte() const { return agent ? agent->isJoueurDetecte() : false; }
+        void setJoueurDetecte(bool v) { if (agent) agent->setJoueurDetecte(v); }
 
         // Exposer centre et direction avant d'un obstacle (index par défaut 0)
-        sf::Vector2f getObstacleCenter(size_t idx = 0) const; // <--- Corrigé
-        sf::Vector2f getObstacleForward(size_t idx = 0) const; // <--- Corrigé
+        sf::Vector2f getObstacleCenter(size_t idx = 0) const { return agent ? agent->getObstacleCenter(idx) : sf::Vector2f(); }
+        sf::Vector2f getObstacleForward(size_t idx = 0) const { return agent ? agent->getObstacleForward(idx) : sf::Vector2f(); }
 
         // Changement de pièce
         bool changeRoom(int newRoomIndex, const std::string& entryDirection);
@@ -156,5 +141,9 @@ namespace Modele
 
         // Synchronise l'échelle/position du sprite joueur avec le RectangleShape (taille & position)
         void syncPlayerSprite();
+
+        // Accesseurs pour l'indicateur de collision
+        void setCollisionDetectee(bool v);
+        bool isCollisionDetectee() const;
     };
 }

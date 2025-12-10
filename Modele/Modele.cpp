@@ -1,4 +1,5 @@
 #include "Modele.h"
+#include "Agent.h"
 #include <cmath>
 #include <limits>
 #include <fstream>
@@ -136,11 +137,7 @@ namespace Modele {
     // Constructeur : toutes les variables membres sont maintenant initialisées
     Modele::Modele()
     : currentRoomIndex_(-1),
-      collisionDetectee(false),
-      joueurDetecte(false),
-      pointCibleIndex(0),
-      vitessePatrouille(0.125f),
-      obstacleVitesse(0.3f, 0.2f)
+      collisionDetectee(false)
     {
         // Détermine la résolution du bureau
         sf::VideoMode dm = sf::VideoMode::getDesktopMode();
@@ -153,11 +150,9 @@ namespace Modele {
         float playerCollisionW = boxSize * playerSpriteDisplayScaleX;
         float playerCollisionH = boxSize * playerSpriteDisplayScaleY;
         const float HITBOX_REDUCTION_FACTOR = 0.8f;
-        joueur.setSize(sf::Vector2f(
-            boxSize * HITBOX_REDUCTION_FACTOR,
-            boxSize * HITBOX_REDUCTION_FACTOR
+        joueur.setSize(sf::Vector2f(46,130
         ));
-        joueur.setFillColor(sf::Color::Green);
+        joueur.setFillColor(sf::Color::Blue);
 
 
         // --- Chargement de la spritesheet du joueur ---
@@ -269,55 +264,50 @@ namespace Modele {
         const int WALL_BOTTOM = 17;// bottom edge
         const int WALL_BR = 18;   // bottom-right
 
-        // Remplissage des bords avec permutation demandée :
-        // - bord haut <- ancienne droite
-        // - bord gauche <- ancien haut
-        // - bord bas <- ancien gauche
-        // - bord droit <- ancien bas
-        // - coins : échanger coin haut-droit <-> coin bas-gauche
+
         for (int r = 0; r < rows; ++r)
         {
             for (int c = 0; c < cols; ++c)
             {
-                // coins particuliers (on applique l'échange TR <-> BL)
+                // coins particuliers
                 if (r == 0 && c == 0)
                 {
-                    // coin haut-gauche : on conserve TL
+                    // coin haut-gauche
                     floorMatrix[r][c] = WALL_TL;
                 }
                 else if (r == 0 && c == cols - 1)
                 {
-                    // coin haut-droit devient coin bas-gauche (swap demandé)
+                    // coin haut-droit
                     floorMatrix[r][c] = WALL_BL;
                 }
                 else if (r == rows - 1 && c == 0)
                 {
-                    // coin bas-gauche devient coin haut-droit (swap demandé)
+                    // coin bas-gauche
                     floorMatrix[r][c] = WALL_TR;
                 }
                 else if (r == rows - 1 && c == cols - 1)
                 {
-                    // coin bas-droit : on conserve BR
+                    // coin bas-droit
                     floorMatrix[r][c] = WALL_BR;
                 }
                 else if (r == 0)
                 {
-                    // bord haut -> prendre l'ancienne droite
+                    // bord haut
                     floorMatrix[r][c] = WALL_RIGHT;
                 }
                 else if (r == rows - 1)
                 {
-                    // bord bas -> prendre l'ancienne gauche
+                    // bord bas
                     floorMatrix[r][c] = WALL_LEFT;
                 }
                 else if (c == 0)
                 {
-                    // bord gauche -> prendre l'ancienne haut
+                    // bord gauche
                     floorMatrix[r][c] = WALL_TOP;
                 }
                 else if (c == cols - 1)
                 {
-                    // bord droit -> prendre l'ancienne bas
+                    // bord droit
                     floorMatrix[r][c] = WALL_BOTTOM;
                 }
                 // else: leave as 1 (floor)
@@ -338,12 +328,13 @@ namespace Modele {
         }
 
         // Initialisation des points de patrouille (si non chargés par JSON)
-        pointsPatrouille = {
+        std::vector<sf::Vector2f> patrouillePoints = {
             sf::Vector2f(screenW * 0.125f, screenH * 0.1666667f),
             sf::Vector2f(screenW * 0.75f,  screenH * 0.1666667f),
             sf::Vector2f(screenW * 0.75f,  screenH * 0.6666667f),
             sf::Vector2f(screenW * 0.125f, screenH * 0.6666667f)
         };
+        agent = std::make_unique<Agent>(&rooms_[currentRoomIndex_].obstacleShapes, patrouillePoints);
     }
 
 
@@ -434,67 +425,8 @@ namespace Modele {
     // Mise à jour de la logique d'IA des obstacles (Corrigé pour utiliser la nouvelle structure)
     void Modele::mettreAJourObstacles()
     {
-        const auto& currentObstacleShapes = getObstacleShapes();
-        if (currentObstacleShapes.empty() || currentObstacleShapes[0] == nullptr)
-        {
-            joueurDetecte = false;
-            return;
-        }
-
-        // Le reste de la logique de détection reste inchangé (utilise le premier obstacle)
-        // ... (Logique de patrouille et de détection non modifiée)
-        sf::FloatRect joueurBounds = joueur.getGlobalBounds();
-        sf::Vector2f joueurCenter = sf::Vector2f(joueurBounds.left + joueurBounds.width * 0.5f,
-                                                 joueurBounds.top + joueurBounds.height * 0.5f);
-
-        const float fovAngle = 60.0f;
-        const float fovRange = 440.0f;
-        const float cosHalfFov = std::cos(fovAngle * 0.5f * (3.14159265f / 180.f));
-
-        sf::Vector2f center = getObstacleCenter(0);
-        sf::Vector2f forward = getObstacleForward(0);
-
-        sf::Vector2f toJoueur = joueurCenter - center;
-        float distJ = std::sqrt(toJoueur.x * toJoueur.x + toJoueur.y * toJoueur.y);
-
-        if (distJ <= 0.0f) joueurDetecte = true;
-        else {
-            sf::Vector2f toJNorm = sf::Vector2f(toJoueur.x / distJ, toJoueur.y / distJ);
-            float dot = forward.x * toJNorm.x + forward.y * toJNorm.y;
-            joueurDetecte = (distJ <= fovRange && dot >= cosHalfFov);
-        }
-    }
-
-    // Renvoie le centre (en pixels) de l'obstacle idx
-    sf::Vector2f Modele::getObstacleCenter(size_t idx) const
-    {
-        const auto& currentShapes = getObstacleShapes();
-        if (idx >= currentShapes.size() || currentShapes[idx] == nullptr)
-            return sf::Vector2f(0.f, 0.f);
-        sf::FloatRect b = currentShapes[idx]->getGlobalBounds();
-        return sf::Vector2f(b.left + b.width * 0.5f, b.top + b.height * 0.5f);
-    }
-
-    // Renvoie la direction normalisée vers la cible actuelle pour l'obstacle idx
-    sf::Vector2f Modele::getObstacleForward(size_t idx) const
-    {
-        const auto& currentShapes = getObstacleShapes();
-        if (idx >= currentShapes.size() || currentShapes[idx] == nullptr)
-            return sf::Vector2f(1.f, 0.f);
-
-        if (pointsPatrouille.empty()) return sf::Vector2f(1.f, 0.f);
-
-        // Cette partie est simplifiée car les obstacles ne bougent pas encore en fonction de la pièce
-        sf::Vector2f pos = currentShapes[idx]->getPosition();
-        sf::Vector2f cible = pointsPatrouille[pointCibleIndex];
-
-        sf::Vector2f direction = cible - pos;
-        float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-
-        if (distance > 0.0f)
-            return sf::Vector2f(direction.x / distance, direction.y / distance);
-        else
-            return sf::Vector2f(1.f, 0.f);
+        if (agent)
+            agent->mettreAJour(joueur);
     }
 
     // Calcule la textureRect (recadrée au centre) pour la frame courante selon playerTextureZoom.
@@ -604,14 +536,9 @@ namespace Modele {
         sf::IntRect rect = computePlayerTextureRect();
         int cropSize = rect.width; // square crop
 
-        // Taille affichée souhaitée (maintenant égale à la taille de la Hitbox puisque scale = 1.0f)
-        float displayW = size.x * playerSpriteDisplayScaleX;
-        float displayH = size.y * playerSpriteDisplayScaleY;
-
-        // Calculer l'échelle nécessaire pour mapper la zone recadrée (cropSize) à la taille affichée
-        float sx = displayW / static_cast<float>(cropSize);
-        float sy = displayH / static_cast<float>(cropSize);
-        playerSprite.setScale(sx, sy);
+        // NE PAS adapter l'échelle du sprite à la taille du rectangle joueur
+        // Laisser l'image à l'échelle 1:1 (elle peut donc dépasser du rectangle)
+        playerSprite.setScale(2.5f, 2.5f);
 
         // Origine au centre du recadrage (en coordonnées texture avant scale)
         playerSprite.setOrigin(static_cast<float>(cropSize) * 0.5f, static_cast<float>(cropSize) * 0.5f);
@@ -624,4 +551,8 @@ namespace Modele {
     // Helper: sync playerSprite position to rectangle joueur (call this if joueur moved)
     // We'll update sprite position from Controleur after movement.
     void syncPlayerSpritePosition(Modele& m); // forward decl (no-op here)
+
+    // Accesseurs pour collisionDetectee
+    void Modele::setCollisionDetectee(bool v) { collisionDetectee = v; }
+    bool Modele::isCollisionDetectee() const { return collisionDetectee; }
 }
