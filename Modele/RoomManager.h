@@ -25,6 +25,9 @@ struct EnemyDefinition {
     // Ajout pour cône de vision
     float visionRange = 300.f;
     float visionAngle = 60.f;
+    // Ajout pour laser
+    bool isLaser = false;
+    float laserLength = 600.f;
 };
 
 struct Room {

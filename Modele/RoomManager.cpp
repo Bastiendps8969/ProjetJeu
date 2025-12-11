@@ -71,7 +71,14 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                         ed.speed = 0.f;
                         ed.patrolPoints.clear();
                     }
-                    // Ajout vision
+                    // Ajout laser
+                    if (type == "laser") {
+                        ed.isLaser = true;
+                        ed.facing = enemyJson.value("facing", "right");
+                        ed.speed = 0.f;
+                        ed.patrolPoints.clear();
+                        ed.laserLength = enemyJson.value("laserLength", 600.f);
+                    }
                     ed.visionRange = enemyJson.value("visionRange", ed.isCamera ? 400.f : 300.f);
                     ed.visionAngle = enemyJson.value("visionAngle", ed.isCamera ? 70.f : 60.f);
                     newRoom.enemyDefs.push_back(ed);

@@ -53,18 +53,21 @@ public:
     // Ajout pour caméra
     bool isCamera = false;
     std::string facing;
-    // Ajout pour cône de vision
     float visionRange = 300.f;
     float visionAngle = 60.f;
+    // Ajout pour laser
+    bool isLaser = false;
+    float laserLength = 600.f;
 
     EnemyAgent(const sf::Vector2f& pos, const std::vector<sf::Vector2f>& patrol, float spd, const std::string& texName,
                bool camera = false, const std::string& facingDir = "",
-               float visionRange_ = 300.f, float visionAngle_ = 60.f)
+               float visionRange_ = 300.f, float visionAngle_ = 60.f,
+               bool laser = false, float laserLength_ = 600.f)
         : position(pos), patrolPoints(patrol), speed(spd), textureName(texName),
-          isCamera(camera), facing(facingDir), visionRange(visionRange_), visionAngle(visionAngle_)
+          isCamera(camera), facing(facingDir), visionRange(visionRange_), visionAngle(visionAngle_),
+          isLaser(laser), laserLength(laserLength_)
     {
-        if (isCamera) {
-            // Direction selon facing
+        if (isCamera || isLaser) {
             if (facing == "left") direction = {-1.f, 0.f};
             else if (facing == "right") direction = {1.f, 0.f};
             else if (facing == "up") direction = {0.f, -1.f};
@@ -163,11 +166,22 @@ public:
 
     void detectPlayer(const sf::RectangleShape& joueur)
     {
-        // Détection simple dans le cône de vision
         sf::FloatRect joueurBounds = joueur.getGlobalBounds();
         sf::Vector2f joueurCenter(joueurBounds.left + joueurBounds.width * 0.5f,
                                   joueurBounds.top + joueurBounds.height * 0.5f);
 
+        if (isLaser) {
+            // Détection laser : si le joueur est sur la ligne du laser et dans la portée
+            sf::Vector2f toPlayer = joueurCenter - position;
+            float proj = toPlayer.x * direction.x + toPlayer.y * direction.y;
+            float dist = std::sqrt(toPlayer.x * toPlayer.x + toPlayer.y * toPlayer.y);
+            float side = toPlayer.x * (-direction.y) + toPlayer.y * direction.x; // distance latérale
+            // Laser = bande étroite (±20px) sur la direction, et dans la portée
+            joueurDetecte = (proj > 0 && proj < laserLength && std::abs(side) < 20.f);
+            return;
+        }
+
+        // Détection simple dans le cône de vision
         float range = visionRange;
         float angleDeg = visionAngle;
         float pi = 3.14159265f;

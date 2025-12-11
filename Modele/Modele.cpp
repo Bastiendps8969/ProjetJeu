@@ -241,8 +241,10 @@ namespace Modele {
             sf::Vector2f pos(ed.position.x * scaleW, ed.position.y * scaleH);
             // Correction : applique le scaling à visionRange
             float scaledVisionRange = ed.visionRange * std::sqrt(scaleW * scaleH);
+            float scaledLaserLength = ed.laserLength * std::sqrt(scaleW * scaleH);
             enemies.push_back(std::make_unique<EnemyAgent>(
-                pos, patrol, ed.speed, ed.textureName, ed.isCamera, ed.facing, scaledVisionRange, ed.visionAngle
+                pos, patrol, ed.speed, ed.textureName, ed.isCamera, ed.facing,
+                scaledVisionRange, ed.visionAngle, ed.isLaser, scaledLaserLength
             ));
         }
     }

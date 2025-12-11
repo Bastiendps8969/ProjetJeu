@@ -123,42 +123,52 @@ namespace Vue
             sf::Vector2f forward = enemy->direction;
             float range = enemy->visionRange;
             float angleDeg = enemy->visionAngle;
-            const float pi = 3.14159265f;
-            float halfRad = (angleDeg * 0.5f) * pi / 180.f;
 
-            // Correction : rotation du vecteur forward pour chaque bord du cône
-            // Correction : rotation du vecteur forward pour chaque bord du cône
-            auto rotate = [](const sf::Vector2f& v, float rad) -> sf::Vector2f {
-                float c = std::cos(rad), s = std::sin(rad);
-                return sf::Vector2f(c * v.x - s * v.y, s * v.x + c * v.y);
-            };
+            // Laser
+            if (enemy->isLaser) {
+                sf::Vector2f end = center + forward * enemy->laserLength;
+                sf::VertexArray laser(sf::Lines, 2);
+                laser[0].position = center;
+                laser[0].color = sf::Color::Red;
+                laser[1].position = end;
+                laser[1].color = sf::Color::Red;
+                fenetre.draw(laser);
 
-            sf::ConvexShape cone;
-            int arcPoints = 30; // nombre de points pour lisser l'arc
-            cone.setPointCount(1 + arcPoints); // 1 pour le centre + points de l’arc
+                // Optionnel : dessiner une bande de détection
+                sf::RectangleShape band;
+                float bandWidth = 40.f;
+                band.setSize(sf::Vector2f(enemy->laserLength, bandWidth));
+                band.setOrigin(0, bandWidth/2.f);
+                band.setPosition(center);
+                float angle = std::atan2(forward.y, forward.x) * 180.f / 3.14159265f;
+                band.setRotation(angle);
+                band.setFillColor(sf::Color(255,0,0,40));
+                fenetre.draw(band);
+            } else {
+                const float pi = 3.14159265f;
+                float halfRad = (angleDeg * 0.5f) * pi / 180.f;
+                auto rotate = [](const sf::Vector2f& v, float rad) -> sf::Vector2f {
+                    float c = std::cos(rad), s = std::sin(rad);
+                    return sf::Vector2f(c * v.x - s * v.y, s * v.x + c * v.y);
+                };
 
-            // Point central
-            cone.setPoint(0, center);
-
-            // Générer l’arc du cône
-            for (int i = 0; i < arcPoints; ++i) {
-                float t = -halfRad + (i / float(arcPoints - 1)) * (2.f * halfRad);
-                sf::Vector2f dir = rotate(forward, t);
-                cone.setPoint(i + 1, center + dir * range);
+                sf::ConvexShape cone;
+                int arcPoints = 30;
+                cone.setPointCount(1 + arcPoints);
+                cone.setPoint(0, center);
+                for (int i = 0; i < arcPoints; ++i) {
+                    float t = -halfRad + (i / float(arcPoints - 1)) * (2.f * halfRad);
+                    sf::Vector2f dir = rotate(forward, t);
+                    cone.setPoint(i + 1, center + dir * range);
+                }
+                if (enemy->isCamera)
+                    cone.setFillColor(sf::Color(0, 255, 255, 80));
+                else
+                    cone.setFillColor(sf::Color(255, 200, 0, 80));
+                cone.setOutlineColor(sf::Color(255, 200, 0, 120));
+                cone.setOutlineThickness(0.f);
+                fenetre.draw(cone);
             }
-
-            // Couleurs
-            if (enemy->isCamera)
-                cone.setFillColor(sf::Color(0, 255, 255, 80)); // cyan pour caméra
-            else
-                cone.setFillColor(sf::Color(255, 200, 0, 80));
-
-            cone.setOutlineColor(sf::Color(255, 200, 0, 120));
-            cone.setOutlineThickness(0.f);
-
-            // Dessin
-            fenetre.draw(cone);
-
 
             // Dessin du sprite ennemi animé si texture chargée, sinon cercle rouge
             if (enemy->texture.getSize().x > 0) {
@@ -170,6 +180,8 @@ namespace Vue
                 enemyShape.setPosition(center);
                 if (enemy->isCamera)
                     enemyShape.setFillColor(sf::Color::Cyan);
+                else if (enemy->isLaser)
+                    enemyShape.setFillColor(sf::Color::Red);
                 else
                     enemyShape.setFillColor(sf::Color::Red);
                 fenetre.draw(enemyShape);
