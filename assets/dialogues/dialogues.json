@@ -1,0 +1,32 @@
+{
+  "dialogues": {
+    "agent_detected": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Here is the time for your first mission.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "I'm feeling a bit nervous.",
+        "displayDuration": 3.0
+      }
+    ],
+    "objective_interaction": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "You 've just found the Pc of that damn monster. Copy the data and get out.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "Yep, understoud.",
+        "displayDuration": 3.0
+      }
+    ]
+  }
+}

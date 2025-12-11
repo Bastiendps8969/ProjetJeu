@@ -1,0 +1,18 @@
+{
+  "0": {
+    "name": "Tutorial",
+    "description": "Learning the basis of being a spy.",
+    //  Placeholder, it's just for the idea
+    "picture" : "Asset/chaptersAndLevels/tutorial.png",
+    "levels": "Asset/chaptersAndLevels/tutorial.json",
+  },
+  "1": {
+    "name": "Operation Hades",
+    "description": "This is a placeholder cause I don't want to translate the narrative part.",
+    //  Placeholder, it's just for the idea
+    "picture" : "Asset/chaptersAndLevels/OH.png",
+    "levels": "Asset/chaptersAndLevels/OH.json"
+  }
+  //  More chapters can be added
+  //  Each new chapter requires a new file
+}

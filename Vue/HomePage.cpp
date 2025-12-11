@@ -115,7 +115,7 @@ namespace Vue
             if (soundsButton.getGlobalBounds().contains(world))
             {
                 soundsOn = !soundsOn;
-                soundsLabel.setString(soundsOn ? "Sons : On" : "Sons : Off");
+                soundsLabel.setString(soundsOn ? "Sounds : On" : "Sounds : Off");
                 return;
             }
 

@@ -257,11 +257,32 @@ namespace Controleur
                 sf::FloatRect objectiveBounds = objectivePtr.getHitbox().getGlobalBounds();
 
                 if (deplacement.y > 0) {
+                    //  To the bottom
                     modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, objectiveBounds.top - playerH);
-                } else {
+                    std::cout << "1, here is the bug" << std::endl;
+                } else if (deplacement.y < 0) {
+                    //  To the top
                     modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, objectiveBounds.top + objectiveBounds.height);
+                    std::cout << "2, here is the bug" << std::endl;
                 }
-                
+
+                std::cout << "On y axis is : " << modele.getJoueur().getPosition().y << std::endl;
+                std::cout << "On x axis is : " << modele.getJoueur().getPosition().x << std::endl;
+
+                if (deplacement.x < 0) {
+                    //  To the left
+                    modele.getJoueur().setPosition(objectiveBounds.left + objectiveBounds.width, modele.getJoueur().getPosition().y);
+                    std::cout << "3, here is the bug" << std::endl;
+                } else if (deplacement.x > 0) {
+                    //  To the right
+                    modele.getJoueur().setPosition(objectiveBounds.left - playerW, modele.getJoueur().getPosition().y);
+                    std::cout << "4, here is the bug" << std::endl;
+                }
+
+                std::cout << "On y axis is : " << modele.getJoueur().getPosition().y << std::endl;
+                std::cout << "On x axis is : " << modele.getJoueur().getPosition().x << std::endl;
+
+
                 collision = true;
                 break;
             }
