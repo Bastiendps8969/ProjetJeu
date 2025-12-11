@@ -20,6 +20,8 @@ namespace Vue
 
         void initializeTexts(const std::vector<int>& scores);
 
+        sf::FloatRect backButtonRect; // Added member variable for back button rectangle
+
     public:
         ScoreWindow(std::function<std::vector<int>()> getScores);
 

@@ -25,6 +25,8 @@ namespace Vue
         bool fontLoaded = false;
 
         sf::Text titleText;
+        sf::Text titleShadow;
+
         sf::RectangleShape inputBox;
         sf::Text inputText;
         sf::RectangleShape playButton;
@@ -41,6 +43,14 @@ namespace Vue
         bool soundsOn = true;
         bool showCredits = false;
 
+        // cherub image
+        sf::Texture cherubTexture;
+        sf::Sprite cherubSprite;
+        bool cherubLoaded = false;
+
+        // animation
+        sf::Clock animClock;
+
         // callback to obtain player scores (vector<int>)
         std::function<std::vector<int>()> getScoresCb;
 
@@ -50,14 +60,25 @@ namespace Vue
         void openScoreWindow();
         void openCreditsWindow();
 
+        // open level selector and store selection
+        void openLevelPage(sf::RenderWindow& parent);
+
+        // selected indices (chapter, level) after the level selector returns
+        int selectedChapter = -1;
+        int selectedLevel = -1;
+
     public:
         // accepts a callback used to fetch current player scores
-        HomePage(std::function<std::vector<int>()> getScores);
+        HomePage(std::function<std::vector<int>()> getScores, const std::string& backgroundPath = "");
 
         bool isActive() const { return active; }
         void setActive(bool v) { active = v; }
 
         const std::string& getPlayerName() const { return playerName; }
+
+        // After the menu is closed, the controller can query which level was chosen
+        int getSelectedChapter() const { return selectedChapter; }
+        int getSelectedLevel() const { return selectedLevel; }
 
         void handleEvent(const sf::Event& event, sf::RenderWindow& fenetre);
         void draw(sf::RenderWindow& fenetre);

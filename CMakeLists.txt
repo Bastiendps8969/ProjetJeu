@@ -25,6 +25,7 @@ add_executable(TestCollision
         Vue/HomePage.cpp
         Vue/LevelPage.cpp
         Vue/ScoreWindow.cpp
+        Vue/SplashPage.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)
