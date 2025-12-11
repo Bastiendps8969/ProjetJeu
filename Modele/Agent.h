@@ -50,11 +50,28 @@ public:
     int tileSize = 64;
     sf::Clock animClock;
 
-    EnemyAgent(const sf::Vector2f& pos, const std::vector<sf::Vector2f>& patrol, float spd, const std::string& texName)
-        : position(pos), patrolPoints(patrol), speed(spd), textureName(texName)
+    // Ajout pour caméra
+    bool isCamera = false;
+    std::string facing;
+    // Ajout pour cône de vision
+    float visionRange = 300.f;
+    float visionAngle = 60.f;
+
+    EnemyAgent(const sf::Vector2f& pos, const std::vector<sf::Vector2f>& patrol, float spd, const std::string& texName,
+               bool camera = false, const std::string& facingDir = "",
+               float visionRange_ = 300.f, float visionAngle_ = 60.f)
+        : position(pos), patrolPoints(patrol), speed(spd), textureName(texName),
+          isCamera(camera), facing(facingDir), visionRange(visionRange_), visionAngle(visionAngle_)
     {
-        if (!patrolPoints.empty())
+        if (isCamera) {
+            // Direction selon facing
+            if (facing == "left") direction = {-1.f, 0.f};
+            else if (facing == "right") direction = {1.f, 0.f};
+            else if (facing == "up") direction = {0.f, -1.f};
+            else direction = {0.f, 1.f}; // "down" par défaut
+        } else if (!patrolPoints.empty()) {
             direction = normalize(patrolPoints[0] - position);
+        }
 
         // Chargement de la texture (chemins possibles)
         const std::vector<std::string> tryPaths = {
@@ -76,6 +93,11 @@ public:
 
     void update()
     {
+        if (isCamera) {
+            isMoving = false;
+            // direction déjà fixée
+            return;
+        }
         if (patrolPoints.empty()) return;
         sf::Vector2f target = patrolPoints[patrolIndex];
         sf::Vector2f toTarget = target - position;
@@ -146,8 +168,8 @@ public:
         sf::Vector2f joueurCenter(joueurBounds.left + joueurBounds.width * 0.5f,
                                   joueurBounds.top + joueurBounds.height * 0.5f);
 
-        float range = 300.f;
-        float angleDeg = 60.f;
+        float range = visionRange;
+        float angleDeg = visionAngle;
         float pi = 3.14159265f;
         float halfRad = (angleDeg * 0.5f) * pi / 180.f;
         float cosHalfFov = std::cos(halfRad);

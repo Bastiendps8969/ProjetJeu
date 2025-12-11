@@ -15,11 +15,32 @@
         "patrol": [
           [128, 128],
           [2300, 128],
-          [2300,1450],
-          [128, 1450]
+          [2300,1300],
+          [128, 1300]
         ],
-        "speed": 30,
+        "speed": 5,
         "texture": "ennemy_textures1"
+      },
+      {
+        "x": 500,
+        "y": 500,
+        "patrol": [
+          [500, 500],
+          [700, 500],
+          [700, 700],
+          [500, 700]
+        ],
+        "speed": 3,
+        "texture": "ennemy_textures1"
+      },
+      {
+        "x": 2400,
+        "y": 700,
+        "type": "camera",
+        "facing": "left",
+        "texture": "ennemy_textures1",
+        "visionRange": 600,
+        "visionAngle": 90
       }
     ]
   },
@@ -70,4 +91,5 @@
       }
     ]
   }
+
 }

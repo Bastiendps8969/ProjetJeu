@@ -119,40 +119,59 @@ namespace Vue
         // --- DESSIN DES ENNEMIS ET DE LEUR CONE DE VISION ---
         for (const auto& enemy : modele.getEnemies())
         {
-            // Dessin du cône de vision
             sf::Vector2f center = enemy->position;
             sf::Vector2f forward = enemy->direction;
-            float range = 300.f;
-            float angleDeg = 60.f;
+            float range = enemy->visionRange;
+            float angleDeg = enemy->visionAngle;
             const float pi = 3.14159265f;
             float halfRad = (angleDeg * 0.5f) * pi / 180.f;
-            float c = std::cos(halfRad), s = std::sin(halfRad);
-            sf::Vector2f leftDir( c * forward.x - s * forward.y,
-                                  s * forward.x + c * forward.y );
-            sf::Vector2f rightDir( c * forward.x + s * forward.y,
-                                  -s * forward.x + c * forward.y );
-            sf::Vector2f leftPoint  = center + leftDir  * range;
-            sf::Vector2f rightPoint = center + rightDir * range;
+
+            // Correction : rotation du vecteur forward pour chaque bord du cône
+            // Correction : rotation du vecteur forward pour chaque bord du cône
+            auto rotate = [](const sf::Vector2f& v, float rad) -> sf::Vector2f {
+                float c = std::cos(rad), s = std::sin(rad);
+                return sf::Vector2f(c * v.x - s * v.y, s * v.x + c * v.y);
+            };
+
             sf::ConvexShape cone;
-            cone.setPointCount(3);
+            int arcPoints = 30; // nombre de points pour lisser l'arc
+            cone.setPointCount(1 + arcPoints); // 1 pour le centre + points de l’arc
+
+            // Point central
             cone.setPoint(0, center);
-            cone.setPoint(1, leftPoint);
-            cone.setPoint(2, rightPoint);
-            cone.setFillColor(sf::Color(255, 200, 0, 80));
+
+            // Générer l’arc du cône
+            for (int i = 0; i < arcPoints; ++i) {
+                float t = -halfRad + (i / float(arcPoints - 1)) * (2.f * halfRad);
+                sf::Vector2f dir = rotate(forward, t);
+                cone.setPoint(i + 1, center + dir * range);
+            }
+
+            // Couleurs
+            if (enemy->isCamera)
+                cone.setFillColor(sf::Color(0, 255, 255, 80)); // cyan pour caméra
+            else
+                cone.setFillColor(sf::Color(255, 200, 0, 80));
+
             cone.setOutlineColor(sf::Color(255, 200, 0, 120));
             cone.setOutlineThickness(0.f);
+
+            // Dessin
             fenetre.draw(cone);
+
 
             // Dessin du sprite ennemi animé si texture chargée, sinon cercle rouge
             if (enemy->texture.getSize().x > 0) {
                 enemy->sprite.setPosition(center);
-                // Le rect de texture est déjà mis à jour dans updateAnimation()
                 fenetre.draw(enemy->sprite);
             } else {
                 sf::CircleShape enemyShape(30.f);
                 enemyShape.setOrigin(30.f, 30.f);
                 enemyShape.setPosition(center);
-                enemyShape.setFillColor(sf::Color::Red);
+                if (enemy->isCamera)
+                    enemyShape.setFillColor(sf::Color::Cyan);
+                else
+                    enemyShape.setFillColor(sf::Color::Red);
                 fenetre.draw(enemyShape);
             }
         }

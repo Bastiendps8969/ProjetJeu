@@ -19,6 +19,12 @@ struct EnemyDefinition {
     std::vector<sf::Vector2f> patrolPoints;
     float speed = 2.0f;
     std::string textureName; // Ajout
+    // Ajout pour caméra
+    bool isCamera = false;
+    std::string facing; // "left", "right", "up", "down"
+    // Ajout pour cône de vision
+    float visionRange = 300.f;
+    float visionAngle = 60.f;
 };
 
 struct Room {
