@@ -5,6 +5,7 @@
 #include "HomePage.h"
 #include "DialogueManager.h"
 #include "SplashPage.h"
+#include "ChapterLoader.h"
 #include <cmath>
 #include <iostream>
 

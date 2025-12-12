@@ -3,6 +3,7 @@
 //
 
 #include "LevelPage.h"
+#include "ChapterLoader.h"
 #include <cmath>
 #include <iostream>
 #include <algorithm>
@@ -11,7 +12,7 @@
 
 namespace Vue
 {
-    // Draw chapter selection screen
+    // Dessiner l'écran de sélection des chapitres
     void LevelPage::drawChapterSelection(sf::RenderWindow& window,
                                          const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
                                          int chapterIdx,
@@ -22,7 +23,7 @@ namespace Vue
         sf::Font font;
         font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
 
-        // Draw background if loaded
+        // Dessiner l'arrière-plan s'il est chargé
         if (bgLoaded)
         {
             const sf::Texture* bgTex = backgroundSprite.getTexture();
@@ -44,7 +45,7 @@ namespace Vue
             }
         }
 
-        // Title
+        // Titre
         sf::Text titleText;
         titleText.setFont(font);
         titleText.setString("SELECT CHAPTER");
@@ -56,7 +57,7 @@ namespace Vue
                              static_cast<float>(win.y) * 0.15f);
         window.draw(titleText);
 
-        // Draw chapters as big blocks
+        // Dessiner les chapitres sous forme de gros blocs
         float centerX = static_cast<float>(win.x) * 0.5f;
         float startY = static_cast<float>(win.y) * 0.35f;
         float chapW = std::min(500.f, static_cast<float>(win.x) * 0.6f);
@@ -73,12 +74,12 @@ namespace Vue
 
             if (static_cast<int>(i) == chapterIdx)
             {
-                // Selected: bright red
+                // Sélectionné : rouge vif
                 chapBlock.setFillColor(sf::Color(230, 60, 60));
                 chapBlock.setOutlineColor(sf::Color(255, 120, 80));
                 chapBlock.setOutlineThickness(4.f);
 
-                // Shine effect
+                // Effet de brillance
                 sf::RectangleShape shine({chapW * 0.9f, chapH * 0.28f});
                 shine.setPosition(chapX + chapW * 0.05f, chapY + 8.f);
                 shine.setFillColor(sf::Color(255, 180, 140, 110));
@@ -86,12 +87,12 @@ namespace Vue
             }
             else
             {
-                // Normal: darker red
+                // Normal : rouge plus foncé
                 chapBlock.setFillColor(sf::Color(170, 30, 30));
                 chapBlock.setOutlineColor(sf::Color(130, 50, 50));
                 chapBlock.setOutlineThickness(2.f);
 
-                // Subtle shine
+                // Brillance subtile
                 sf::RectangleShape shine({chapW * 0.85f, chapH * 0.22f});
                 shine.setPosition(chapX + chapW * 0.075f, chapY + 10.f);
                 shine.setFillColor(sf::Color(255, 150, 120, 60));
@@ -100,7 +101,7 @@ namespace Vue
 
             window.draw(chapBlock);
 
-            // Chapter name
+            // Nom du chapitre
             sf::Text chapText;
             chapText.setFont(font);
             chapText.setString(chapters[i].first);
@@ -116,7 +117,7 @@ namespace Vue
         window.display();
     }
 
-    // Draw level selection screen with right panel
+    // Dessiner l'écran de sélection de niveaux avec panneau droit
     void LevelPage::drawLevelSelection(sf::RenderWindow& window,
                                        const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
                                        int chapterIdx, int levelIdx,
@@ -127,7 +128,7 @@ namespace Vue
         sf::Font font;
         font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
 
-        // Draw background if loaded
+        // Dessiner l'arrière-plan s'il est chargé
         if (bgLoaded)
         {
             const sf::Texture* bgTex = backgroundSprite.getTexture();
@@ -149,23 +150,23 @@ namespace Vue
             }
         }
 
-        // Layout params
+        // Paramètres de mise en page
         const float centerX = static_cast<float>(win.x) * 0.35f; // niveau centré à gauche (pour faire place au panel)
         const float levelsTopY = static_cast<float>(win.y) * 0.12f;
         const float chapterBottomMargin = 60.f;
 
-        // --- Draw levels row as a horizontal carousel (top-left area) ---
+        // --- Dessiner la rangée de niveaux en carrousel horizontal (zone supérieure gauche) ---
         const auto& levels = chapters[chapterIdx].second;
         const int n = static_cast<int>(levels.size());
 
-        // Base sizes
+        // Tailles de base
         float baseW = std::min(300.f, static_cast<float>(win.x) * 0.18f);
         float baseH = std::min(140.f, static_cast<float>(win.y) * 0.12f);
         float selectedScale = 1.35f;
         float normalScale = 1.0f;
         float gap = std::max(15.f, baseW * 0.12f);
 
-        // Compute scaled widths/heights
+        // Calculer largeurs/hauteurs redimensionnées
         std::vector<float> widths(n), heights(n);
         for (int i = 0; i < n; ++i)
         {
@@ -174,11 +175,11 @@ namespace Vue
             heights[i] = baseH * scale;
         }
 
-        // Compute centers
+        // Calculer les centres
         std::vector<float> centers(n, 0.f);
         centers[levelIdx] = centerX;
 
-        // left
+        // à gauche
         for (int i = levelIdx - 1; i >= 0; --i)
         {
             float rightCenter = centers[i + 1];
@@ -186,7 +187,7 @@ namespace Vue
             float wRight = widths[i + 1];
             centers[i] = rightCenter - (wLeft + wRight) / 2.f - gap;
         }
-        // right
+        // à droite
         for (int i = levelIdx + 1; i < n; ++i)
         {
             float leftCenter = centers[i - 1];
@@ -195,7 +196,7 @@ namespace Vue
             centers[i] = leftCenter + (wLeft + wRight) / 2.f + gap;
         }
 
-        // Draw levels
+        // Dessiner les niveaux
         for (int i = 0; i < n; ++i)
         {
             float w = widths[i];
@@ -230,7 +231,7 @@ namespace Vue
             }
             window.draw(rect);
 
-            // label
+            // Étiquette du niveau
             sf::Text txt;
             txt.setFont(font);
             txt.setString(levels[i]);
@@ -241,7 +242,7 @@ namespace Vue
                             rect.getPosition().y - lb.height / 2.f - lb.top);
             window.draw(txt);
 
-            // draw small lock if not the first level
+            // dessiner un petit cadenas si ce n'est pas le premier niveau
             if (i != 0)
             {
                 sf::CircleShape lockDot(std::max(5.f, std::min(10.f, w * 0.03f)));
@@ -252,7 +253,7 @@ namespace Vue
             }
         }
 
-        // --- Draw chapter block at bottom-left ---
+        // --- Dessiner le bloc du chapitre en bas-gauche ---
         float chapW = std::min(static_cast<float>(win.x) * 0.55f, static_cast<float>(win.x) - 160.f);
         float chapH = std::min(static_cast<float>(win.y) * 0.18f, 260.f);
         sf::RectangleShape chapRect({chapW, chapH});
@@ -272,7 +273,7 @@ namespace Vue
                              chapRect.getPosition().y + (chapH - cb.height) / 2.f - cb.top);
         window.draw(chapText);
 
-        // --- Right preview panel (title, highscore, description, image) ---
+        // --- Panneau de prévisualisation à droite (titre, highscore, description, image) ---
         float rightW = std::min(static_cast<float>(win.x) * 0.28f, 420.f);
         float rightX = static_cast<float>(win.x) - rightW;
         sf::RectangleShape rightRect({rightW, static_cast<float>(win.y)});
@@ -280,10 +281,10 @@ namespace Vue
         rightRect.setFillColor(sf::Color(18, 18, 18));
         window.draw(rightRect);
 
-        // Current level data
+        // Données du niveau courant
         std::string levelName = levels[levelIdx];
 
-        // Title (accent rouge)
+        // Titre (accent rouge)
         sf::Text lvlTitle;
         lvlTitle.setFont(font);
         lvlTitle.setString(levelName + " - OH");
@@ -293,7 +294,7 @@ namespace Vue
         lvlTitle.setPosition(rightX + 20.f, 24.f);
         window.draw(lvlTitle);
 
-        // Highscore placeholder (rouge clair)
+        // Espace réservé HighScore (rouge clair)
         sf::Text hs;
         hs.setFont(font);
         hs.setString("HighScore : Score");
@@ -302,7 +303,7 @@ namespace Vue
         hs.setPosition(rightX + 20.f, 60.f);
         window.draw(hs);
 
-        // Descriptions map
+        // Map des descriptions
         static std::unordered_map<std::string, std::string> descriptions = {
             {"Tutoriel", "Un tutoriel pour l'Operation Hades."},
             {"Lvl 1", "Premier niveau : BastiLove cherche Bertri."},
@@ -312,7 +313,7 @@ namespace Vue
 
         std::string desc = descriptions.count(levelName) ? descriptions[levelName] : "Description indisponible.";
 
-        // Simple word-wrapping for description
+        // Wrap simple des lignes pour la description
         auto wrapToLines = [&](const std::string& text, float maxWidth, unsigned int charSize) {
             std::vector<std::string> lines;
             std::istringstream iss(text);
@@ -354,13 +355,13 @@ namespace Vue
             window.draw(dt);
         }
 
-        // Image box area
+        // Zone du cadre de l'image
         float imgW = std::min(rightW * 0.6f, 280.f);
         float imgH = std::min(static_cast<float>(win.y) * 0.18f, 180.f);
         float imgX = rightX + (rightW - imgW) / 2.f;
         float imgY = static_cast<float>(win.y) * 0.60f;
 
-        // Texture cache
+        // Cache de textures
         static std::unordered_map<std::string, sf::Texture> texCache;
         auto it = texCache.find(levelName);
         bool haveTexture = false;
@@ -431,7 +432,7 @@ namespace Vue
         window.display();
     }
 
-    // helper: affiche un overlay temporaire "Niveau indisponible"
+    // Utilitaire : affiche un overlay temporaire "Niveau indisponible"
     static void showUnavailableOverlay(sf::RenderWindow& window, const std::string& msg)
     {
         sf::Font font;
@@ -476,7 +477,7 @@ namespace Vue
 
     LevelPage::Selection LevelPage::run()
     {
-        // Chapters & levels
+        // Chapitres & niveaux
         std::vector<std::pair<std::string, std::vector<std::string>>> chapters;
         chapters.push_back({"Operation Hades", {"Tutoriel", "Lvl 1", "Lvl 2", "Lvl 3"}});
 
@@ -487,7 +488,7 @@ namespace Vue
         sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Select Level", sf::Style::Fullscreen);
         window.setFramerateLimit(60);
 
-        // Load background image
+        // Charger l'image d'arrière-plan
         sf::Texture bgTexture;
         sf::Sprite bgSprite;
         bool bgLoaded = false;
@@ -524,7 +525,7 @@ namespace Vue
 
                 if (selectingChapter)
                 {
-                    // Chapter selection input handling
+                    // Gestion des entrées pour la sélection du chapitre
                     if (event.type == sf::Event::KeyPressed)
                     {
                         if (event.key.code == sf::Keyboard::Escape)
@@ -542,7 +543,7 @@ namespace Vue
                         }
                         else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
                         {
-                            selectingChapter = false; // Move to level selection
+                            selectingChapter = false; // Passer à la sélection de niveau
                             levelIdx = 0;
                         }
                     }
@@ -575,12 +576,12 @@ namespace Vue
                 }
                 else
                 {
-                    // Level selection input handling
+                    // Gestion des entrées pour la sélection de niveau
                     if (event.type == sf::Event::KeyPressed)
                     {
                         if (event.key.code == sf::Keyboard::Escape)
                         {
-                            selectingChapter = true; // Back to chapter selection
+                            selectingChapter = true; // Retour à la sélection du chapitre
                         }
                         else if (event.key.code == sf::Keyboard::Right)
                         {
@@ -680,7 +681,7 @@ namespace Vue
                 }
             }
 
-            // Render appropriate screen
+            // Rendu de l'écran approprié
             if (selectingChapter)
             {
                 drawChapterSelection(window, chapters, chapterIdx, bgSprite, bgLoaded);

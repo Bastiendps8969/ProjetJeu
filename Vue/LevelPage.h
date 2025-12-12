@@ -12,6 +12,12 @@
 
 namespace Vue
 {
+    /**
+     * LevelPage : écran de sélection des chapitres et des niveaux
+     * - run() ouvre une fenêtre plein écran et retourne la sélection (bloquant)
+     * - Gère l'affichage d'une liste de chapitres ainsi qu'un carrousel de niveaux
+     *   avec un panneau de prévisualisation sur la droite.
+     */
     class LevelPage
     {
     public:
@@ -23,18 +29,21 @@ namespace Vue
 
         LevelPage() = default;
 
-        // Ouvre une fenêtre fullscreen et renvoie la sélection (bloquant)
+        // Ouvre une fenêtre plein écran et renvoie la sélection (bloquant)
         Selection run();
+
     private:
-        // internal helpers
+        // Fonctions utilitaires internes pour le rendu
         void drawFrame(sf::RenderWindow& window, const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
                        int chapterIdx, int levelIdx, const sf::Sprite& backgroundSprite, bool bgLoaded);
 
+        // Dessine l'écran de sélection de chapitre (liste verticale)
         void drawChapterSelection(sf::RenderWindow& window,
                                   const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
                                   int chapterIdx,
                                   const sf::Sprite& backgroundSprite, bool bgLoaded);
 
+        // Dessine l'écran de sélection de niveau (carrousel + panneau droit de prévisualisation)
         void drawLevelSelection(sf::RenderWindow& window,
                                 const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
                                 int chapterIdx, int levelIdx,

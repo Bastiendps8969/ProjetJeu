@@ -6,7 +6,7 @@ namespace Vue
 {
     SplashPage::SplashPage()
     {
-        // Load a font (fall back to arial)
+        // Charger une police (retour sur Arial si échec)
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf") == false)
             font.loadFromFile("arial.ttf");
 
@@ -16,7 +16,7 @@ namespace Vue
         startText.setFillColor(sf::Color::White);
         startText.setStyle(sf::Text::Bold);
 
-        // Try a few likely paths for CherubMenu.png
+        // Tester quelques chemins probables pour CherubMenu.png
         for (const auto& p : defaultPaths())
         {
             if (backgroundTexture.loadFromFile(p))
@@ -61,7 +61,7 @@ namespace Vue
         }
         else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
         {
-            // Any click proceeds
+            // Tout clic fait avancer (fermet le splash)
             active = false;
         }
         else if (event.type == sf::Event::Closed)
@@ -74,7 +74,7 @@ namespace Vue
     {
         sf::Vector2u win = fenetre.getSize();
 
-        // draw background scaled to cover window
+        // Dessiner l'arrière-plan redimensionné pour couvrir la fenêtre
         if (backgroundLoaded)
         {
             const sf::Texture& t = backgroundTexture;
@@ -95,7 +95,7 @@ namespace Vue
             fenetre.clear(sf::Color::Black);
         }
 
-        // draw start text centered with a simple blink
+        // Dessiner le texte "START GAME" centré avec un léger clignotement
         float t = blinkClock.getElapsedTime().asSeconds();
         if (std::fmod(t, 1.0f) < 0.7f)
             startText.setFillColor(sf::Color::White);
