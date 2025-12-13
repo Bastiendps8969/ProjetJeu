@@ -7,6 +7,7 @@
 #include <memory>
 #include "../cmake-build-debug/json.hpp"
 #include "Agent.h"
+#include "Enemy.h"
 #include "RoomManager.h"
 
 namespace Modele
@@ -67,7 +68,11 @@ namespace Modele
         const float DOOR_THICKNESS = 100.f;
 
         // --- ENNEMIS ---
-        std::vector<std::unique_ptr<EnemyAgent>> enemies;
+        std::vector<std::unique_ptr<Enemy>> enemies;
+        // Prototypes for enemy types (Prototype pattern)
+        // Each prototype is an `Enemy` instance used as template; we clone
+        // it via `Enemy::clone()` to create runtime instances.
+        std::map<std::string, std::unique_ptr<Enemy>> enemyPrototypes;
 
     public:
         // Constructeur
@@ -88,7 +93,7 @@ namespace Modele
         float getScreenH() const { return roomManager->getScreenH(); }
 
         // Ennemis
-        const std::vector<std::unique_ptr<EnemyAgent>>& getEnemies() const { return enemies; }
+        const std::vector<std::unique_ptr<Enemy>>& getEnemies() const { return enemies; }
 
         // Méthode pour mettre à jour la position de l'obstacle (logique d'IA)
         void mettreAJourObstacles();

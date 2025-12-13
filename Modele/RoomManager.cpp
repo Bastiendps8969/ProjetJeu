@@ -8,9 +8,33 @@ using json = nlohmann::json;
 
 namespace Modele {
 
+// RoomManager.cpp
+// ----------------
+// Responsable du chargement des définitions de pièces depuis un fichier JSON
+// et de la fourniture d'informations simples à la couche modèle/jeu.
+//
+// Format JSON attendu (extrait):
+// {
+//   "0": {
+//     "name": "Entrée",
+//     "doors": { "up": 1, "right": 2 },
+//     "enemies": [
+//       { "x": 400, "y": 300, "type": "camera", "facing": "left", "visionRange": 400, "visionAngle": 70, "texture": "cam_tex" }
+//     ]
+//   }
+// }
+//
+
+
 RoomManager::RoomManager(float w, float h)
     : screenW(w), screenH(h)
 {}
+
+// Constructeur
+// - `w` / `h`: taille de la fenêtre (ou surface de jeu) ; utilisée pour positionner
+//   les formes visuelles simples des portes et pour calculer les positions lors
+//   des changements de pièce.
+
 
 bool RoomManager::loadRoomsFromJson(const std::string& filename)
 {
@@ -18,22 +42,29 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
     std::ifstream i(filename);
     if (!i.is_open())
     {
+        // Erreur si le fichier de configuration n'est pas accessible
         std::cerr << "Erreur: Impossible d'ouvrir le fichier JSON " << filename << ". Vérifiez qu'il est dans le dossier de l'exécutable." << std::endl;
         return false;
     }
 
+    // Parse JSON and populate rooms_ map
     json j;
     try
     {
         i >> j;
+        // Each top-level key is a room id (string that we convert to int)
         for (auto it = j.begin(); it != j.end(); ++it)
         {
             int roomId = std::stoi(it.key());
             json roomJson = it.value();
             Room newRoom;
 
+            // Room name (champ obligatoire)
+            // Utiliser at() pour lever une exception si le champ manque,
+            // afin de repérer rapidement les erreurs de configuration.
             newRoom.name = roomJson.at("name").get<std::string>();
 
+            // Doors: map direction -> target index
             if (roomJson.contains("doors"))
             {
                 for (auto doorIt = roomJson.at("doors").begin(); doorIt != roomJson.at("doors").end(); ++doorIt)
@@ -41,17 +72,23 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                     Door door;
                     door.direction = doorIt.key();
                     door.targetRoomIndex = doorIt.value().get<int>();
+                    // Stocke la définition minimale d'une porte (direction et index cible)
                     newRoom.doors.emplace_back(std::move(door));
                 }
             }
 
+            // Enemies: liste de descriptions `EnemyDefinition` (données pures provenant du JSON)
+            // Chaque `EnemyDefinition` est consommé plus tard par Modele pour créer
+            // les instances runtime (clonage de prototypes, application d'échelles, etc.).
             if (roomJson.contains("enemies"))
             {
                 for (const auto& enemyJson : roomJson.at("enemies"))
                 {
                     EnemyDefinition ed;
+                    // Position obligatoire
                     ed.position.x = enemyJson.at("x").get<float>();
                     ed.position.y = enemyJson.at("y").get<float>();
+                    // Optional fields with defaults
                     ed.speed = enemyJson.value("speed", 2.0f);
                     if (enemyJson.contains("patrol"))
                     {
@@ -63,31 +100,50 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                             ed.patrolPoints.push_back(p);
                         }
                     }
+
+                    // Texture et type : les valeurs par défaut permettent de ne pas
+                    // répéter la configuration pour chaque ennemi.
                     ed.textureName = enemyJson.value("texture", "ennemy_textures1");
                     std::string type = enemyJson.value("type", "");
+
+                    // Traitement spécifique selon le type d'ennemi.
+                    // - camera: détecteur statique avec un cône de vision orienté
+                    // - laser: détecteur par faisceau (ligne) orienté
                     if (type == "camera") {
                         ed.isCamera = true;
                         ed.facing = enemyJson.value("facing", "left");
+                        // Les caméras sont immobiles par défaut
                         ed.speed = 0.f;
                         ed.patrolPoints.clear();
                     }
-                    // Ajout laser
                     if (type == "laser") {
                         ed.isLaser = true;
                         ed.facing = enemyJson.value("facing", "right");
                         ed.speed = 0.f;
                         ed.patrolPoints.clear();
+                        // Longueur du laser en pixels (peut être convertie ensuite)
                         ed.laserLength = enemyJson.value("laserLength", 600.f);
                     }
+
+                    // Paramètres de vision: peuvent être présents dans le JSON pour
+                    // ajuster la portée et l'angle par ennemi. Les valeurs par défaut
+                    // dépendent du type (caméra vs ennemi mobile générique).
                     ed.visionRange = enemyJson.value("visionRange", ed.isCamera ? 400.f : 300.f);
                     ed.visionAngle = enemyJson.value("visionAngle", ed.isCamera ? 70.f : 60.f);
+
+                    // Ajoute la définition à la pièce; l'instanciation concrète
+                    // sera faite plus tard (Modele::reloadEnemiesForCurrentRoom).
                     newRoom.enemyDefs.push_back(ed);
                 }
             }
 
+            // Store the parsed room
             rooms_[roomId] = std::move(newRoom);
         }
 
+        // Crée des formes visuelles simples pour les portes (utile pour le debug
+        // et pour les collisions de base). Les formes sont calculées ici en
+        // fonction de la taille de l'écran connue du RoomManager.
         for (auto& pair : rooms_)
         {
             initializeRoomShapes(pair.second);
@@ -110,6 +166,8 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
 void RoomManager::initializeRoomShapes(Room& room)
 {
 
+    // For each door in the room, create a simple RectangleShape that
+    // visually represents the door on the corresponding edge of the screen.
     for (auto& door : room.doors)
     {
         if (door.direction == "up")
@@ -133,6 +191,8 @@ void RoomManager::initializeRoomShapes(Room& room)
             door.visualShape->setPosition(screenW - DOOR_THICKNESS, screenH / 2.f - DOOR_SIZE / 2.f);
         }
 
+        // Définition visuelle et calcul des bounds utilisés par le jeu
+        // pour détecter les entrées/sorties de pièce.
         if (door.visualShape) {
             door.visualShape->setFillColor(sf::Color(0, 150, 255, 128));
             door.bounds = door.visualShape->getGlobalBounds();
@@ -146,6 +206,9 @@ const std::vector<Door>& RoomManager::getCurrentRoomDoors() const
     auto it = rooms_.find(currentRoomIndex_);
     if (it != rooms_.end())
     {
+        // Retourne la liste des portes de la pièce courante. On retourne une
+        // référence vers le vecteur interne; le caller ne doit pas modifier
+        // ce vecteur directement.
         return it->second.doors;
     }
     return emptyDoors;
@@ -156,6 +219,9 @@ const std::vector<EnemyDefinition>& RoomManager::getCurrentRoomEnemies() const
     static const std::vector<EnemyDefinition> empty;
     auto it = rooms_.find(currentRoomIndex_);
     if (it != rooms_.end())
+        // Renvoie les définitions d'ennemis pour la pièce courante. Ces
+        // définitions doivent être utilisées pour instancier les ennemis
+        // (clonage de prototypes) dans la couche modèle runtime.
         return it->second.enemyDefs;
     return empty;
 }
@@ -165,6 +231,7 @@ std::string RoomManager::getCurrentRoomName() const
     auto it = rooms_.find(currentRoomIndex_);
     if (it != rooms_.end())
     {
+        // Nom lisible de la pièce utilisée dans l'UI et les logs
         return it->second.name;
     }
     return "Pièce inconnue (ID:" + std::to_string(currentRoomIndex_) + ")";
@@ -183,11 +250,16 @@ bool RoomManager::changeRoom(int newRoomIndex, const std::string& entryDirection
 
     currentRoomIndex_ = newRoomIndex;
 
+    // Calcule la position du joueur en fonction de sa taille pour
+    // éviter qu'il soit partiellement hors-écran lors du teleporte
     float playerW = joueur.getSize().x;
     float playerH = joueur.getSize().y;
     float halfW = playerW * 0.5f;
     float halfH = playerH * 0.5f;
 
+    // Positionne le joueur selon la direction d'entrée pour simuler
+    // une arrivée par la porte correspondante. Les décalages fixes
+    // (20.f) évitent que le joueur soit collé contre la bordure.
     if (entryDirection == "up")
     {
         joueur.setPosition(screenW / 2.f - halfW, DOOR_THICKNESS + 20.f);
@@ -206,6 +278,7 @@ bool RoomManager::changeRoom(int newRoomIndex, const std::string& entryDirection
     }
     else
     {
+        // Position centrale par défaut si la direction n'est pas reconnue
         joueur.setPosition(screenW * 0.5f - halfW, screenH * 0.5f - halfH);
     }
 

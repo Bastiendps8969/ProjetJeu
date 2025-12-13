@@ -1,5 +1,6 @@
 #include "Modele.h"
 #include "Agent.h"
+#include "Enemy.h"
 #include "RoomManager.h"
 #include <cmath>
 #include <limits>
@@ -25,6 +26,12 @@ namespace Modele {
         float screenH = static_cast<float>(dm.height);
 
         roomManager = std::make_unique<RoomManager>(screenW, screenH);
+
+        // Initialize enemy prototypes (Prototype pattern)
+        enemyPrototypes.clear();
+        enemyPrototypes["generic"] = std::make_unique<GenericEnemy>();
+        enemyPrototypes["camera"] = std::make_unique<CameraEnemy>();
+        enemyPrototypes["laser"] = std::make_unique<LaserEnemy>();
 
         float boxSize = std::max(8.f, std::min(screenW, screenH) * 0.08f);
 
@@ -235,17 +242,81 @@ namespace Modele {
         {
             std::vector<sf::Vector2f> patrol;
             for (const auto& pt : ed.patrolPoints) {
-                // Mise à l'échelle des points de patrouille
                 patrol.push_back(sf::Vector2f(pt.x * scaleW, pt.y * scaleH));
             }
             sf::Vector2f pos(ed.position.x * scaleW, ed.position.y * scaleH);
-            // Correction : applique le scaling à visionRange
             float scaledVisionRange = ed.visionRange * std::sqrt(scaleW * scaleH);
             float scaledLaserLength = ed.laserLength * std::sqrt(scaleW * scaleH);
-            enemies.push_back(std::make_unique<EnemyAgent>(
-                pos, patrol, ed.speed, ed.textureName, ed.isCamera, ed.facing,
-                scaledVisionRange, ed.visionAngle, ed.isLaser, scaledLaserLength
-            ));
+
+            // Determine type
+            std::string type = ed.isLaser ? "laser" : (ed.isCamera ? "camera" : "generic");
+            auto it = enemyPrototypes.find(type);
+            std::unique_ptr<Enemy> e;
+            if (it != enemyPrototypes.end()) e = it->second->clone();
+            else e = enemyPrototypes["generic"]->clone();
+
+            // common setup
+            e->position = pos;
+            e->textureName = ed.textureName;
+
+            // load texture if present
+            const std::vector<std::string> tryPathsTex = {
+                "cmake-build-debug/Asset/Human/" + e->textureName + ".png",
+                "Asset/Human/" + e->textureName + ".png",
+                "Human/" + e->textureName + ".png",
+                e->textureName + ".png"
+            };
+            for (const auto& p : tryPathsTex) {
+                if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); break; }
+            }
+            e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
+            e->sprite.setScale(2.5f, 2.5f);
+
+            if (type == "generic") {
+                GenericEnemy* g = dynamic_cast<GenericEnemy*>(e.get());
+                if (g) {
+                    g->patrolPoints = patrol;
+                    g->speed = ed.speed;
+                    if (!g->patrolPoints.empty())
+                        g->direction = Enemy::normalize(g->patrolPoints[0] - g->position);
+                }
+                e->isCamera = false;
+                e->isLaser = false;
+                e->visionRange = scaledVisionRange;
+                e->visionAngle = ed.visionAngle;
+            }
+            else if (type == "camera") {
+                CameraEnemy* c = dynamic_cast<CameraEnemy*>(e.get());
+                if (c) {
+                    c->facing = ed.facing;
+                    // `visionRange` / `visionAngle` sont des membres hérités de la classe de base `Enemy`.
+                    // On positionne les valeurs via l'objet `e` ci‑dessous.
+                    if (c->facing == "left") c->direction = {-1.f, 0.f};
+                    else if (c->facing == "right") c->direction = {1.f, 0.f};
+                    else if (c->facing == "up") c->direction = {0.f, -1.f};
+                    else c->direction = {0.f, 1.f};
+                }
+                e->isCamera = true;
+                e->isLaser = false;
+                e->visionRange = scaledVisionRange;
+                e->visionAngle = ed.visionAngle;
+            }
+            else if (type == "laser") {
+                LaserEnemy* l = dynamic_cast<LaserEnemy*>(e.get());
+                if (l) {
+                    l->facing = ed.facing;
+                    // `laserLength` est hérité de `Enemy`; on l'initialise via `e` ci-dessous.
+                    if (l->facing == "left") l->direction = {-1.f, 0.f};
+                    else if (l->facing == "right") l->direction = {1.f, 0.f};
+                    else if (l->facing == "up") l->direction = {0.f, -1.f};
+                    else l->direction = {0.f, 1.f};
+                }
+                e->isLaser = true;
+                e->isCamera = false;
+                e->laserLength = scaledLaserLength;
+            }
+
+            enemies.push_back(std::move(e));
         }
     }
 
@@ -394,6 +465,12 @@ namespace Modele {
     bool Modele::isJoueurDetecte() const
     {
         // Retourne vrai si au moins un ennemi détecte le joueur
+        // Chaque ennemi calcule sa propre détection (ex: cône, laser). Ici nous
+        // agrégons ces résultats : si un ennemi a son flag `joueurDetecte` à true,
+        // le joueur est considéré comme détecté globalement.
+        // Note : `joueurDetecte` est mis à jour par `Enemy::detectPlayer()` appelé
+        // dans `Modele::updateEnemies()` ; la granularité de détection (frame-based)
+        // implique que la réactivité dépend du taux de mise à jour.
         for (const auto& e : enemies)
             if (e->joueurDetecte) return true;
         return false;
