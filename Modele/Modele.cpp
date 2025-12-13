@@ -363,7 +363,7 @@ namespace Modele {
         }
 
         // Chargement des pièces
-        if (loadRoomsFromJson("rooms.json") && rooms_.count(0))
+        if (loadRoomsFromJson("Asset/levels/tutorial/tutorial_1.json") && rooms_.count(0))
         {
             currentRoomIndex_ = 0;
             joueur.setPosition(screenW * 0.5f - boxSize * 0.5f, screenH * 0.5f - boxSize * 0.5f);

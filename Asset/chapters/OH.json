@@ -22,6 +22,6 @@
     "picture" : "Asset/levels/OH_3.png",
     "neededScore" : "50000",
     "levelData": "Asset/levels/OH_3.json"
-  }
+  },
   // More levels can be added
 }
