@@ -1,9 +1,11 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include <memory>
 #include "Modele.h"
 #include "Vue.h"
 #include "DialogueManager.h"
+#include "ControllerLevel.h"
 
 namespace Controleur
 {
@@ -13,19 +15,14 @@ namespace Controleur
         // Fenêtre
         sf::RenderWindow fenetre;
 
-        // Mouvement du rectangle jaune
-        sf::Vector2f mouvement;
+        // (level movement moved to ControllerLevel)
 
         // Modèle et vue
         Modele::Modele& modele;
         Vue::Vue& vue;
 
-        // private car lancer uniquement qu'à partir de gererBoucle()
-        void gererEntree();
-        void mettreAJour();
-
-        // --- NOUVEAU: Vérification des portes ---
-        void verifierPorte();
+        // Level controller (contains per-level logic)
+        std::unique_ptr<ControllerLevel> niveauController;
 
         // --- NOUVEAU: Affichage du menu d'accueil ---
         void afficherMenuAccueil();

@@ -1,6 +1,8 @@
 #include "Objective.h"
 #include <iostream>
+#include <utility>
 
+//  Constructors
 Objective::Objective() {
     // valeurs neutres
     title = "Objective";
@@ -49,35 +51,29 @@ Objective::Objective(std::string t, std::string d, sf::Texture texture,
     sprite.setPosition(x, y);
 }
 
+//  Destructor
 Objective::~Objective() {
     std::cout << "Objective " << this->getTitle() << " has been destroyed" << std::endl;
 }
 
 
-
-void Objective::setTitle(std::string t) {
-    if (!t.empty()) {
-        title = t;
-    }
+//  Setters
+void Objective::setTitle(const std::string& t) {
+    title = t;
 }
-void Objective::setDescription(std::string d) {
-    if (!d.empty()) {
-        description = d;
-    }
+void Objective::setDescription(const std::string& d) {
+    description = d;
 }
-void Objective::setAccomplished(bool b) {
+void Objective::setAccomplished(const bool b) {
     accomplished = b;
 }
-void Objective::setPrimary(bool b) {
+void Objective::setPrimary(const bool b) {
     primary = b;
 }
 
-void Objective::setTexture(std::string t) {
-    if (!t.empty()) {
+void Objective::setTexture(const std::string& t) {
         texture.loadFromFile(t);
-    }
 }
-
 
 void Objective::setHitboxPosition(float x, float y) {
     hitbox.setPosition(sf::Vector2f(x, y));
@@ -87,6 +83,15 @@ void Objective::setHitboxSize(float w, float h) {
     hitbox.setSize(sf::Vector2f(w, h));
 }
 
+void Objective::setDialogueFile(const std::string& df) {
+    dialogueFile = df;
+}
+void Objective::setDialogueRef(const std::string& dr) {
+    dialogueRef = dr;
+}
+
+
+//  Getters
 std::string Objective::getTitle() const {
     return title;
 }
@@ -114,3 +119,10 @@ sf::Vector2f Objective::getHitboxSize() const {
 sf::RectangleShape Objective::getHitbox() const {
     return hitbox;
 }
+std::string Objective::getDialogueFile() const {
+    return dialogueFile;
+}
+std::string Objective::getDialogueRef() const {
+    return dialogueRef;
+}
+

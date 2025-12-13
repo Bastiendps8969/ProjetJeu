@@ -28,6 +28,10 @@ private:
     sf::Sprite sprite;
     sf::Texture texture;
 
+    //  Dialogue information
+    std::string dialogueFile;
+    std::string dialogueRef;
+
 
 public:
     //  Constructor
@@ -39,13 +43,15 @@ public:
     ~Objective();
 
     //  Setters
-    void setTitle(std::string t);
-    void setDescription(std::string d);
+    void setTitle(const std::string& t);
+    void setDescription(const std::string& d);
     void setAccomplished(bool b);
     void setPrimary(bool b);
     void setHitboxPosition(float x, float y);
     void setHitboxSize(float w, float h);
-    void setTexture(std::string t);
+    void setTexture(const std::string& t);
+    void setDialogueFile(const std::string& df);
+    void setDialogueRef(const std::string& dr);
 
     //  Getters
     std::string getTitle() const;
@@ -57,6 +63,8 @@ public:
     sf::Vector2f getHitboxPosition() const;
     sf::Vector2f getHitboxSize() const;
     sf::RectangleShape getHitbox() const;
+    std::string getDialogueFile() const;
+    std::string getDialogueRef() const;
 };
 
 

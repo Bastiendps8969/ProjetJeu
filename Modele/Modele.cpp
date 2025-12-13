@@ -139,6 +139,9 @@ namespace Modele {
                             obsJson.at("y").get<float>()
                         );
 
+                        objective.setDialogueFile(obsJson.at("dialogueFile").get<std::string>());
+                        objective.setDialogueRef(obsJson.at("dialogueRef").get<std::string>());
+
                         std::cout << objective.getTitle() << " has been loaded" << std::endl;
 
                         newRoom.objectives.emplace_back(std::move(objective));
@@ -669,4 +672,20 @@ namespace Modele {
     // Helper: sync playerSprite position to rectangle joueur (call this if joueur moved)
     // We'll update sprite position from Controleur after movement.
     void syncPlayerSpritePosition(Modele& m); // forward decl (no-op here)
+
+    //  Objective collision
+    void Modele::setObjectiveContact(const Objective &obj) {
+        objectiveContact = obj;
+    }
+    void Modele::setObjectiveContactDetectee(const bool b) {
+        objectiveContactDetectee = b;
+    }
+
+    Objective Modele::getObjectiveContact() const {
+        return objectiveContact;
+    }
+    bool Modele::getObjectiveContactDetectee() const {
+        return objectiveContactDetectee;
+    }
+
 }

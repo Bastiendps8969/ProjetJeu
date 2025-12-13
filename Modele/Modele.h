@@ -103,6 +103,10 @@ namespace Modele
         const float DOOR_SIZE = 120.f;
         const float DOOR_THICKNESS = 100.f;
 
+        //  Collision with objective
+        Objective objectiveContact;
+        bool objectiveContactDetectee;
+
     public:
         // Constructeur
         Modele();
@@ -159,5 +163,13 @@ namespace Modele
 
         // Synchronise l'échelle/position du sprite joueur avec le RectangleShape (taille & position)
         void syncPlayerSprite();
+
+        //  Objective collision
+        void setObjectiveContact(const Objective& obj);
+        void setObjectiveContactDetectee(const bool b);
+        Objective getObjectiveContact() const;
+        bool getObjectiveContactDetectee() const;
+
+
     };
 }
