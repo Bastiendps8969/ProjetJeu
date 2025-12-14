@@ -7,6 +7,8 @@
 #include <cmath>
 #include <iostream>
 
+#include "ControllerLevel.h"
+
 namespace Controleur
 {
     // Constructeur
@@ -16,6 +18,7 @@ namespace Controleur
           mouvement(0.f, 0.f)
     {
         fenetre.setFramerateLimit(60);
+        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
     }
 
     // Affiche le menu d'accueil (importé de ProjetJeu)
@@ -78,25 +81,16 @@ namespace Controleur
 
             fenetre.clear(sf::Color::Black);
 
-            // Lancer le dialogue UNE SEULE FOIS si le joueur est détecté par un ennemi ET flag pas encore activé
-            if (modele.isJoueurDetecte() && !agentDialogueLaunched && !dialogueManager.isDialogueActive())
-            {
-                dialogueManager.startDialogueSequence("agent_detected");
-                agentDialogueLaunched = true;
-            }
-            if (!modele.isJoueurDetecte())
-            {
-                agentDialogueLaunched = false; // Réinitialise si le joueur n'est plus détecté
-            }
+            // Déléguer au controller de niveau la prise en charge des collisions
+            niveauController->processCollisions(dialogueManager);
 
             // Geler le gameplay si un dialogue est actif
             if (!dialogueManager.isDialogueActive())
             {
-                gererEntree();
-                mettreAJour();
+                niveauController->handleInput();
+                niveauController->update();
                 modele.mettreAJourObstacles();
-                modele.updateEnemies(); // <-- Ajout ici
-                verifierPorte();
+                niveauController->checkDoors();
             }
 
             vue.dessiner(fenetre);

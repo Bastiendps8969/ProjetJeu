@@ -1,0 +1,14 @@
+{
+  "0": {
+    "name": "Tutorial",
+    "description": "Learning the basis of being a spy.",
+    "picture": "Asset/chapters/tutorial.png",
+    "levels": "Asset/chapters/tutorial.json"
+  },
+  "1": {
+    "name": "Operation Hades",
+    "description": "This is a placeholder cause I don't want to translate the narrative part.",
+    "picture": "Asset/chapters/OH.png",
+    "levels": "Asset/chapters/OH.json"
+  }
+}

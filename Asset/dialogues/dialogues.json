@@ -35,6 +35,20 @@
         "text": "Excellente performance!",
         "displayDuration": 3.0
       }
+    ],
+    "primary_objective": [
+      {
+        "characterName": "James",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "I think i've just found the objective.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "Get the information and come back.",
+        "displayDuration": 3.0
+      }
     ]
   }
 }

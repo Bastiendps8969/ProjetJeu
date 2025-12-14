@@ -5,6 +5,8 @@
 #include <map>
 #include <string>
 #include <memory>
+
+#include "Objective.h"
 #include "../cmake-build-debug/json.hpp"
 #include "Agent.h"
 #include "Enemy.h"
@@ -74,6 +76,10 @@ namespace Modele
         // it via `Enemy::clone()` to create runtime instances.
         std::map<std::string, std::unique_ptr<Enemy>> enemyPrototypes;
 
+        //  Collision with objective
+        Objective objectiveContact;
+        bool objectiveContactDetectee;
+
     public:
         // Constructeur
         Modele();
@@ -88,6 +94,12 @@ namespace Modele
         int getTileSize() const { return tileSize; }
         const std::vector<sf::Texture>& getWallTextures() const { return wallTextures; }
 
+        // Retourne les obstacles physiques (qui bloquent)
+        const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
+        const std::vector<Door>& getCurrentRoomDoors() const;
+        std::string getCurrentRoomName() const;
+        const std::vector<Objective>& getCurrentRoomObjectives() const;
+
         // NOUVEAU: Getters pour les dimensions de l'écran (maintenant dans la classe)
         float getScreenW() const { return roomManager->getScreenW(); }
         float getScreenH() const { return roomManager->getScreenH(); }
@@ -101,6 +113,15 @@ namespace Modele
         // Accesseurs pour détection joueur (champ de vision)
         bool isJoueurDetecte() const;
         void setJoueurDetecte(bool v) { if (agent) agent->setJoueurDetecte(v); }
+        void setJoueurDetecte(bool v) { joueurDetecte = v; }
+        bool isJoueurDetecte() const { return joueurDetecte; }
+
+        // Vérifie si le dialogue a été déclenché
+        bool hasDialogueTriggered() const;
+        // Définit l'état du déclenchement du dialogue
+        void setDialogueTriggered(bool v);
+        // Réinitialise l'état du déclenchement du dialogue
+        void resetDialogueTriggered();
 
         // Exposer centre et direction avant d'un obstacle (index par défaut 0)
         sf::Vector2f getObstacleCenter(size_t idx = 0) const { return agent ? agent->getObstacleCenter(idx) : sf::Vector2f(); }
@@ -128,5 +149,13 @@ namespace Modele
 
         void updateEnemies();
         void reloadEnemiesForCurrentRoom();
+
+        //  Objective collision
+        void setObjectiveContact(const Objective& obj);
+        void setObjectiveContactDetectee(const bool b);
+        Objective getObjectiveContact() const;
+        bool getObjectiveContactDetectee() const;
+
+
     };
 }

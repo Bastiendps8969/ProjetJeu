@@ -9,12 +9,170 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include "Objective.h"
+
 // Alias de namespace pour nlohmann/json
 using json = nlohmann::json;
 
 namespace Modele {
 
     const float DOOR_MARGIN = 20.f;
+
+    // Définition des méthodes privées (maintenant correctement scopees)
+    void Modele::initializeRoomShapes(Room& room)
+    {
+        room.obstacleShapes.clear();
+
+        // 1. Création des obstacles physiques
+        for (const auto& def : room.obstacleDefs)
+        {
+            if (def.type == "rect")
+            {
+                std::unique_ptr<sf::RectangleShape> rect = std::make_unique<sf::RectangleShape>(def.size);
+                rect->setFillColor(sf::Color::Red);
+                rect->setPosition(def.position);
+                room.obstacleShapes.emplace_back(std::move(rect));
+            }
+        }
+
+        // 2. Création des zones de porte
+        for (auto& door : room.doors)
+        {
+            // La logique de placement de la porte reste inchangée
+            if (door.direction == "up")
+            {
+                door.visualShape = std::make_unique<sf::RectangleShape>(sf::Vector2f(DOOR_SIZE, DOOR_THICKNESS));
+                door.visualShape->setPosition(screenW / 2.f - DOOR_SIZE / 2.f, 0.f);
+            }
+            else if (door.direction == "down")
+            {
+                door.visualShape = std::make_unique<sf::RectangleShape>(sf::Vector2f(DOOR_SIZE, DOOR_THICKNESS));
+                door.visualShape->setPosition(screenW / 2.f - DOOR_SIZE / 2.f, screenH - DOOR_THICKNESS);
+            }
+            else if (door.direction == "left")
+            {
+                door.visualShape = std::make_unique<sf::RectangleShape>(sf::Vector2f(DOOR_THICKNESS, DOOR_SIZE));
+                door.visualShape->setPosition(0.f, screenH / 2.f - DOOR_SIZE / 2.f);
+            }
+            else if (door.direction == "right")
+            {
+                door.visualShape = std::make_unique<sf::RectangleShape>(sf::Vector2f(DOOR_THICKNESS, DOOR_SIZE));
+                door.visualShape->setPosition(screenW - DOOR_THICKNESS, screenH / 2.f - DOOR_SIZE / 2.f);
+            }
+
+            if (door.visualShape) {
+                door.visualShape->setFillColor(sf::Color(0, 150, 255, 128));
+                door.bounds = door.visualShape->getGlobalBounds();
+            }
+        }
+    }
+
+    // Définition de la méthode privée (maintenant correctement scopee)
+    bool Modele::loadRoomsFromJson(const std::string& filename)
+    {
+        rooms_.clear();
+        std::ifstream i(filename);
+        if (!i.is_open())
+        {
+            std::cerr << "Erreur: Impossible d'ouvrir le fichier JSON " << filename << ". Vérifiez qu'il est dans le dossier de l'exécutable." << std::endl;
+            return false;
+        }
+
+        json j;
+        try
+        {
+            i >> j;
+            for (auto it = j.begin(); it != j.end(); ++it)
+            {
+                int roomId = std::stoi(it.key());
+                json roomJson = it.value();
+                Room newRoom;
+
+                newRoom.name = roomJson.at("name").get<std::string>();
+
+                if (roomJson.contains("obstacles"))
+                {
+                    for (const auto& obsJson : roomJson.at("obstacles"))
+                    {
+                        ObstacleDefinition def;
+                        def.type = obsJson.at("type").get<std::string>();
+
+                        def.position.x = obsJson.at("x").get<float>();
+                        def.position.y = obsJson.at("y").get<float>();
+                        def.size.x = obsJson.at("w").get<float>();
+                        def.size.y = obsJson.at("h").get<float>();
+                        newRoom.obstacleDefs.emplace_back(def);
+                    }
+                }
+
+                if (roomJson.contains("doors"))
+                {
+                    for (auto doorIt = roomJson.at("doors").begin(); doorIt != roomJson.at("doors").end(); ++doorIt)
+                    {
+                        Door door;
+                        door.direction = doorIt.key();
+                        door.targetRoomIndex = doorIt.value().get<int>();
+                        newRoom.doors.emplace_back(std::move(door));
+                    }
+                }
+
+                if (roomJson.contains("objectives")) {
+                    for (const auto& obsJson : roomJson.at("objectives"))
+                    {
+                        //  Remplacer par un constructeur avec arguments
+                        //  pour que ce soit plus simple
+                        Objective objective;
+                        objective.setTitle(obsJson.at("title").get<std::string>());
+                        objective.setDescription(obsJson.at("description").get<std::string>());
+                        objective.setTexture(obsJson.at("texture").get<std::string>());
+                        objective.setPrimary(obsJson.at("primary").get<bool>());
+
+                        objective.setHitboxPosition(
+                            obsJson.at("x").get<float>(),
+                            obsJson.at("y").get<float>()
+                        );
+                        objective.setHitboxSize(
+                            obsJson.at("w").get<float>(),
+                            obsJson.at("h").get<float>()
+                        );
+
+                        objective.getSprite().setTexture(objective.getTexture());
+                        objective.getSprite().setPosition(
+                            obsJson.at("x").get<float>(),
+                            obsJson.at("y").get<float>()
+                        );
+
+                        objective.setDialogueFile(obsJson.at("dialogueFile").get<std::string>());
+                        objective.setDialogueRef(obsJson.at("dialogueRef").get<std::string>());
+
+                        std::cout << objective.getTitle() << " has been loaded" << std::endl;
+
+                        newRoom.objectives.emplace_back(std::move(objective));
+                    }
+                }
+
+                rooms_[roomId] = std::move(newRoom);
+            }
+
+            for (auto& pair : rooms_)
+            {
+                initializeRoomShapes(pair.second);
+            }
+
+            return true;
+        }
+        catch (const json::exception& e)
+        {
+            std::cerr << "Erreur de parsing JSON: " << e.what() << std::endl;
+            return false;
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Erreur lors du chargement des pièces: " << e.what() << std::endl;
+            return false;
+        }
+    }
+
 
     // Constructeur : toutes les variables membres sont maintenant initialisées
     Modele::Modele()
@@ -204,7 +362,7 @@ namespace Modele {
         }
 
         // Chargement des pièces
-        if (roomManager->loadRoomsFromJson("rooms.json") && roomManager->getRooms().count(0))
+        if (loadRoomsFromJson("Asset/levels/tutorial/tutorial_1.json") && rooms_.count(0))
         {
             roomManager->changeRoom(0, "", joueur);
             joueur.setPosition(screenW * 0.5f - boxSize * 0.5f, screenH * 0.5f - boxSize * 0.5f);
