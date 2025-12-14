@@ -4,6 +4,7 @@
 #include "Vue.h"
 #include "HomePage.h"
 #include "DialogueManager.h"
+#include "CesarVue.h"
 #include <cmath>
 #include <iostream>
 
@@ -59,6 +60,7 @@ namespace Controleur
 
         Vue::DialogueManager dialogueManager;
         bool agentDialogueLaunched = false; // Ajout
+        bool cesrDialogueClosed = false;  // Track si dialogue César terminé pour ouvrir CesarVue
 
         sf::Clock fpsTimer;
         int fpsFrames = 0;
@@ -92,6 +94,36 @@ namespace Controleur
             if (!modele.isJoueurDetecte())
             {
                 agentDialogueLaunched = false;
+            }
+
+            // Si dialogue objectif César terminé, ouvrir la fenêtre CesarVue
+            bool shouldOpen = niveauController->shouldOpenCesarWindow();
+            bool dialogueNotActive = !dialogueManager.isDialogueActive();
+            bool notClosedYet = !cesrDialogueClosed;
+            
+            if (shouldOpen && dialogueNotActive && notClosedYet)
+            {
+                cesrDialogueClosed = true;
+                // Ouvrir la fenêtre César
+                CesarVue cesarVue(niveauController->getCesarObjective());
+                
+                // Boucle de gestion de la fenêtre César
+                while (fenetre.isOpen() && !cesarVue.shouldWindowClose()) {
+                    sf::Event cesarEvent;
+                    while (fenetre.pollEvent(cesarEvent)) {
+                        if (cesarEvent.type == sf::Event::Closed) {
+                            fenetre.close();
+                        }
+                        cesarVue.handleEvent(cesarEvent, fenetre);
+                    }
+                    
+                    fenetre.clear(sf::Color::Black);
+                    cesarVue.draw(fenetre);
+                    fenetre.display();
+                }
+                
+                niveauController->resetCesarWindowFlag();
+                cesrDialogueClosed = false;
             }
 
             // Geler le gameplay si un dialogue est actif

@@ -2,6 +2,8 @@
 #include <cmath>
 #include <iostream>
 #include <SFML/Window.hpp>
+
+#include "CesarVue.h"
 #include "../Vue/DialogueManager.h"
 
 namespace Controleur {
@@ -209,7 +211,23 @@ void ControllerLevel::checkDoors()
 void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
 {
     if (modele.getObjectiveContactDetectee()) {
-        dialogueManager.startDialogueSequence(modele.getObjectiveContact().getDialogueRef());
+        const Objective& contactObj = modele.getObjectiveContact();
+        std::cout << "[ControllerLevel] Objective contact detected: " << contactObj.getTitle() << std::endl;
+        std::cout << "[ControllerLevel] isCesar() = " << contactObj.isCesar() << std::endl;
+        std::cout << "[ControllerLevel] Opening dialog: " << contactObj.getDialogueRef() << std::endl;
+        
+        dialogueManager.startDialogueSequence(contactObj.getDialogueRef());
+        
+        // Si c'est un objectif César, signaler à Controleur d'ouvrir la fenêtre après dialogue
+        if (contactObj.isCesar()) {
+            std::cout << "[ControllerLevel] ✓ Objective IS CESAR! Setting openCesarWindow = true" << std::endl;
+            cesrObjective = contactObj;
+            openCesarWindow = true;  // Flag pour Controleur (sera consommé après fin dialogue)
+        }
+        else {
+            std::cout << "[ControllerLevel] ✗ Objective is NOT cesar" << std::endl;
+        }
+        
         modele.setObjectiveContactDetectee(false);
     }
     else if (modele.isJoueurDetecte())
