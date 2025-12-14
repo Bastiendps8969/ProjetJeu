@@ -32,8 +32,25 @@
           [2300,1300],
           [128, 1300]
         ],
-        "speed": 30,
+        "speed": 10,
         "texture": "ennemy_textures1"
+      },
+      {
+        "x": 2400,
+        "y": 700,
+        "type": "camera",
+        "facing": "left",
+        "texture": "ennemy_textures1",
+        "visionRange": 600,
+        "visionAngle": 90
+      },
+      {
+        "x": 1200,
+        "y": 400,
+        "type": "laser",
+        "facing": "down",
+        "texture": "",
+        "laserLength": 500
       }
     ]
   },

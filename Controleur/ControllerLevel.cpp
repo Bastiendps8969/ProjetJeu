@@ -212,9 +212,11 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
         dialogueManager.startDialogueSequence(modele.getObjectiveContact().getDialogueRef());
         modele.setObjectiveContactDetectee(false);
     }
-    else if (modele.isCollisionDetectee() && !modele.isJoueurDetecte())
+    else if (modele.isJoueurDetecte())
     {
-        dialogueManager.startDialogueSequence("agent_detected");
+        // Do not start the dialogue here (would be called every frame and restart it).
+        // Just set the model flag; the top-level `Controleur` will start the dialogue
+        // once using its `agentDialogueLaunched` guard.
         modele.setJoueurDetecte(true);
     }
 }

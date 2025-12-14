@@ -12,9 +12,9 @@
 namespace Controleur
 {
     // Constructeur
-        Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
-                : modele(modele), vue(vue),
-                    fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
+    Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
+        : modele(modele), vue(vue),
+          fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
     {
         fenetre.setFramerateLimit(60);
         niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
@@ -58,6 +58,7 @@ namespace Controleur
         afficherMenuAccueil();
 
         Vue::DialogueManager dialogueManager;
+        bool agentDialogueLaunched = false; // Ajout
 
         sf::Clock fpsTimer;
         int fpsFrames = 0;
@@ -82,12 +83,24 @@ namespace Controleur
             // Déléguer au controller de niveau la prise en charge des collisions
             niveauController->processCollisions(dialogueManager);
 
+            // Lancer le dialogue UNE SEULE FOIS si le joueur est détecté par un ennemi
+            if (modele.isJoueurDetecte() && !agentDialogueLaunched && !dialogueManager.isDialogueActive())
+            {
+                dialogueManager.startDialogueSequence("agent_detected");
+                agentDialogueLaunched = true;
+            }
+            if (!modele.isJoueurDetecte())
+            {
+                agentDialogueLaunched = false;
+            }
+
             // Geler le gameplay si un dialogue est actif
             if (!dialogueManager.isDialogueActive())
             {
                 niveauController->handleInput();
                 niveauController->update();
                 modele.mettreAJourObstacles();
+                modele.updateEnemies(); // update enemy logic + animations (from sav)
                 niveauController->checkDoors();
             }
 
@@ -108,4 +121,7 @@ namespace Controleur
         }
     }
 
-}
+    // NOTE: door-checking, input handling and update now live in ControllerLevel.
+    // The old free-standing implementations were removed during the merge
+    // to avoid duplicate definitions (ControllerLevel handles level logic).
+} // FIN du namespace Controleur

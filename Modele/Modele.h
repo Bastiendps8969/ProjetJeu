@@ -8,37 +8,12 @@
 
 #include "Objective.h"
 #include "../cmake-build-debug/json.hpp"
-
+#include "Agent.h"
+#include "Enemy.h"
+#include "RoomManager.h"
 namespace Modele
 {
-    // Définition simplifiée d'un obstacle pour le JSON
-    struct ObstacleDefinition
-    {
-        std::string type;
-        sf::Vector2f position;
-        sf::Vector2f size;
-    };
-
-    // Définition d'une porte et de la pièce cible
-    struct Door
-    {
-        std::string direction;
-        int targetRoomIndex;
-        sf::FloatRect bounds;
-        // Utilise unique_ptr pour la forme visuelle de la porte
-        std::unique_ptr<sf::Shape> visualShape;
-    };
-
-    // Définition de la pièce
-    struct Room
-    {
-        std::string name;
-        std::vector<ObstacleDefinition> obstacleDefs;
-        std::vector<Door> doors;
-        // Utilise unique_ptr pour les formes d'obstacles physiques (murs, etc.)
-        std::vector<std::unique_ptr<sf::Shape>> obstacleShapes;
-        std::vector<Objective> objectives;
-    };
+    // Door, Room and ObstacleDefinition are provided by RoomManager.h
 
     class Modele
     {
@@ -83,21 +58,13 @@ namespace Modele
         std::vector<sf::Texture> wallTextures;
 
         // --- Membres d'IA et de collision (pour le premier obstacle) ---
-        sf::Vector2f obstacleVitesse;
-        std::vector<sf::Vector2f> pointsPatrouille;
-        int pointCibleIndex;
-        float vitessePatrouille;
-        bool collisionDetectee; // <--- Ce membre était celui qui manquait
-        bool joueurDetecte;     // <--- Ce membre était celui qui manquait
+        bool collisionDetectee = false;
+        bool joueurDetecte = false;
+        std::unique_ptr<Agent> agent;
 
         // --- Membres de la carte/pièce ---
-        std::map<int, Room> rooms_; // <--- Ce membre était celui qui manquait
-        int currentRoomIndex_;      // <--- Ce membre était celui qui manquait
-        float screenW, screenH;
+        std::unique_ptr<RoomManager> roomManager;
 
-        // Méthodes privées
-        bool loadRoomsFromJson(const std::string& filename);
-        void initializeRoomShapes(Room& room);
 
         // Constantes de porte
         const float DOOR_SIZE = 120.f;
@@ -127,20 +94,27 @@ namespace Modele
         std::string getCurrentRoomName() const;
         const std::vector<Objective>& getCurrentRoomObjectives() const;
 
-        // NOUVEAU: Getters pour les dimensions de l'écran (maintenant dans la classe)
-        float getScreenW() const { return screenW; }
-        float getScreenH() const { return screenH; }
+        // NOUVEAU: Getters pour les dimensions de l'écran (déléguent au RoomManager)
+        float getScreenW() const;
+        float getScreenH() const;
 
         // Méthode pour mettre à jour la position de l'obstacle (logique d'IA)
-        void mettreAJourObstacles(); // <--- Cette déclaration était manquante
+        void mettreAJourObstacles(); // déclaration
 
-        // Accesseurs pour l'indicateur de collision
-        void setCollisionDetectee(bool v) { collisionDetectee = v; } // <--- Corrigé
-        bool isCollisionDetectee() const { return collisionDetectee; } // <--- Corrigé
+        // Accesseurs pour l'indicateur de collision (implémentées dans CPP)
+        void setCollisionDetectee(bool v);
+        bool isCollisionDetectee() const;
 
         // Accesseurs pour détection joueur (champ de vision)
-        void setJoueurDetecte(bool v) { joueurDetecte = v; }
-        bool isJoueurDetecte() const { return joueurDetecte; }
+        void setJoueurDetecte(bool v);
+        bool isJoueurDetecte() const;
+
+        // Ennemis et prototypes
+        std::vector<std::unique_ptr<Enemy>> enemies;
+        std::map<std::string, std::unique_ptr<Enemy>> enemyPrototypes;
+        const std::vector<std::unique_ptr<Enemy>>& getEnemies() const;
+        void reloadEnemiesForCurrentRoom();
+        void updateEnemies();
 
         // Vérifie si le dialogue a été déclenché
         bool hasDialogueTriggered() const;
