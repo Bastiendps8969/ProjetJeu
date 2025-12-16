@@ -20,10 +20,10 @@
         "displayDuration": 2.0
       },
       {
-      "characterName": "John Jones",
-      "characterPortraitPath": "Asset/portraits/agent.png",
-      "text": "Use ZQSD to move on the map.",
-      "displayDuration": 2.0
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "Use ZQSD to move on the map.",
+        "displayDuration": 2.0
       }
     ],
 
@@ -57,25 +57,9 @@
         "displayDuration": 3.0
       },
       {
-        "characterName": "John Jones",
-        "characterPortraitPath": "Asset/portraits/agent.png",
-        "text": "Get the information and come back.",
-        "displayDuration": 3.0
-      }
-    ],
-    "accomplished_objective": [
-      {
         "characterName": "James",
         "characterPortraitPath": "Asset/portraits/agent.png",
-        "text": "I've already get the information linked to that objective.",
-        "displayDuration": 3.0
-      }
-    ],
-    "exit_level_confirmation": [
-      {
-        "characterName": "John Jones",
-        "characterPortraitPath": "Asset/portraits/agent.png",
-        "text": "Are you sure you want to quit the mission? Your progression will be lost.",
+        "text": "Get the information and come back.",
         "displayDuration": 3.0
       }
     ]
