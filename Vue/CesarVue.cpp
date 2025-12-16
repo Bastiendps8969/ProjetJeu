@@ -18,9 +18,9 @@ CesarVue::CesarVue(Objective* objective)
     if (objective) {
         text.setString("The scripted code is "
             + objective->calculateAlteredCode()
-            + ". The number to use is "
+            + ". The number used is "
             + std::to_string(objective->getChangeValue())
-            + ". What is the correct word?");
+            + ". What is the original word?");
     } else {
         text.setString("Cesar puzzle");
     }

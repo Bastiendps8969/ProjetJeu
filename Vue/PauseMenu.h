@@ -32,6 +32,8 @@ private:
 	sf::Font font;
 	bool fontLoaded = false;
 
+	int spaceBetweenButton = 160.f;
+
 	// UI elements
 	sf::Text titleText;
 	sf::RectangleShape resumeButton;

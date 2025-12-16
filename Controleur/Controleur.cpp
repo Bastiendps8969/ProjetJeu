@@ -120,7 +120,7 @@ namespace Controleur
                         }
 
                         if (sel == Vue::PauseMenu::Option::ExitLevel) {
-                            Vue::ConfirmationDialog confirm("Quitter le niveau ? Toute progression non sauvegardée sera perdue.");
+                            Vue::ConfirmationDialog confirm("Exit level? All your progress will be lost.");
 
                             // confirmation loop
                             while (fenetre.isOpen() && confirm.isActive()) {
@@ -156,7 +156,7 @@ namespace Controleur
                         }
 
                         if (sel == Vue::PauseMenu::Option::ExitGame) {
-                            Vue::ConfirmationDialog confirm("Quitter le jeu ?");
+                            Vue::ConfirmationDialog confirm("Exit game? All your progress will be lost.");
 
                             while (fenetre.isOpen() && confirm.isActive()) {
                                 sf::Event ce;

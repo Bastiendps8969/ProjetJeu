@@ -17,44 +17,45 @@ PauseMenu::PauseMenu(Modele::Modele& modele)
 	titleText.setCharacterSize(40);
 	titleText.setFillColor(textColor);
 
-	resumeButton.setSize(sf::Vector2f(300.f, 60.f));
+	resumeButton.setSize(sf::Vector2f(300.f, 80.f));
 	resumeButton.setFillColor(buttonColor);
 	resumeLabel.setFont(font);
 	resumeLabel.setString("Resume");
 	resumeLabel.setCharacterSize(24);
 	resumeLabel.setFillColor(textColor);
 
-	exitLevelButton.setSize(sf::Vector2f(300.f, 60.f));
+	exitLevelButton.setSize(sf::Vector2f(300.f, 80.f));
 	exitLevelButton.setFillColor(buttonColor);
 	exitLevelLabel.setFont(font);
 	exitLevelLabel.setString("Exit level");
 	exitLevelLabel.setCharacterSize(24);
 	exitLevelLabel.setFillColor(textColor);
 
-	exitGameButton.setSize(sf::Vector2f(300.f, 60.f));
+	exitGameButton.setSize(sf::Vector2f(300.f, 80.f));
 	exitGameButton.setFillColor(buttonColor);
 	exitGameLabel.setFont(font);
 	exitGameLabel.setString("Exit game");
 	exitGameLabel.setCharacterSize(24);
 	exitGameLabel.setFillColor(textColor);
+
+
 }
 
 void PauseMenu::initUI(sf::RenderWindow& fenetre)
 {
 	sf::Vector2u sz = fenetre.getSize();
-	float cx = sz.x / 2.f;
+	float x = sz.x / 2.f;
+	float y = 400.f;
 
-	titleText.setPosition(cx - titleText.getLocalBounds().width/2.f, 50.f);
+	titleText.setPosition(x - titleText.getLocalBounds().width/2.f, 50.f);
 
-	float bx = cx + 100.f; // buttons on right
-	float by = 140.f;
-	resumeButton.setPosition(bx - resumeButton.getSize().x/2.f, by);
+	resumeButton.setPosition(x - resumeButton.getSize().x/2.f, y);
 	centerLabel(resumeLabel, resumeButton);
 
-	exitLevelButton.setPosition(bx - exitLevelButton.getSize().x/2.f, by + 80.f);
+	exitLevelButton.setPosition(x - exitLevelButton.getSize().x/2.f, y + spaceBetweenButton);
 	centerLabel(exitLevelLabel, exitLevelButton);
 
-	exitGameButton.setPosition(bx - exitGameButton.getSize().x/2.f, by + 160.f);
+	exitGameButton.setPosition(x - exitGameButton.getSize().x/2.f, y + 2 * spaceBetweenButton);
 	centerLabel(exitGameLabel, exitGameButton);
 }
 
@@ -136,7 +137,7 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
 		float x = 40.f;
 		float y = 120.f;
 
-		sf::Text primHeader("Objectifs primaires:", font, 24);
+		sf::Text primHeader("Primary objectives", font, 24);
 		primHeader.setFillColor(sf::Color::White);
 		primHeader.setPosition(x, y);
 		fenetre.draw(primHeader);
@@ -152,7 +153,7 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
 		}
 
 		y += 12.f;
-		sf::Text secHeader("Objectifs secondaires:", font, 24);
+		sf::Text secHeader("Secondary objectives", font, 24);
 		secHeader.setFillColor(sf::Color::White);
 		secHeader.setPosition(x, y);
 		fenetre.draw(secHeader);
