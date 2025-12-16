@@ -35,6 +35,7 @@ add_executable(TestCollision
         Modele/Level.h
         Controleur/ControllerLevel/ControllerLevelTutorial2.cpp
         Controleur/ControllerLevel/ControllerLevelTutorial2.h
+        Vue/SplashPage.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)

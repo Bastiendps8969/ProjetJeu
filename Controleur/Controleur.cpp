@@ -4,6 +4,8 @@
 #include "Vue.h"
 #include "HomePage.h"
 #include "DialogueManager.h"
+#include "SplashPage.h"
+#include "ChapterLoader.h"
 #include <cmath>
 #include <iostream>
 
@@ -29,7 +31,30 @@ namespace Controleur
             return scores;
         };
 
-        Vue::HomePage homePage(getScores);
+        // 1) afficher splash
+        Vue::SplashPage splash;
+        while (fenetre.isOpen() && splash.isActive())
+        {
+            sf::Event evenement;
+            while (fenetre.pollEvent(evenement))
+            {
+                if (evenement.type == sf::Event::Closed)
+                    fenetre.close();
+
+                if ((evenement.type == sf::Event::KeyPressed)
+                    && (evenement.key.code == sf::Keyboard::Escape))
+                    fenetre.close();
+
+                splash.handleEvent(evenement, fenetre);
+            }
+            splash.draw(fenetre);
+        }
+
+        if (!fenetre.isOpen()) return;
+
+        // 2) ensuite le menu principal (HomePage) — demander d'utiliser l'image de jeu en fond
+        // Passe explicitement le chemin vers CherubMenuJeu.png (essayez Asset/Menu/)
+        Vue::HomePage homePage(getScores, "Asset/Menu/CherubMenuJeu.png");
 
         while (fenetre.isOpen() && homePage.isActive())
         {
@@ -47,6 +72,36 @@ namespace Controleur
             }
 
             homePage.draw(fenetre);
+        }
+
+        // Après la fermeture du menu principal, regarder si l'utilisateur a choisi un niveau
+        int selChapter = homePage.getSelectedChapter();
+        int selLevel = homePage.getSelectedLevel();
+        if (selChapter >= 0 && selLevel >= 0)
+        {
+            // Mapping simple chapter->rooms (adapter si tu ajoutes d'autres rooms)
+            int roomId = -1;
+            if (selChapter == 0)
+            {
+                // Chapitre "Opération Hades" : Tutoriel -> room 0, Lvl 1 -> room 1, Lvl 2 -> room 2
+                if (selLevel == 0) roomId = 0;
+                else if (selLevel == 1) roomId = 1;
+                else if (selLevel == 2) roomId = 2;
+                else roomId = 0; // fallback
+            }
+            // si tu ajoutes d'autres chapitres, gère ici leur mapping (selChapter == 1 ...) 
+
+            if (roomId >= 0)
+            {
+                if (!modele.changeRoom(roomId, "")) // entryDirection vide => centrage par défaut
+                {
+                    std::cerr << "[Controleur] Échec du chargement du niveau (room " << roomId << ")\n";
+                }
+                else
+                {
+                    std::cout << "[Controleur] Niveau sélectionné chargé : room " << roomId << "\n";
+                }
+            }
         }
 
         fenetre.setFramerateLimit(60);
