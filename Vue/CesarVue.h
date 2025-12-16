@@ -2,8 +2,8 @@
 // Created by bertr on 14-12-25.
 //
 
-#ifndef TESTCOLLISION_CESARVUE_H
-#define TESTCOLLISION_CESARVUE_H
+#pragma once
+
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Text.hpp>
@@ -11,10 +11,9 @@
 
 #include "Objective.h"
 
-
 class CesarVue {
 private:
-    Objective objective;
+    Objective* objective = nullptr;
 
     sf::Font font;
     sf::Text text;
@@ -30,12 +29,13 @@ private:
     std::string validationMessage;
 
 public:
-    CesarVue(const Objective &objective);
+    // Accept a pointer to the objective so the original can be modified
+    CesarVue(Objective* objective);
 
     ~CesarVue();
 
-    void setObjective(const Objective &o);
-    Objective getObjective() const;
+    void setObjective(Objective* o);
+    Objective* getObjective() const;
 
     void draw(sf::RenderWindow& window);
 
@@ -43,6 +43,3 @@ public:
     
     bool shouldWindowClose() const { return shouldClose; }
 };
-
-
-#endif //TESTCOLLISION_CESARVUE_H

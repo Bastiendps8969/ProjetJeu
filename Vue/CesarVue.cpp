@@ -6,31 +6,35 @@
 
 #include <iostream>
 
-CesarVue::CesarVue(const Objective &objective) {
-    //  Objective related
-    setObjective(objective);
-
-    //  Font
+// Constructor accepts a pointer to the objective so the original can be modified
+CesarVue::CesarVue(Objective* objective)
+    : objective(objective)
+{
+    // Font
     font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
 
-    //  AlteredText
+    // Text
     text.setFont(font);
-    text.setString("The scripted code is "
-        + objective.calculateAlteredCode()
-        + ". The number to use is "
-        + std::to_string(objective.getChangeValue())
-        + ". What is the correct word?");
+    if (objective) {
+        text.setString("The scripted code is "
+            + objective->calculateAlteredCode()
+            + ". The number to use is "
+            + std::to_string(objective->getChangeValue())
+            + ". What is the correct word?");
+    } else {
+        text.setString("Cesar puzzle");
+    }
     text.setCharacterSize(40);
     text.setFillColor(sf::Color::Red);
     text.setStyle(sf::Text::Bold);
     text.setPosition(10.f, 10.f);
-    
+
     // Initialize exit button
     exitButton.setSize(sf::Vector2f(150.f, 50.f));
     exitButton.setFillColor(sf::Color::Blue);
     exitButton.setOutlineThickness(2.f);
     exitButton.setOutlineColor(sf::Color::White);
-    
+
     exitButtonText.setFont(font);
     exitButtonText.setString("Sortir");
     exitButtonText.setCharacterSize(20);
@@ -38,19 +42,20 @@ CesarVue::CesarVue(const Objective &objective) {
 }
 
 CesarVue::~CesarVue() {
-    std::cout << "The CesarVue from the objective "
-    << objective.getTitle()
-    << " has been destroyed."
-    << std::endl;
+    if (objective) {
+        std::cout << "The CesarVue from the objective "
+        << objective->getTitle()
+        << " has been destroyed."
+        << std::endl;
+    }
 }
 
-void CesarVue::setObjective(const Objective &o) {
+void CesarVue::setObjective(Objective* o) {
     objective = o;
 }
-Objective CesarVue::getObjective() const {
+Objective* CesarVue::getObjective() const {
     return objective;
 }
-
 
 void CesarVue::draw(sf::RenderWindow &window) {
     //  Get the center of the screen
@@ -67,7 +72,7 @@ void CesarVue::draw(sf::RenderWindow &window) {
     if (isValidated) {
         sf::Text successMessage;
         successMessage.setFont(font);
-        successMessage.setString("Ordinateur deverrouille !");
+        successMessage.setString(objective ? (objective->getTitle() + " ouvert !") : "Ordinateur deverrouille !");
         successMessage.setCharacterSize(50);
         successMessage.setFillColor(sf::Color::Green);
         sf::FloatRect successBounds = successMessage.getLocalBounds();
@@ -140,14 +145,14 @@ void CesarVue::handleEvent(const sf::Event& event, sf::RenderWindow& window) {
         } else if (event.key.code == sf::Keyboard::Enter && !isValidated) {
             // Validate the input code (only if not already validated)
             std::string userInput = inputText.getString();
-            if (userInput == objective.getCode()) {
-                objective.setAccomplished(true);
+            if (objective && userInput == objective->getCode()) {
+                objective->setAccomplished(true);
                 isValidated = true;
                 validationMessage = "Ordinateur deverrouille !";
                 std::cout << "✓ Correct code entered! Objective accomplished." << std::endl;
             } else {
                 // Wrong code
-                std::cout << "✗ Wrong code. Expected: " << objective.getCode() 
+                if (objective) std::cout << "✗ Wrong code. Expected: " << objective->getCode() 
                           << ", got: " << userInput << std::endl;
                 inputText.setString("");  // Clear input
             }

@@ -27,7 +27,7 @@ public:
 
     // Vérifie si une fenêtre César doit s'ouvrir (après dialogue objectif César)
     bool shouldOpenCesarWindow() const { return openCesarWindow; }
-    const Objective& getCesarObjective() const { return cesrObjective; }
+    Objective* getCesarObjective() const { return cesrObjective; }
     void resetCesarWindowFlag() { openCesarWindow = false; }
 
 private:
@@ -40,7 +40,7 @@ private:
 
     // État pour la fenêtre César
     bool openCesarWindow = false;
-    Objective cesrObjective;
+    Objective* cesrObjective = nullptr;
 };
 
 } // namespace Controleur

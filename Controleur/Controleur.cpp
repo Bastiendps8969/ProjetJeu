@@ -5,6 +5,8 @@
 #include "HomePage.h"
 #include "DialogueManager.h"
 #include "CesarVue.h"
+#include "../Vue/PauseMenu.h"
+#include "../Vue/ConfirmationDialog.h"
 #include <cmath>
 #include <iostream>
 
@@ -12,13 +14,18 @@
 
 namespace Controleur
 {
+    
+
     // Constructeur
     Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
         : modele(modele), vue(vue),
           fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
     {
         fenetre.setFramerateLimit(60);
-        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+        // Do not create a level controller here. It will be created when
+        // the player starts a level from the main menu. This ensures the
+        // controller and level state are fresh each playthrough.
+        niveauController.reset();
     }
 
     // Affiche le menu d'accueil (importé de ProjetJeu)
@@ -56,7 +63,15 @@ namespace Controleur
     // DÉFINITION : Boucle principale
     void Controleur::gererBoucle()
     {
+        // Show main menu first
         afficherMenuAccueil();
+
+        // Create level controller when entering gameplay (fresh instance)
+        if (!niveauController) {
+            // Ensure model is reset so any previous progress is cleared
+            modele.reset();
+            niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+        }
 
         Vue::DialogueManager dialogueManager;
         bool agentDialogueLaunched = false; // Ajout
@@ -75,7 +90,102 @@ namespace Controleur
 
                 if ((evenement.type == sf::Event::KeyPressed)
                     && (evenement.key.code == sf::Keyboard::Escape))
-                {   fenetre.close();    }
+                {
+                    // Show pause menu and require confirmation for destructive actions.
+                    bool abortOuter = false;
+
+                    while (fenetre.isOpen()) {
+                        Vue::PauseMenu pause(modele);
+
+                        // Pause loop
+                        while (fenetre.isOpen() && pause.isActive()) {
+                            sf::Event pe;
+                            while (fenetre.pollEvent(pe)) {
+                                if (pe.type == sf::Event::Closed) fenetre.close();
+                                pause.handleEvent(pe, fenetre);
+                            }
+
+                            // Draw current game frame behind the pause menu
+                            fenetre.clear(sf::Color::Black);
+                            vue.dessiner(fenetre);
+                            pause.draw(fenetre);
+                            fenetre.display();
+                        }
+
+                        if (!fenetre.isOpen()) { abortOuter = true; break; }
+
+                        auto sel = pause.getSelectedOption();
+                        if (sel == Vue::PauseMenu::Option::Resume) {
+                            break; // resume game
+                        }
+
+                        if (sel == Vue::PauseMenu::Option::ExitLevel) {
+                            Vue::ConfirmationDialog confirm("Quitter le niveau ? Toute progression non sauvegardée sera perdue.");
+
+                            // confirmation loop
+                            while (fenetre.isOpen() && confirm.isActive()) {
+                                sf::Event ce;
+                                while (fenetre.pollEvent(ce)) {
+                                    if (ce.type == sf::Event::Closed) fenetre.close();
+                                    confirm.handleEvent(ce, fenetre);
+                                }
+
+                                fenetre.clear(sf::Color::Black);
+                                vue.dessiner(fenetre);
+                                confirm.draw(fenetre);
+                                fenetre.display();
+                            }
+
+                            if (!fenetre.isOpen()) { abortOuter = true; break; }
+
+                            if (confirm.isConfirmed()) {
+                                // Destroy current level so replay starts from a fresh state
+                                modele.reset();
+                                niveauController.reset();
+
+                                // Go back to main menu and recreate a fresh controller afterwards
+                                afficherMenuAccueil();
+                                if (!niveauController) {
+                                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+                                }
+                                break; // exit pause handling
+                            } else {
+                                // user canceled -> reopen pause menu (continue loop)
+                                continue;
+                            }
+                        }
+
+                        if (sel == Vue::PauseMenu::Option::ExitGame) {
+                            Vue::ConfirmationDialog confirm("Quitter le jeu ?");
+
+                            while (fenetre.isOpen() && confirm.isActive()) {
+                                sf::Event ce;
+                                while (fenetre.pollEvent(ce)) {
+                                    if (ce.type == sf::Event::Closed) fenetre.close();
+                                    confirm.handleEvent(ce, fenetre);
+                                }
+
+                                fenetre.clear(sf::Color::Black);
+                                vue.dessiner(fenetre);
+                                confirm.draw(fenetre);
+                                fenetre.display();
+                            }
+
+                            if (!fenetre.isOpen()) { abortOuter = true; break; }
+
+                            if (confirm.isConfirmed()) {
+                                fenetre.close();
+                                abortOuter = true;
+                                break;
+                            } else {
+                                // canceled -> reopen pause menu
+                                continue;
+                            }
+                        }
+                    }
+
+                    if (abortOuter) break;
+                }
 
                 dialogueManager.handleEvent(evenement);
             }
