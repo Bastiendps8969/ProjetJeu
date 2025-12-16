@@ -2,6 +2,8 @@
 #include <cmath>
 #include <iostream>
 #include <SFML/Window.hpp>
+
+#include "CesarVue.h"
 #include "../Vue/DialogueManager.h"
 
 namespace Controleur {
@@ -95,14 +97,14 @@ void ControllerLevel::update()
     }
 
     // Collision avec objectifs
-    for (const auto& objectivePtr : modele.getCurrentRoomObjectives()) {
+    for (auto& objectivePtr : modele.getCurrentRoomObjectives()) {
         if (modele.getJoueur().getGlobalBounds().intersects(objectivePtr.getHitbox().getGlobalBounds())) {
             modele.getJoueur().move(deplacement.x, 0.f);
             modele.getJoueur().move(deplacement.y, 0.f);
 
             const sf::FloatRect objectiveBounds = objectivePtr.getHitbox().getGlobalBounds();
             modele.setObjectiveContactDetectee(true);
-            modele.setObjectiveContact(objectivePtr);
+            modele.setObjectiveContact(&objectivePtr);
 
             std::cout << "deplacement x :" << deplacement.x << std::endl;
             std::cout << "deplacement y :" << deplacement.y << std::endl;
@@ -209,7 +211,28 @@ void ControllerLevel::checkDoors()
 void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
 {
     if (modele.getObjectiveContactDetectee()) {
-        dialogueManager.startDialogueSequence(modele.getObjectiveContact().getDialogueRef());
+        Objective* contactObj = modele.getObjectiveContact();
+        if (!contactObj) return;
+        std::cout << "[ControllerLevel] Objective contact detected: " << contactObj->getTitle() << std::endl;
+        std::cout << "[ControllerLevel] isCesar() = " << contactObj->isCesar() << std::endl;
+        std::cout << "[ControllerLevel] Opening dialog: " << contactObj->getDialogueRef() << std::endl;
+
+        if (contactObj->isAccomplished()) {
+            dialogueManager.startDialogueSequence("accomplished_objective");
+        } else {
+            dialogueManager.startDialogueSequence(contactObj->getDialogueRef());
+
+            // Si c'est un objectif César, signaler à Controleur d'ouvrir la fenêtre après dialogue
+            if (contactObj->isCesar()) {
+                cesrObjective = contactObj;
+                openCesarWindow = true;  // Flag pour Controleur (sera consommé après fin dialogue)
+            }
+            else {
+                contactObj->setAccomplished(true);
+            }
+        }
+
+        
         modele.setObjectiveContactDetectee(false);
     }
     else if (modele.isJoueurDetecte())
