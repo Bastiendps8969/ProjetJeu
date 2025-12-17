@@ -103,7 +103,8 @@ namespace Vue
         // for (const auto& obsPtr : modele.getObstacleShapes()) { fenetre.draw(*obsPtr); }
 
         for (const auto& objective: modele.getCurrentRoomObjectives()) {
-            fenetre.draw(objective.getHitbox());
+            if (objective.getHitboxPosition().x != 0)
+                fenetre.draw(objective.getHitbox());
         }
 
         // 3. Dessiner le joueur (sprite animé si dispo, sinon rectangle)

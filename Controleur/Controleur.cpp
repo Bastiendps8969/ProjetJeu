@@ -297,6 +297,22 @@ namespace Controleur
                 modele.mettreAJourObstacles();
                 modele.updateEnemies(); // update enemy logic + animations (from sav)
                 niveauController->checkDoors();
+
+                // If the level controller requested exit (via door -> -1 + confirmation), handle it here
+                if (niveauController->isExitRequested()) {
+                    // Destroy current level so replay starts from a fresh state
+                    modele.reset();
+                    niveauController.reset();
+
+                    // Go back to main menu and recreate a fresh controller afterwards
+                    afficherMenuAccueil();
+                    if (!niveauController) {
+                        modele.reset();
+                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+                    }
+                    // skip rest of this frame iteration
+                    continue;
+                }
             }
 
             vue.dessiner(fenetre);

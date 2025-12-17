@@ -5,6 +5,7 @@
 
 #include "CesarVue.h"
 #include "../Vue/DialogueManager.h"
+#include "../Vue/ConfirmationDialog.h"
 
 namespace Controleur {
 
@@ -193,7 +194,37 @@ void ControllerLevel::checkDoors()
             else if (door.direction == "right") opposite = "left";
             else opposite = door.direction;
 
-            if (modele.changeRoom(door.targetRoomIndex, opposite))
+            if (door.targetRoomIndex < 0)
+            {
+                // Ask confirmation to quit the level
+                Vue::ConfirmationDialog confirm("Exit level?\nYour progress will be save if you've completed\nall the primary objectives.");
+                while (fenetre.isOpen() && confirm.isActive()) {
+                    sf::Event ce;
+                    while (fenetre.pollEvent(ce)) {
+                        if (ce.type == sf::Event::Closed) fenetre.close();
+                        confirm.handleEvent(ce, fenetre);
+                    }
+
+                    fenetre.clear(sf::Color::Black);
+                    vue.dessiner(fenetre);
+                    confirm.draw(fenetre);
+                    fenetre.display();
+                }
+
+                if (!fenetre.isOpen()) break;
+
+                if (confirm.isConfirmed()) {
+                    exitRequestedFlag = true;
+                    
+                } else {
+                    // canceled -> do not exit level
+                    int x = modele.getJoueur().getPosition().x;
+                    int newY = modele.getJoueur().getPosition().y - 5;
+                    modele.getJoueur().setPosition(x, newY);
+                }
+
+            }
+            else if (modele.changeRoom(door.targetRoomIndex, opposite))
             {
                 std::cout << "Changement de piece vers ID " << door.targetRoomIndex
                           << " (entree: " << opposite << ").\n";

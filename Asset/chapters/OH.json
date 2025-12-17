@@ -2,7 +2,6 @@
   "0": {
     "name": "Infiltrate the organisation",
     "description" : "This is also a placeholder.",
-    //  Placeholder, it's just for the idea
     "picture" : "Asset/levels/OH_1.png",
     "neededScore" : "10000",
     "levelData": "Asset/levels/OH_1.json"
@@ -10,7 +9,6 @@
   "1": {
     "name": "OH 2 (placeholder)",
     "description" : "And here too.",
-    //  Placeholder, it's just for the idea
     "picture" : "Asset/levels/OH_2.png",
     "neededScore" : "25000",
     "levelData": "Asset/levels/OH_2.json"
@@ -18,10 +16,8 @@
   "2": {
     "name": "OH 3 (placeholder)",
     "description" : "Guess what ? Placeholder again",
-    //  Placeholder, it's just for the idea
     "picture" : "Asset/levels/OH_3.png",
     "neededScore" : "50000",
     "levelData": "Asset/levels/OH_3.json"
-  },
-  // More levels can be added
+  }
 }

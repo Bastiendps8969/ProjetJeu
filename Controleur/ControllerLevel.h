@@ -29,6 +29,8 @@ public:
     bool shouldOpenCesarWindow() const { return openCesarWindow; }
     Objective* getCesarObjective() const { return cesrObjective; }
     void resetCesarWindowFlag() { openCesarWindow = false; }
+    bool isExitRequested() const { return exitRequestedFlag; }
+
 
 private:
     Modele::Modele& modele;
@@ -41,6 +43,7 @@ private:
     // État pour la fenêtre César
     bool openCesarWindow = false;
     Objective* cesrObjective = nullptr;
+    bool exitRequestedFlag = false;
 };
 
 } // namespace Controleur

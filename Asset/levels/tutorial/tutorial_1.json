@@ -6,6 +6,12 @@
     },
     "objectives": [
       {
+        "title": "Use ZQSD to move your character",
+        "description": "",
+        "texture": "",
+        "primary": true
+      },
+      {
         "title": "Bertrand's computer",
         "description": "Bertrand's computer.",
         "texture": "Asset/objectives/computer_on_table.png",
