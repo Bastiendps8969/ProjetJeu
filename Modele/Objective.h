@@ -32,12 +32,15 @@ private:
     std::string dialogueFile;
     std::string dialogueRef;
 
+    //  Cesar code
+    bool cesar = false;
+    std::string code;
+    int changeValue;
+
 
 public:
     //  Constructor
     Objective();
-    Objective(std::string t, std::string d, sf::Texture texture,
-        float x, float y, float w, float h);
 
     //  Destructor
     ~Objective();
@@ -52,6 +55,9 @@ public:
     void setTexture(const std::string& t);
     void setDialogueFile(const std::string& df);
     void setDialogueRef(const std::string& dr);
+    void setCesar(bool b);
+    void setCode(const std::string& c);
+    void setchangeValue(int v);
 
     //  Getters
     std::string getTitle() const;
@@ -65,6 +71,11 @@ public:
     sf::RectangleShape getHitbox() const;
     std::string getDialogueFile() const;
     std::string getDialogueRef() const;
+    bool isCesar() const;
+    std::string getCode() const;
+    int getChangeValue() const;
+
+    std::string calculateAlteredCode() const;
 };
 
 
