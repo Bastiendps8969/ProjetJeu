@@ -31,6 +31,14 @@ public:
     void resetCesarWindowFlag() { openCesarWindow = false; }
     bool isExitRequested() const { return exitRequestedFlag; }
 
+    // Level timer API
+    int getRemainingSeconds() const;
+    void resetLevelTimer();
+    void drawUI(sf::RenderWindow& fenetre);
+    // Pause control for the level timer (public so Controleur can toggle it)
+    void setTimerPaused(bool p);
+    bool isTimerPaused() const { return timerPaused; }
+
 
 private:
     Modele::Modele& modele;
@@ -44,6 +52,20 @@ private:
     bool openCesarWindow = false;
     Objective* cesrObjective = nullptr;
     bool exitRequestedFlag = false;
+    // Level timer (countdown in seconds)
+    const int levelTimerStartSeconds = 5; // 5 minutes
+
+    // Timer internal data
+    sf::Clock levelTimerClock;
+    sf::Font hudFont;
+    bool hudFontLoaded = false;
+    sf::Text uiText;
+    // Pause support for the timer
+    bool timerPaused = false;
+    double pauseStartSeconds = 0.0;
+    double pausedAccumulated = 0.0; // total seconds paused
+
+    
 };
 
 } // namespace Controleur

@@ -6,12 +6,25 @@
 #include "CesarVue.h"
 #include "../Vue/DialogueManager.h"
 #include "../Vue/ConfirmationDialog.h"
+#include <sstream>
+
+// timer members
+#include <SFML/System/Clock.hpp>
 
 namespace Controleur {
 
 ControllerLevel::ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::RenderWindow& fenetre)
     : modele(modele), vue(vue), fenetre(fenetre), mouvement(0.f, 0.f)
 {
+    // Start level timer
+    levelTimerClock.restart();
+    // Load HUD font
+    hudFontLoaded = hudFont.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+    if (hudFontLoaded) {
+        uiText.setFont(hudFont);
+        uiText.setCharacterSize(28);
+        uiText.setFillColor(sf::Color::White);
+    }
 }
 
 void ControllerLevel::handleInput()
@@ -169,6 +182,60 @@ void ControllerLevel::update()
 
     modele.updatePlayerAnimation(isMoving);
     modele.syncPlayerSprite();
+}
+
+int ControllerLevel::getRemainingSeconds() const
+{
+    double elapsedSec;
+    double current = levelTimerClock.getElapsedTime().asSeconds();
+    if (timerPaused) {
+        // elapsed is up to pause start
+        elapsedSec = pauseStartSeconds - pausedAccumulated;
+    } else {
+        elapsedSec = current - pausedAccumulated;
+    }
+    int rem = static_cast<int>(levelTimerStartSeconds - static_cast<int>(std::floor(elapsedSec)));
+    return rem > 0 ? rem : 0;
+}
+
+void ControllerLevel::resetLevelTimer()
+{
+    levelTimerClock.restart();
+    timerPaused = false;
+    pauseStartSeconds = 0.0;
+    pausedAccumulated = 0.0;
+}
+
+void ControllerLevel::drawUI(sf::RenderWindow& fenetre)
+{
+    if (!hudFontLoaded) return;
+    std::ostringstream string;
+    //  Timer
+    string << getRemainingSeconds() << "s";
+    uiText.setString(string.str());
+
+    // position top-right with margin
+    sf::FloatRect tb = uiText.getLocalBounds();
+    float x = fenetre.getSize().x - tb.width - 20.f;
+    float y = 20.f;
+    uiText.setPosition(x - tb.left, y - tb.top);
+    fenetre.draw(uiText);
+}
+
+void ControllerLevel::setTimerPaused(bool p)
+{
+    if (p == timerPaused) return;
+    double current = levelTimerClock.getElapsedTime().asSeconds();
+    if (p) {
+        // pausing now
+        pauseStartSeconds = current;
+        timerPaused = true;
+    } else {
+        // resuming: accumulate pause duration
+        pausedAccumulated += (current - pauseStartSeconds);
+        pauseStartSeconds = 0.0;
+        timerPaused = false;
+    }
 }
 
 void ControllerLevel::checkDoors()

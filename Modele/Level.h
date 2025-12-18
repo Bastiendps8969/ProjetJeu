@@ -12,6 +12,9 @@ class Level {
         std::string name;
         std::string description;
 
+        int countdown;
+
+
     public:
         Level(std::string n, std::string d);
         ~Level();
