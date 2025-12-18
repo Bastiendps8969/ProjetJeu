@@ -61,13 +61,19 @@ namespace Vue
                 for (size_t c = 0; c < matrix[r].size(); ++c)
                 {
                     int val = matrix[r][c];
-                    if (val == 1 && hasFloor)
+                    if (val >= 1 && val < 11)
                     {
-                        float sx = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().x);
-                        float sy = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().y);
-                        tileSprite.setScale(sx, sy);
-                        tileSprite.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
-                        fenetre.draw(tileSprite);
+                        const sf::Texture* t = modele.getTileTexture(val);
+                        if (t && t->getSize().x > 0)
+                        {
+                            sf::Sprite s;
+                            s.setTexture(*t);
+                            float sx = static_cast<float>(tileSize) / static_cast<float>(t->getSize().x);
+                            float sy = static_cast<float>(tileSize) / static_cast<float>(t->getSize().y);
+                            s.setScale(sx, sy);
+                            s.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
+                            fenetre.draw(s);
+                        }
                     }
                     else if (val >= 11 && val <= 18)
                     {

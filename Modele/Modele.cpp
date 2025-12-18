@@ -30,6 +30,7 @@ namespace Modele {
         float screenW = static_cast<float>(dm.width);
         float screenH = static_cast<float>(dm.height);
 
+        roomManager = std::make_unique<RoomManager>(screenW, screenH);
 
         // Initialize enemy prototypes (Prototype pattern)
         enemyPrototypes.clear();
@@ -89,9 +90,9 @@ namespace Modele {
         // --- Chargement de la texture de sol (Floor5.png) ---
         bool loaded = false;
         const std::vector<std::string> tryPaths = {
-            "cmake-build-debug/Asset/Floor/Floor5.png",
-            "Asset/Floor/Floor5.png",
-            "Floor5.png"
+            "cmake-build-debug/Asset/Floor/floor_01.png",
+            "Asset/Floor/floor_01.png",
+            "floor_01.png"
         };
         for (const auto& p : tryPaths) {
             if (floorTexture.loadFromFile(p)) {
@@ -104,6 +105,11 @@ namespace Modele {
         }
         if (!loaded) {
             std::cerr << "[DEBUG] Avertissement: impossible de charger Floor5.png. Vérifiez le chemin.\n";
+        }
+
+        // Register default floor texture as tile id 1 for backward compatibility
+        if (loaded) {
+            tileTextures[1] = floorTexture;
         }
 
         // --- Chargement des textures de murs (Wall1_1 .. Wall1_8) ---
@@ -142,10 +148,39 @@ namespace Modele {
             }
         }
 
-        // Recalcul de la matrice du sol / murs (cols, rows calculés plus haut)
-        int cols = static_cast<int>(std::ceil(screenW / static_cast<float>(tileSize)));
-        int rows = static_cast<int>(std::ceil(screenH / static_cast<float>(tileSize)));
-        floorMatrix.assign(rows, std::vector<int>(cols, 1)); // remplir tout l'écran avec la tuile sol (1)
+        // NOTE: Utilisation d'une matrice codée en dur pour faciliter l'édition
+        // Vous pouvez modifier ci‑dessous les valeurs (1 = sol) pour tester.
+        std::vector<std::vector<int>> hardcoded = {
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+        };
+        // Affecte la matrice codée en dur à la matrice de jeu
+        floorMatrix = hardcoded;
+        int rows = static_cast<int>(floorMatrix.size());
+        int cols = (rows > 0) ? static_cast<int>(floorMatrix[0].size()) : 0;
 
         // Codes pour murs : 11..18 (correspondent aux wallTextures[0..7])
         const int WALL_TL = 11;   // top-left
@@ -207,15 +242,16 @@ namespace Modele {
             }
         }
 
-        // Create room manager and load default level
-        currentLevelPath = "Asset/levels/tutorial/tutorial_1.json";
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
-        if (roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
+        // Chargement des pièces via RoomManager
+        if (roomManager->loadRoomsFromJson("Asset/levels/tutorial/tutorial_1.json") && roomManager->getRooms().count(0))
+        {
             roomManager->changeRoom(0, "", joueur);
+            // positionner le joueur au centre de l'écran
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
             reloadEnemiesForCurrentRoom();
         }
-        else {
+        else
+        {
             std::cerr << "Échec du chargement de la carte. Pièce 0 non valide." << std::endl;
             roomManager->changeRoom(-1, "", joueur);
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
@@ -262,19 +298,75 @@ namespace Modele {
             // common setup
             e->position = pos;
             e->textureName = ed.textureName;
-
-            // load texture if present
-            const std::vector<std::string> tryPathsTex = {
-                "cmake-build-debug/Asset/Human/" + e->textureName + ".png",
-                "Asset/Human/" + e->textureName + ".png",
-                "Human/" + e->textureName + ".png",
-                e->textureName + ".png"
-            };
-            for (const auto& p : tryPathsTex) {
-                if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); break; }
+            // If camera textureName not provided, default to camera_<facing>
+            if (type == "camera" && e->textureName.empty()) {
+                std::string facingDefault = ed.facing.empty() ? "left" : ed.facing;
+                e->textureName = std::string("camera_") + facingDefault;
             }
-            e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
-            e->sprite.setScale(2.5f, 2.5f);
+
+            // Load texture depending on enemy type. Cameras use their own asset folder
+            if (type == "camera") {
+                const std::vector<std::string> tryPathsCam = {
+                    "cmake-build-debug/Asset/camera/" + e->textureName + ".png",
+                    "Asset/camera/" + e->textureName + ".png",
+                    "camera/" + e->textureName + ".png",
+                    e->textureName + ".png"
+                };
+                bool camLoaded = false;
+                std::cout << "[DEBUG] Chargement texture camera: name='" << e->textureName << "'\n";
+                for (const auto& p : tryPathsCam) {
+                    std::cout << "[DEBUG]  Trying camera texture path: " << p << std::endl;
+                    if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); camLoaded = true; std::cout << "[DEBUG]   -> Loaded camera texture: " << p << std::endl; break; }
+                    else std::cout << "[DEBUG]   -> Failed: " << p << std::endl;
+                }
+                if (!camLoaded) {
+                    std::cerr << "[DEBUG] Avertissement: impossible de charger texture camera pour '" << e->textureName << "'\n";
+                } else {
+                    // Camera-specific settings: assume static image (no sprite-sheet animation)
+                    e->frameCount = 1;
+                    e->idleFrameCount = 1;
+                    e->frameIndex = 0;
+                    e->isMoving = false;
+
+                    sf::Vector2u ts = e->texture.getSize();
+                    if (ts.x > 0 && ts.y > 0) {
+                        // Use the real texture size for camera sprite rect and origin
+                        e->sprite.setTextureRect(sf::IntRect(0, 0, static_cast<int>(ts.x), static_cast<int>(ts.y)));
+                        e->sprite.setOrigin(static_cast<float>(ts.x) / 2.f, static_cast<float>(ts.y) / 2.f);
+                        e->sprite.setScale(1.f, 1.f);
+                        // Keep tileSize in case other logic depends on it, set to min dimension
+                        e->tileSize = static_cast<int>(std::min(ts.x, ts.y));
+                    } else {
+                        e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
+                        e->sprite.setScale(2.5f, 2.5f);
+                    }
+                    // Apply rotation based on facing (if CameraEnemy was configured)
+                    CameraEnemy* cc = dynamic_cast<CameraEnemy*>(e.get());
+                    if (cc) {
+                        if (cc->facing == "left") e->sprite.setRotation(180.f);
+                        else if (cc->facing == "up") e->sprite.setRotation(-90.f);
+                        else if (cc->facing == "down") e->sprite.setRotation(90.f);
+                        else e->sprite.setRotation(0.f);
+                    }
+                }
+            }
+            else {
+                // load texture if present (other enemies use Human spritesheets / tiles)
+                const std::vector<std::string> tryPathsTex = {
+                    "cmake-build-debug/Asset/Human/" + e->textureName + ".png",
+                    "Asset/Human/" + e->textureName + ".png",
+                    "Human/" + e->textureName + ".png",
+                    e->textureName + ".png"
+                };
+                std::cout << "[DEBUG1] Chargement texture ennemi: type='" << type << "' name='" << e->textureName << "'\n";
+                for (const auto& p : tryPathsTex) {
+                    std::cout << "[DEBUG1]  Trying enemy texture path: " << p << std::endl;
+                    if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); std::cout << "[DEBUG]   -> Loaded enemy texture: " << p << std::endl; break; }
+                    else std::cout << "[DEBUG1]   -> Failed: " << p << std::endl;
+                }
+                e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
+                e->sprite.setScale(2.5f, 2.5f);
+            }
 
             if (type == "generic") {
                 GenericEnemy* g = dynamic_cast<GenericEnemy*>(e.get());
@@ -361,9 +453,9 @@ namespace Modele {
         return roomManager->getCurrentRoomName();
     }
 
-    std::vector<Objective>& Modele::getCurrentRoomObjectives()
+    const std::vector<Objective>& Modele::getCurrentRoomObjectives() const
     {
-        static std::vector<Objective> empty;
+        static const std::vector<Objective> empty;
         if (!roomManager) return empty;
         auto& rooms = roomManager->getRooms();
         int idx = roomManager->getCurrentRoomIndex();
@@ -540,8 +632,8 @@ namespace Modele {
         return ok;
     }
 
-    // Objective contact accessors (pointer-based)
-    void Modele::setObjectiveContact(Objective* obj) {
+    // Objective contact accessors
+    void Modele::setObjectiveContact(const Objective &obj) {
         objectiveContact = obj;
     }
 
@@ -549,7 +641,7 @@ namespace Modele {
         objectiveContactDetectee = b;
     }
 
-    Objective* Modele::getObjectiveContact() const {
+    Objective Modele::getObjectiveContact() const {
         return objectiveContact;
     }
 
@@ -557,47 +649,25 @@ namespace Modele {
         return objectiveContactDetectee;
     }
 
-    bool Modele::hasDialogueTriggered() const {
-        return dialogueTriggeredFlag;
-    }
-
-    void Modele::setDialogueTriggered(bool v) {
-        dialogueTriggeredFlag = v;
-    }
-
-    void Modele::resetDialogueTriggered() {
-        dialogueTriggeredFlag = false;
-    }
-
-    void Modele::reset()
+    bool Modele::setTileTexture(int id, const std::string& path)
     {
-        // Reset player position and animation
-        joueur.setPosition(0.f, 0.f);
-        playerFrameIndex = 0;
-        playerRow = 3;
-        playerClock.restart();
-        playerIsMoving = false;
-
-        // Reset flags
-        collisionDetectee = false;
-        joueurDetecte = false;
-        objectiveContactDetectee = false;
-        dialogueTriggeredFlag = false;
-
-        // Destroy and recreate the room manager / level to ensure a fresh level state
-        float screenW = getScreenW();
-        float screenH = getScreenH();
-        roomManager.reset();
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
-        if (!currentLevelPath.empty() && roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
-            roomManager->changeRoom(0, "", joueur);
+        try {
+            // operator[] crée la texture si absente
+            bool ok = tileTextures[id].loadFromFile(path);
+            if (!ok) {
+                // remove inserted empty texture to keep map clean
+                tileTextures.erase(id);
+            }
+            return ok;
+        } catch (...) {
+            return false;
         }
+    }
 
-        // Clear and reload enemies for current room
-        enemies.clear();
-        reloadEnemiesForCurrentRoom();
-
-        // Sync sprite with rectangle
-        syncPlayerSprite();
+    const sf::Texture* Modele::getTileTexture(int id) const
+    {
+        auto it = tileTextures.find(id);
+        if (it != tileTextures.end()) return &it->second;
+        return nullptr;
     }
 }

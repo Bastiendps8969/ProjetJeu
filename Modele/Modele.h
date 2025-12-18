@@ -52,6 +52,9 @@ namespace Modele
         // Sol en tuiles
         sf::Texture floorTexture;
         std::vector<std::vector<int>> floorMatrix; // 2D matrix: 1 = floor tile (Floor5.png)
+        // Mapping tile id -> texture. Permet d'avoir plusieurs tuiles référencées
+        // par des valeurs entières dans `floorMatrix`.
+        std::map<int, sf::Texture> tileTextures;
         int tileSize = 64; // taille en pixels d'une tuile (modifiable)
 
         // Textures pour murs (8 images Wall1_1 .. Wall1_8)
@@ -64,8 +67,6 @@ namespace Modele
 
         // --- Membres de la carte/pièce ---
         std::unique_ptr<RoomManager> roomManager;
-        // Path to the currently loaded level JSON (used to reload/ recreate level)
-        std::string currentLevelPath;
 
 
         // Constantes de porte
@@ -73,11 +74,8 @@ namespace Modele
         const float DOOR_THICKNESS = 100.f;
 
         //  Collision with objective
-        Objective* objectiveContact = nullptr;
-        bool objectiveContactDetectee = false;
-        
-        // Dialogue triggered flag
-        bool dialogueTriggeredFlag = false;
+        Objective objectiveContact;
+        bool objectiveContactDetectee;
 
     public:
         // Constructeur
@@ -86,16 +84,16 @@ namespace Modele
         // Destructeur (géré par unique_ptr)
         ~Modele() = default;
 
-        // Réinitialiser le modèle (réinitialise le joueur, les objectifs, les ennemis, etc.)
-        void reset();
-
-        // Load a level JSON (recreates RoomManager and room data)
-        bool loadLevel(const std::string& levelJsonPath);
-
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }
         const std::vector<std::vector<int>>& getFloorMatrix() const { return floorMatrix; }
         const sf::Texture& getFloorTexture() const { return floorTexture; }
+        // Setters / tile API
+        void setFloorMatrix(const std::vector<std::vector<int>>& m) { floorMatrix = m; }
+        // Charge une texture et l'associe à un ID de tuile. Retourne true si ok.
+        bool setTileTexture(int id, const std::string& path);
+        // Retourne un pointeur vers la texture associée à l'id (nullptr si absente)
+        const sf::Texture* getTileTexture(int id) const;
         int getTileSize() const { return tileSize; }
         const std::vector<sf::Texture>& getWallTextures() const { return wallTextures; }
 
@@ -103,7 +101,7 @@ namespace Modele
         const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
         const std::vector<Door>& getCurrentRoomDoors() const;
         std::string getCurrentRoomName() const;
-        std::vector<Objective>& getCurrentRoomObjectives();
+        const std::vector<Objective>& getCurrentRoomObjectives() const;
 
         // NOUVEAU: Getters pour les dimensions de l'écran (déléguent au RoomManager)
         float getScreenW() const;
@@ -149,10 +147,10 @@ namespace Modele
         // Synchronise l'échelle/position du sprite joueur avec le RectangleShape (taille & position)
         void syncPlayerSprite();
 
-        //  Objective collision (use pointers so original objects can be modified)
-        void setObjectiveContact(Objective* obj);
+        //  Objective collision
+        void setObjectiveContact(const Objective& obj);
         void setObjectiveContactDetectee(const bool b);
-        Objective* getObjectiveContact() const;
+        Objective getObjectiveContact() const;
         bool getObjectiveContactDetectee() const;
 
 

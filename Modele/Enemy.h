@@ -59,6 +59,8 @@ public:
     virtual void update() {}
     virtual void updateAnimation()
     {
+        // Cameras use a single static texture; don't apply sprite-sheet animation.
+        if (isCamera) return;
         if (texture.getSize().x == 0) return;
         int movementFramesCount = std::max(1, frameCount - idleFrameCount);
         int idleCols = std::max(1, idleFrameCount);

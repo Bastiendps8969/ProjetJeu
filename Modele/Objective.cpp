@@ -26,6 +26,31 @@ Objective::Objective() {
     }
 }
 
+Objective::Objective(std::string t, std::string d, sf::Texture texture,
+                     float x, float y, float w, float h) {
+    // titre / description
+    title = t.empty() ? "Objective" : t;
+    description = d.empty() ? "Objective's description" : d;
+    accomplished = false;
+    primary = true;
+
+    // stocker la texture fournie (copie/move)
+    texture = std::move(texture);
+    if (texture.getSize().x > 0 && texture.getSize().y > 0)
+        sprite.setTexture(texture);
+
+    // hitbox selon arguments
+    hitbox = sf::RectangleShape();
+    hitbox.setSize(sf::Vector2f(w, h));
+    hitbox.setPosition(sf::Vector2f(x, y));
+    hitbox.setFillColor(sf::Color::Transparent);
+    hitbox.setOutlineColor(sf::Color::White);
+    hitbox.setOutlineThickness(1.f);
+
+    // positionner le sprite sur la hitbox
+    sprite.setPosition(x, y);
+}
+
 //  Destructor
 Objective::~Objective() {
     std::cout << "Objective " << this->getTitle() << " has been destroyed" << std::endl;
@@ -65,18 +90,6 @@ void Objective::setDialogueRef(const std::string& dr) {
     dialogueRef = dr;
 }
 
-void Objective::setCesar(bool b) {
-    cesar = b;
-}
-void Objective::setCode(const std::string& c) {
-    code = c;
-}
-void Objective::setchangeValue(int v) {
-    changeValue = v;
-}
-
-
-
 
 //  Getters
 std::string Objective::getTitle() const {
@@ -111,45 +124,5 @@ std::string Objective::getDialogueFile() const {
 }
 std::string Objective::getDialogueRef() const {
     return dialogueRef;
-}
-
-bool Objective::isCesar() const {
-    return cesar;
-}
-std::string Objective::getCode() const {
-    return code;
-}
-int Objective::getChangeValue() const {
-    return changeValue;
-}
-
-//  Calculate the value of the altered code
-//  Only use letters, no numbers or symbols
-std::string Objective::calculateAlteredCode() const {
-    std::string altered = code;
-    int base = 0;
-    int newLetter;
-    for (int i = 0; i < code.size(); i++) {
-        //  Between A and Z
-        if (static_cast<int>(code[i]) >= 65 && static_cast<int>(code[i]) <= 90) {
-            base = 65;
-        } else {
-            base = 97;
-        }
-
-        //  Value between 0 and 25
-        newLetter = int(code[i]) - base;
-
-        //  Value between 0 and 25
-        newLetter = (newLetter + changeValue) % 26;
-
-        //  Get the correct ASCII value
-        newLetter = newLetter + base;
-
-        //  Change the letter
-        altered[i] = char(newLetter);
-    }
-
-    return altered;
 }
 
