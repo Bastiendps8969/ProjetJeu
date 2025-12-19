@@ -11,6 +11,7 @@
 #include "Agent.h"
 #include "Enemy.h"
 #include "RoomManager.h"
+#include "MapManager.h"
 namespace Modele
 {
     // Door, Room and ObstacleDefinition are provided by RoomManager.h
@@ -49,16 +50,10 @@ namespace Modele
         void setPlayerTextureZoom(float z) { playerTextureZoom = std::max(0.1f, z); }
         void setPlayerSpriteDisplayScale(float sx, float sy) { playerSpriteDisplayScaleX = sx; playerSpriteDisplayScaleY = sy; }
 
-        // Sol en tuiles
-        sf::Texture floorTexture;
-        std::vector<std::vector<int>> floorMatrix; // 2D matrix: 1 = floor tile (Floor5.png)
-        // Mapping tile id -> texture. Permet d'avoir plusieurs tuiles référencées
-        // par des valeurs entières dans `floorMatrix`.
-        std::map<int, sf::Texture> tileTextures;
-        int tileSize = 64; // taille en pixels d'une tuile (modifiable)
+        // Gestion de la carte / tuiles externalisée
+        std::unique_ptr<MapManager> mapManager;
 
-        // Textures pour murs (8 images Wall1_1 .. Wall1_8)
-        std::vector<sf::Texture> wallTextures;
+        // Textures pour murs (delegué à MapManager)
 
         // --- Membres d'IA et de collision (pour le premier obstacle) ---
         bool collisionDetectee = false;
@@ -86,16 +81,16 @@ namespace Modele
 
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }
-        const std::vector<std::vector<int>>& getFloorMatrix() const { return floorMatrix; }
-        const sf::Texture& getFloorTexture() const { return floorTexture; }
+        const std::vector<std::vector<int>>& getFloorMatrix() const;
+        const sf::Texture& getFloorTexture() const;
         // Setters / tile API
-        void setFloorMatrix(const std::vector<std::vector<int>>& m) { floorMatrix = m; }
+        void setFloorMatrix(const std::vector<std::vector<int>>& m);
         // Charge une texture et l'associe à un ID de tuile. Retourne true si ok.
         bool setTileTexture(int id, const std::string& path);
         // Retourne un pointeur vers la texture associée à l'id (nullptr si absente)
         const sf::Texture* getTileTexture(int id) const;
-        int getTileSize() const { return tileSize; }
-        const std::vector<sf::Texture>& getWallTextures() const { return wallTextures; }
+        int getTileSize() const;
+        const std::vector<sf::Texture>& getWallTextures() const;
 
         // Retourne les obstacles physiques (qui bloquent)
         const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;

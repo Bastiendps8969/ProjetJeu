@@ -31,6 +31,8 @@ namespace Modele {
         float screenH = static_cast<float>(dm.height);
 
         roomManager = std::make_unique<RoomManager>(screenW, screenH);
+        // map manager for tile/floor handling
+        mapManager = std::make_unique<MapManager>();
 
         // Initialize enemy prototypes (Prototype pattern)
         enemyPrototypes.clear();
@@ -87,39 +89,17 @@ namespace Modele {
             syncPlayerSprite();
         }
 
-        // --- Chargement de la texture de sol (Floor5.png) ---
-        bool loaded = false;
+        // --- Chargement des textures (sol + floor_02 + murs) via MapManager ---
         const std::vector<std::string> tryPaths = {
             "cmake-build-debug/Asset/Floor/floor_01.png",
             "Asset/Floor/floor_01.png",
             "floor_01.png"
         };
-        for (const auto& p : tryPaths) {
-            if (floorTexture.loadFromFile(p)) {
-                loaded = true;
-                std::cout << "[DEBUG] Texture sol chargée : " << p << std::endl;
-                // Enregistrer également floor_01 comme tuile id 22 (comportement similaire à floor_02)
-                if (setTileTexture(22, p)) {
-                    std::cout << "[DEBUG] Texture floor_01 chargée en tile id 22 : " << p << std::endl;
-                } else {
-                    std::cout << "[DEBUG] Echec assignation floor_01 -> tile id 22 pour : " << p << std::endl;
-                }
-                break;
-            } else {
-                std::cout << "[DEBUG] Echec chargement texture sol : " << p << std::endl;
-            }
-        }
-        if (!loaded) {
-            std::cerr << "[DEBUG] Avertissement: impossible de charger Floor5.png. Vérifiez le chemin.\n";
-        }
-
-        // Register default floor texture as tile id 1 for backward compatibility
-        if (loaded) {
-            tileTextures[1] = floorTexture;
-        }
-
-
-        // --- Chargement des textures de murs (Wall1_1 .. Wall1_8) ---
+        const std::vector<std::string> tryPathsFloor02 = {
+            "cmake-build-debug/Asset/Floor/floor_02.png",
+            "Asset/Floor/floor_02.png",
+            "floor_02.png"
+        };
         const std::vector<std::string> tryPathsWall = {
             "cmake-build-debug/Asset/Wall/Wall1_1.png",
             "cmake-build-debug/Asset/Wall/Wall1_5.png",
@@ -130,30 +110,7 @@ namespace Modele {
             "cmake-build-debug/Asset/Wall/Wall1_4.png",
             "cmake-build-debug/Asset/Wall/Wall1_8.png"
         };
-        wallTextures.clear();
-        wallTextures.resize(8);
-        for (size_t i = 0; i < tryPathsWall.size(); ++i)
-        {
-            // Correction : chaque wallTextures[i] doit correspondre à Asset/Wall/Wall1_{i+1}.png
-            std::string assetPath = "Asset/Wall/Wall1_" + std::to_string(i+1) + ".png";
-            if (!wallTextures[i].loadFromFile(tryPathsWall[i]))
-            {
-                std::cout << "[DEBUG] Echec chargement mur : " << tryPathsWall[i] << std::endl;
-                if (!wallTextures[i].loadFromFile(assetPath))
-                {
-                    std::cout << "[DEBUG] Echec chargement mur : " << assetPath << std::endl;
-                    std::cerr << "[DEBUG] Avertissement: impossible de charger " << tryPathsWall[i] << " ni " << assetPath << "\n";
-                }
-                else
-                {
-                    std::cout << "[DEBUG] Texture mur chargée : " << assetPath << std::endl;
-                }
-            }
-            else
-            {
-                std::cout << "[DEBUG] Texture mur chargée : " << tryPathsWall[i] << std::endl;
-            }
-        }
+        if (mapManager) mapManager->loadDefaults(tryPaths, tryPathsFloor02, tryPathsWall);
 
         // NOTE: Utilisation d'une matrice codée en dur pour faciliter l'édition
         // Vous pouvez modifier ci‑dessous les valeurs (1 = sol) pour tester.
@@ -184,10 +141,11 @@ namespace Modele {
             {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
             {13,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,18}
         };
-        // Affecte la matrice codée en dur à la matrice de jeu
-        floorMatrix = hardcoded;
-        int rows = static_cast<int>(floorMatrix.size());
-        int cols = (rows > 0) ? static_cast<int>(floorMatrix[0].size()) : 0;
+        // Affecte la matrice codée en dur à la matrice de jeu via MapManager
+        mapManager->setFloorMatrix(hardcoded);
+        const auto& _fm = mapManager->getFloorMatrix();
+        int rows = static_cast<int>(_fm.size());
+        int cols = (rows > 0) ? static_cast<int>(_fm[0].size()) : 0;
 
         // Codes pour murs : 11..18 (correspondent aux wallTextures[0..7])
         const int WALL_TL = 11;   // top-left
@@ -632,23 +590,44 @@ namespace Modele {
 
     bool Modele::setTileTexture(int id, const std::string& path)
     {
-        try {
-            // operator[] crée la texture si absente
-            bool ok = tileTextures[id].loadFromFile(path);
-            if (!ok) {
-                // remove inserted empty texture to keep map clean
-                tileTextures.erase(id);
-            }
-            return ok;
-        } catch (...) {
-            return false;
-        }
+        if (!mapManager) return false;
+        return mapManager->setTileTexture(id, path);
     }
 
     const sf::Texture* Modele::getTileTexture(int id) const
     {
-        auto it = tileTextures.find(id);
-        if (it != tileTextures.end()) return &it->second;
-        return nullptr;
+        if (!mapManager) return nullptr;
+        return mapManager->getTileTexture(id);
+    }
+
+    const std::vector<std::vector<int>>& Modele::getFloorMatrix() const
+    {
+        static const std::vector<std::vector<int>> empty;
+        if (!mapManager) return empty;
+        return mapManager->getFloorMatrix();
+    }
+
+    const sf::Texture& Modele::getFloorTexture() const
+    {
+        static sf::Texture dummy;
+        if (!mapManager) return dummy;
+        return mapManager->getFloorTexture();
+    }
+
+    void Modele::setFloorMatrix(const std::vector<std::vector<int>>& m)
+    {
+        if (mapManager) mapManager->setFloorMatrix(m);
+    }
+
+    int Modele::getTileSize() const
+    {
+        return mapManager ? mapManager->getTileSize() : 0;
+    }
+
+    const std::vector<sf::Texture>& Modele::getWallTextures() const
+    {
+        static const std::vector<sf::Texture> empty;
+        if (!mapManager) return empty;
+        return mapManager->getWallTextures();
     }
 }
