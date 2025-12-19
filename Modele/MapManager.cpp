@@ -1,5 +1,7 @@
 #include "MapManager.h"
 #include <iostream>
+#include <fstream>
+#include "../cmake-build-debug/json.hpp"
 
 namespace Modele {
 
@@ -33,6 +35,11 @@ bool MapManager::setTileTexture(int id, const std::string& path)
         return false;
     }
 }
+
+    void MapManager::clearMap() {
+    floorMatrix.clear();
+}
+
 
 const sf::Texture* MapManager::getTileTexture(int id) const
 {
@@ -96,6 +103,39 @@ bool MapManager::loadDefaults(const std::vector<std::string>& floorPaths,
     // load walls
     loadWallTextures(tryPathsWall);
     return ok;
+}
+
+bool MapManager::loadMapFromFile(const std::string& path)
+{
+    std::ifstream f(path);
+    if (!f.is_open()) {
+        std::cerr << "[DEBUG] MapManager: cannot open map file: " << path << std::endl;
+        return false;
+    }
+    try {
+        nlohmann::json j;
+        f >> j;
+        if (j.contains("matrix") && j["matrix"].is_array()) {
+            std::vector<std::vector<int>> m;
+            for (const auto& row : j["matrix"]) {
+                if (!row.is_array()) continue;
+                std::vector<int> rvec;
+                for (const auto& v : row) {
+                    rvec.push_back(v.get<int>());
+                }
+                m.push_back(std::move(rvec));
+            }
+            setFloorMatrix(m);
+            std::cout << "[DEBUG] MapManager: loaded map matrix from " << path << std::endl;
+            return true;
+        } else {
+            std::cerr << "[DEBUG] MapManager: map file missing 'matrix' array: " << path << std::endl;
+            return false;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[DEBUG] MapManager: error parsing map file " << path << " : " << e.what() << std::endl;
+        return false;
+    }
 }
 
 } // namespace Modele

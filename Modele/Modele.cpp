@@ -63,6 +63,9 @@ namespace Modele {
             if (playerTexture.loadFromFile(p)) {
                 playerLoaded = true;
                 std::cout << "[DEBUG] Spritesheet joueur chargée : " << p << std::endl;
+                // assign the texture to the sprite immediately
+                playerSprite.setTexture(playerTexture);
+                playerSprite.setTextureRect(computePlayerTextureRect());
                 break;
             } else {
                 std::cout << "[DEBUG] Echec chargement spritesheet joueur : " << p << std::endl;
@@ -70,82 +73,27 @@ namespace Modele {
         }
         if (!playerLoaded) {
             std::cerr << "[DEBUG] Avertissement: impossible de charger la spritesheet joueur (james_adams_textures.png)\n";
-        } else {
-            playerSprite.setTexture(playerTexture);
-            // Initialiser le sprite sur la frame 0 de la row par défaut (playerRow)
-            playerFrameIndex = 0;
-            playerClock.restart();
-            // Définit la zone initiale (en tenant compte du zoom)
-            playerSprite.setTextureRect(computePlayerTextureRect());
-            // Origine initiale au centre du recadrage (sera mise à jour dans syncPlayerSprite)
-            // note: origin en px du recadrage sera défini dans syncPlayerSprite()
-            playerSprite.setOrigin(0.f, 0.f);
-
-            // position temporaire centrée sur le rectangle joueur
-            sf::Vector2f ppos = joueur.getPosition();
-            playerSprite.setPosition(ppos.x + joueur.getSize().x/2.f, ppos.y + joueur.getSize().y/2.f);
-
-            // Mettre à l'échelle le sprite pour remplir la taille du RectangleShape joueur
-            syncPlayerSprite();
         }
 
-        // --- Chargement des textures (sol + floor_02 + murs) via MapManager ---
-        const std::vector<std::string> tryPaths = {
+        // Default asset search paths for floors and walls
+        const std::vector<std::string> tryFloorPaths = {
             "cmake-build-debug/Asset/Floor/floor_01.png",
             "Asset/Floor/floor_01.png",
             "floor_01.png"
         };
-        const std::vector<std::string> tryPathsFloor02 = {
+        const std::vector<std::string> tryFloor02Paths = {
             "cmake-build-debug/Asset/Floor/floor_02.png",
             "Asset/Floor/floor_02.png",
             "floor_02.png"
         };
-        const std::vector<std::string> tryPathsWall = {
-            "cmake-build-debug/Asset/Wall/Wall1_1.png",
-            "cmake-build-debug/Asset/Wall/Wall1_5.png",
-            "cmake-build-debug/Asset/Wall/Wall1_6.png",
-            "cmake-build-debug/Asset/Wall/Wall1_7.png",
+        const std::vector<std::string> tryWallPaths = {
             "cmake-build-debug/Asset/Wall/Wall1_2.png",
             "cmake-build-debug/Asset/Wall/Wall1_3.png",
             "cmake-build-debug/Asset/Wall/Wall1_4.png",
             "cmake-build-debug/Asset/Wall/Wall1_8.png"
         };
-        if (mapManager) mapManager->loadDefaults(tryPaths, tryPathsFloor02, tryPathsWall);
 
-        // NOTE: Utilisation d'une matrice codée en dur pour faciliter l'édition
-        // Vous pouvez modifier ci‑dessous les valeurs (1 = sol) pour tester.
-        std::vector<std::vector<int>> hardcoded = {
-            {11,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,16},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {12,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,17},
-            {13,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,18}
-        };
-        // Affecte la matrice codée en dur à la matrice de jeu via MapManager
-        mapManager->setFloorMatrix(hardcoded);
-        const auto& _fm = mapManager->getFloorMatrix();
-        int rows = static_cast<int>(_fm.size());
-        int cols = (rows > 0) ? static_cast<int>(_fm[0].size()) : 0;
+        if (mapManager) mapManager->loadDefaults(tryFloorPaths, tryFloor02Paths, tryWallPaths);
 
         // Codes pour murs : 11..18 (correspondent aux wallTextures[0..7])
         const int WALL_TL = 11;   // top-left
@@ -157,25 +105,8 @@ namespace Modele {
         const int WALL_BOTTOM = 17;// bottom edge
         const int WALL_BR = 18;   // bottom-right
 
-        // Charger `floor_02.png` et l'assigner au skin/tile id 21
-        // (placé ici pour meilleure lisibilité, à côté des constantes de murs)
-        {
-            const std::vector<std::string> tryPathsFloor02 = {
-                "cmake-build-debug/Asset/Floor/floor_02.png",
-                "Asset/Floor/floor_02.png",
-                "floor_02.png"
-            };
-            for (const auto& p : tryPathsFloor02) {
-                if (setTileTexture(21, p)) {
-                    std::cout << "[DEBUG] Texture floor_02 chargée en tile id 21 : " << p << std::endl;
-                    break;
-                } else {
-                    std::cout << "[DEBUG] Echec chargement texture floor_02 : " << p << std::endl;
-                }
-            }
-        }
-
-
+        // floor tile registrations (floor_01 -> 22, floor_02 -> 21) are handled
+        // by MapManager::loadDefaults called above.
         // NOTE: Par défaut, nous n'assignons plus de codes de murs (11..18)
         // automatiquement à la matrice de sol. Les murs doivent être
         // explicitement définis par les données de niveau (JSON) ou par
@@ -187,6 +118,18 @@ namespace Modele {
             roomManager->changeRoom(0, "", joueur);
             // positionner le joueur au centre de l'écran
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
+            // sync sprite position/scale with the rectangle
+            syncPlayerSprite();
+
+            // If the room references an external map file, load it into the MapManager
+            auto& rooms = roomManager->getRooms();
+            auto it = rooms.find(0);
+            if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
+                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                    std::cerr << "Warning: failed to load map file '" << it->second.mapFile << "' for room 0" << std::endl;
+                }
+            }
+
             reloadEnemiesForCurrentRoom();
         }
         else
@@ -194,6 +137,8 @@ namespace Modele {
             std::cerr << "Échec du chargement de la carte. Pièce 0 non valide." << std::endl;
             roomManager->changeRoom(-1, "", joueur);
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
+            // sync sprite position if texture is loaded
+            syncPlayerSprite();
         }
 
         // Initialisation des points de patrouille (si non chargés par JSON)
@@ -567,8 +512,25 @@ namespace Modele {
         bool ok = roomManager->changeRoom(newRoomIndex, entryDirection, joueur);
         setCollisionDetectee(false);
         setJoueurDetecte(false);
-        if (ok) reloadEnemiesForCurrentRoom(); // Ajout ici
+        if (ok) {
+            // Charger la map uniquement si elle existe
+            auto& rooms = roomManager->getRooms();
+            auto it = rooms.find(newRoomIndex);
+            if (it != rooms.end() && !it->second.mapFile.empty()) {
+                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                    std::cerr << "Warning: failed to load map file '"
+                              << it->second.mapFile << "' for room "
+                              << newRoomIndex << std::endl;
+                }
+            } else {
+                // Aucune mapFile -> on efface la carte
+                mapManager->clearMap();
+            }
+
+            reloadEnemiesForCurrentRoom();
+        }
         return ok;
+
     }
 
     // Objective contact accessors

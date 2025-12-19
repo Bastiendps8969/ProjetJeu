@@ -26,6 +26,8 @@ public:
     bool loadDefaults(const std::vector<std::string>& floorPaths,
                       const std::vector<std::string>& floor02Paths,
                       const std::vector<std::string>& tryPathsWall);
+    bool loadMapFromFile(const std::string& path);
+    void clearMap();
 
 private:
     sf::Texture floorTexture;
@@ -33,6 +35,7 @@ private:
     std::vector<std::vector<int>> floorMatrix;
     int tileSize = 64;
     std::vector<sf::Texture> wallTextures;
+
 };
 
 } // namespace Modele

@@ -1,6 +1,7 @@
 {
   "0": {
     "name": "Salle de depart (0)",
+    "mapFile": "Asset/Map/Map1.json",
     "doors": {
       "right": 1
     },
@@ -56,6 +57,7 @@
   },
   "1": {
     "name": "Salle Est (1)",
+    "mapFile": "Asset/Map/Map1.json",
     "doors": {
       "left": 0,
       "up": 2
@@ -80,6 +82,7 @@
   },
   "2": {
     "name": "Salle Nord (2)",
+    "mapFile": "Asset/Map/Map2.json",
     "doors": {
       "down": 1
     },
