@@ -78,6 +78,14 @@
         "text": "Are you sure you want to quit the mission? Your progression will be lost.",
         "displayDuration": 3.0
       }
+    ],
+    "time_up": [
+      {
+        "characterName" : "John Jones",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "It seems you've run out of time.\nFor your security you will be evacuated.",
+        "displayDuration": 3.0
+      }
     ]
   }
 }

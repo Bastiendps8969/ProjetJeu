@@ -2,7 +2,8 @@
   "0": {
     "name": "Salle de depart (0)",
     "doors": {
-      "right": 1
+      "right": 1,
+      "down": -1
     },
     "objectives": [
       {
