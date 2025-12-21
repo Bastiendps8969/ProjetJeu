@@ -30,6 +30,18 @@ RoomManager::RoomManager(float w, float h)
     : screenW(w), screenH(h)
 {}
 
+void RoomManager::setScreenSize(float w, float h)
+{
+    if (w <= 0.f || h <= 0.f) return;
+    screenW = w;
+    screenH = h;
+    // Recompute visual shapes for all rooms to reflect the new size
+    for (auto& pair : rooms_)
+    {
+        initializeRoomShapes(pair.second);
+    }
+}
+
 // Constructeur
 // - `w` / `h`: taille de la fenêtre (ou surface de jeu) ; utilisée pour positionner
 //   les formes visuelles simples des portes et pour calculer les positions lors

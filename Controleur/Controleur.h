@@ -14,6 +14,8 @@ namespace Controleur
     private:
         // Fenêtre
         sf::RenderWindow fenetre;
+        // Vue SFML pour gérer le redimensionnement et mise à l'échelle
+        sf::View mainView;
 
         // (level movement moved to ControllerLevel)
 

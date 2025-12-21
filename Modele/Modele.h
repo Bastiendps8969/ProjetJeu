@@ -92,6 +92,9 @@ namespace Modele
         int getTileSize() const;
         const std::vector<sf::Texture>& getWallTextures() const;
 
+        // Met à jour la taille d'écran (appelée lors du redimensionnement)
+        void setScreenSize(float w, float h);
+
         // Retourne les obstacles physiques (qui bloquent)
         const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
         const std::vector<Door>& getCurrentRoomDoors() const;
