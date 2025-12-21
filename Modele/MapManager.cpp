@@ -7,6 +7,12 @@ namespace Modele {
 
 MapManager::MapManager() = default;
 
+// loadFloorFromPaths:
+// - Iterates candidate paths and attempts to load the first valid texture file.
+// - On success sets `floorTexture` and (for backward compatibility) may
+//   register a default tile id in `tileTextures` so older code can still
+//   refer to a default floor tile.
+
 bool MapManager::loadFloorFromPaths(const std::vector<std::string>& paths)
 {
     for (const auto& p : paths) {
@@ -36,6 +42,8 @@ bool MapManager::setTileTexture(int id, const std::string& path)
     }
 }
 
+// clearMap: clears the floor matrix only (keeps loaded textures intact).
+
     void MapManager::clearMap() {
     floorMatrix.clear();
 }
@@ -47,6 +55,8 @@ const sf::Texture* MapManager::getTileTexture(int id) const
     if (it != tileTextures.end()) return &it->second;
     return nullptr;
 }
+
+// getFloorTexture: returns the loaded fallback floor texture.
 
 const sf::Texture& MapManager::getFloorTexture() const
 {
@@ -65,6 +75,11 @@ void MapManager::setFloorMatrix(const std::vector<std::vector<int>>& m)
 
 bool MapManager::loadWallTextures(const std::vector<std::string>& tryPathsWall)
 {
+    // loadWallTextures:
+    // - For each of the 8 wall variants, try the provided primary path first
+    //   then fall back to a built-in asset path `Asset/Wall/Wall1_N.png`.
+    // - The resulting textures are stored in `wallTextures` in index order
+    //   corresponding to the wall tile ids used by the map matrix.
     wallTextures.clear();
     wallTextures.resize(8);
     for (size_t i = 0; i < 8; ++i)
@@ -91,20 +106,27 @@ bool MapManager::loadDefaults(const std::vector<std::string>& floorPaths,
                               const std::vector<std::string>& floor02Paths,
                               const std::vector<std::string>& tryPathsWall)
 {
+    // loadDefaults: convenience routine to populate common floor and wall
+    // textures. `floorPaths`/`floor02Paths` are tried in order; on first
+    // success the tile id constants `TILE_FLOOR_01` / `TILE_FLOOR_02` are
+    // registered in `tileTextures` to allow map files to reference them.
     bool ok = loadFloorFromPaths(floorPaths);
-    // register floor_01 as id 22 if possible
     for (const auto& p : floorPaths) {
-        if (setTileTexture(22, p)) { std::cout << "[DEBUG] MapManager: set tile 22 -> " << p << std::endl; break; }
+        if (setTileTexture(TILE_FLOOR_01, p)) { std::cout << "[DEBUG] MapManager: set tile " << TILE_FLOOR_01 << " -> " << p << std::endl; break; }
     }
-    // register floor_02 as id 21
     for (const auto& p : floor02Paths) {
-        if (setTileTexture(21, p)) { std::cout << "[DEBUG] MapManager: set tile 21 -> " << p << std::endl; break; }
+        if (setTileTexture(TILE_FLOOR_02, p)) { std::cout << "[DEBUG] MapManager: set tile " << TILE_FLOOR_02 << " -> " << p << std::endl; break; }
     }
     // load walls
     loadWallTextures(tryPathsWall);
     return ok;
 }
 
+// loadMapFromFile:
+// - Opens a JSON file at `path` and expects a top-level `matrix` field which
+//   is an array of rows (each row is an array of integers tile ids).
+// - The parsed matrix is stored into `floorMatrix` and can later be used by
+//   the renderer to draw tiles by id. Returns true on successful parse.
 bool MapManager::loadMapFromFile(const std::string& path)
 {
     std::ifstream f(path);

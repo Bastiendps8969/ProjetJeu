@@ -95,15 +95,7 @@ namespace Modele {
 
         if (mapManager) mapManager->loadDefaults(tryFloorPaths, tryFloor02Paths, tryWallPaths);
 
-        // Codes pour murs : 11..18 (correspondent aux wallTextures[0..7])
-        const int WALL_TL = 11;   // top-left
-        const int WALL_TOP = 12;  // top edge
-        const int WALL_TR = 13;   // top-right
-        const int WALL_LEFT = 14; // left edge  bottom-left
-        const int WALL_RIGHT = 15;// right edge
-        const int WALL_BL = 16;   // bottom-left
-        const int WALL_BOTTOM = 17;// bottom edge
-        const int WALL_BR = 18;   // bottom-right
+        // Wall/floor tile codes moved to MapManager (use Modele::MapManager::TILE_...)
 
         // floor tile registrations (floor_01 -> 22, floor_02 -> 21) are handled
         // by MapManager::loadDefaults called above.
