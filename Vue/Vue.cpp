@@ -123,9 +123,32 @@ namespace Vue
         // 2. (SUPPRIMER) Dessiner les obstacles physiques (ennemis, murs rouges, etc.)
         // for (const auto& obsPtr : modele.getObstacleShapes()) { fenetre.draw(*obsPtr); }
 
-        for (const auto& objective: modele.getCurrentRoomObjectives()) {
-            fenetre.draw(objective.getHitbox());
+        for (const auto& objective : modele.getCurrentRoomObjectives()) {
+            // Debug : afficher infos utiles sur l'objectif
+            // NOTE: ces logs ont été ajoutés temporairement pour diagnostiquer
+            // pourquoi le `sf::Sprite` n'affichait pas la texture. Ils
+            // montrent la position/tailles et si le sprite référence une
+            // texture valide. Une fois le bug corrigé, ces lignes peuvent
+            // être supprimées ou entourées par un flag de debug.
+            
+            sf::Vector2f hp = objective.getHitboxPosition();
+            sf::Vector2f hs = objective.getHitboxSize();
+            sf::Texture tex = objective.getTexture();
+            std::cout << "[DEBUG] Objective: title='" << objective.getTitle() << "' pos=(" << hp.x << "," << hp.y << ") size=(" << hs.x << "," << hs.y << ") texSize=(" << tex.getSize().x << "," << tex.getSize().y << ")" << std::endl;
+
+            // Dessine le sprite s’il est valide
+            sf::Sprite spr = objective.getSprite();
+            const sf::Texture* tptr = spr.getTexture();
+            if (tptr && tptr->getSize().x > 0) {
+                std::cout << "[DEBUG] Objective: drawing sprite (texture ptr=" << reinterpret_cast<const void*>(tptr) << ") scale=(" << spr.getScale().x << "," << spr.getScale().y << ") pos=(" << spr.getPosition().x << "," << spr.getPosition().y << ")" << std::endl;
+                fenetre.draw(spr);
+            }
+            else {
+                std::cout << "[DEBUG] Objective: sprite has no texture, drawing hitbox" << std::endl;
+                fenetre.draw(objective.getHitbox()); // fallback visuel
+            }
         }
+
 
         // 3. Dessiner le joueur (sprite animé si dispo, sinon rectangle)
         const sf::Sprite& ps = modele.getPlayerSprite();

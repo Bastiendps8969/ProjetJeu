@@ -39,6 +39,21 @@ public:
     Objective(std::string t, std::string d, sf::Texture texture,
         float x, float y, float w, float h);
 
+    // Move operations: ensure sprite's texture pointer is reset after move
+    // Move operations: defined to ensure that when an Objective
+    // is moved (e.g. vector reallocation), we re-bind the
+    // internal `sf::Sprite` to the moved `sf::Texture` so
+    // the sprite's internal texture pointer remains valid.
+    Objective(Objective&& other) noexcept;
+    Objective& operator=(Objective&& other) noexcept;
+
+    // Copy operations: explicitly declared because declaring
+    // move ctor/assign prevents implicit copy operations.
+    // These copy the texture and then re-bind the sprite to
+    // ensure the sprite points to the copied texture data.
+    Objective(const Objective& other);
+    Objective& operator=(const Objective& other);
+
     //  Destructor
     ~Objective();
 
