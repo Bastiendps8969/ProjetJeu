@@ -14,15 +14,11 @@
 namespace Controleur
 {
     // Constructeur
-        Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
-                : modele(modele), vue(vue),
-                    fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
+    Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
+        : modele(modele), vue(vue),
+          fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
     {
-                // Initialise la vue selon la taille du bureau et assigne à la fenêtre
-                sf::VideoMode dm = sf::VideoMode::getDesktopMode();
-                mainView = sf::View(sf::FloatRect(0.f, 0.f, static_cast<float>(dm.width), static_cast<float>(dm.height)));
-                fenetre.setView(mainView);
-                fenetre.setFramerateLimit(60);
+        fenetre.setFramerateLimit(60);
         niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
     }
 
@@ -133,14 +129,6 @@ namespace Controleur
                 if ((evenement.type == sf::Event::KeyPressed)
                     && (evenement.key.code == sf::Keyboard::Escape))
                 {   fenetre.close();    }
-
-                if (evenement.type == sf::Event::Resized)
-                {
-                    // Met à jour la vue et le modèle pour s'adapter à la nouvelle taille
-                    mainView.setSize(static_cast<float>(evenement.size.width), static_cast<float>(evenement.size.height));
-                    fenetre.setView(mainView);
-                    modele.setScreenSize(static_cast<float>(evenement.size.width), static_cast<float>(evenement.size.height));
-                }
 
                 dialogueManager.handleEvent(evenement);
             }

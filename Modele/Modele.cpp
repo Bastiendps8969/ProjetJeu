@@ -358,67 +358,6 @@ namespace Modele {
     float Modele::getScreenW() const { return roomManager ? roomManager->getScreenW() : 0.f; }
     float Modele::getScreenH() const { return roomManager ? roomManager->getScreenH() : 0.f; }
 
-    void Modele::setScreenSize(float w, float h)
-    {
-        if (!roomManager) return;
-        float oldW = roomManager->getScreenW();
-        float oldH = roomManager->getScreenH();
-        if (oldW <= 0.f || oldH <= 0.f) {
-            roomManager->setScreenSize(w,h);
-            return;
-        }
-
-        float scaleW = w / oldW;
-        float scaleH = h / oldH;
-
-        // Update room manager first (recompute doors)
-        roomManager->setScreenSize(w,h);
-
-        // Scale joueur position
-        sf::Vector2f pos = joueur.getPosition();
-        joueur.setPosition(pos.x * scaleW, pos.y * scaleH);
-
-        // Scale obstacle shapes and objectives stored in rooms
-        auto& rooms = roomManager->getRooms();
-        for (auto& kv : rooms)
-        {
-            auto& room = kv.second;
-            // scale obstacleDefs if present (not stored here directly), but scale shapes
-            for (auto& shpPtr : room.obstacleShapes)
-            {
-                if (!shpPtr) continue;
-                auto rect = dynamic_cast<sf::RectangleShape*>(shpPtr.get());
-                if (rect)
-                {
-                    sf::Vector2f p = rect->getPosition();
-                    sf::Vector2f s = rect->getSize();
-                    rect->setPosition(p.x * scaleW, p.y * scaleH);
-                    rect->setSize(sf::Vector2f(s.x * scaleW, s.y * scaleH));
-                }
-            }
-
-            // Scale objectives hitbox positions/sizes
-            for (auto& obj : room.objectives)
-            {
-                sf::Vector2f hp = obj.getHitboxPosition();
-                sf::Vector2f hs = obj.getHitboxSize();
-                obj.setHitboxPosition(hp.x * scaleW, hp.y * scaleH);
-                obj.setHitboxSize(hs.x * scaleW, hs.y * scaleH);
-            }
-        }
-
-        // Scale enemies positions and sprites
-        for (auto& e : enemies)
-        {
-            e->position.x *= scaleW;
-            e->position.y *= scaleH;
-            e->sprite.setPosition(e->position);
-        }
-
-        // Resync player sprite
-        syncPlayerSprite();
-    }
-
     // Calcule la textureRect (recadrée au centre) pour la frame courante selon playerTextureZoom.
     // NOTE: les frames de déplacement sont sur les rows 1..4 ; les frames "idle" (2 frames)
     // sont sur les rows 5..8 (i.e. playerRow + 4), colonnes 0..idleFrameCount-1.

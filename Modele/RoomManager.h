@@ -89,10 +89,6 @@ public:
     // Constructeur : reçoit la taille d'écran pour positionner les portes
     RoomManager(float w, float h);
 
-    // Met à jour la taille d'écran connue par le RoomManager et réinitialise
-    // les formes visuelles (portes, obstacles) en conséquence.
-    void setScreenSize(float w, float h);
-
     // Charge et parse le JSON. Retourne true si réussi.
     bool loadRoomsFromJson(const std::string& filename);
 
