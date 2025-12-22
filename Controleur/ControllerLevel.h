@@ -44,6 +44,11 @@ public:
     void setTimerPaused(bool p);
     bool isTimerPaused() const { return timerPaused; }
 
+    // Life system API
+    int getLives() const;
+    void loseLivesByDetection(bool isHuman);
+    bool isGameOver() const;
+
 
 private:
     Modele::Modele& modele;
@@ -57,6 +62,7 @@ private:
     bool openCesarWindow = false;
     Objective* cesrObjective = nullptr;
     bool exitRequestedFlag = false;
+    bool playerWasDetectedLastFrame = false;  // Track if player was detected to apply life loss only once
     // Level timer (countdown in seconds)
     const int levelTimerStartSeconds = 10; // 300
 

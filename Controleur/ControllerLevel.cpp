@@ -243,7 +243,7 @@ Modele::ScoreDetails ControllerLevel::getScoreDetails() const
 {
     const std::vector<Objective>& objectives = modele.getCurrentRoomObjectives();
     int remainingSeconds = getRemainingSeconds();
-    return Modele::ScoreCalculator::calculateScore(objectives, remainingSeconds);
+    return Modele::ScoreCalculator::calculateScore(objectives, remainingSeconds, modele.getDetectionCount());
 }
 
 bool ControllerLevel::areAllSecondaryObjectivesCompleted() const
@@ -375,8 +375,55 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
         // Do not start the dialogue here (would be called every frame and restart it).
         // Just set the model flag; the top-level `Controleur` will start the dialogue
         // once using its `agentDialogueLaunched` guard.
+        
+        // Apply life loss only once per detection (not every frame)
+        if (!playerWasDetectedLastFrame) {
+            // Détermine le type d'ennemi qui a détecté le joueur et applique le coût de vie approprié
+            bool isHuman = false;
+            
+            // Vérifier les ennemis pour déterminer le type
+            const auto& enemies = modele.getEnemies();
+            for (const auto& enemy : enemies) {
+                if (enemy && enemy->joueurDetecte) {
+                    // GenericEnemy est le type "human"
+                    // Vérifier le type en utilisant les flags isCamera et isLaser
+                    isHuman = !enemy->isCamera && !enemy->isLaser;
+                    break;
+                }
+            }
+            
+            loseLivesByDetection(isHuman);
+            // Count this detection for scoring
+            modele.incrementDetectionCount();
+            playerWasDetectedLastFrame = true;
+        }
+        
         modele.setJoueurDetecte(true);
+    }
+    else
+    {
+        // Reset the detection flag when player is no longer detected
+        playerWasDetectedLastFrame = false;
     }
 }
 
+int ControllerLevel::getLives() const
+{
+    return modele.getLives();
+}
+
+void ControllerLevel::loseLivesByDetection(bool isHuman)
+{
+    // Perd 3 vies si humain, 1 sinon (caméra ou laser)
+    int livesLost = isHuman ? 3 : 1;
+    modele.loseLives(livesLost);
+    std::cout << "[ControllerLevel] Lives lost: " << livesLost << ". Remaining lives: " << modele.getLives() << std::endl;
+}
+
+bool ControllerLevel::isGameOver() const
+{
+    return modele.isGameOver();
+
 } // namespace Controleur
+}
+

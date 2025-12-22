@@ -2,6 +2,7 @@
 #include <cmath>
 #include "Modele.h"
 #include <iostream>
+#include <string>
 
 namespace Vue
 {
@@ -27,6 +28,13 @@ namespace Vue
             joueurDetecteText.setFillColor(sf::Color::Yellow);
             joueurDetecteText.setStyle(sf::Text::Bold);
             joueurDetecteText.setPosition(10.f, 40.f);
+
+            livesText.setFont(font);
+            livesText.setString("Lives: 3");
+            livesText.setCharacterSize(28);
+            livesText.setFillColor(sf::Color::Red);
+            livesText.setStyle(sf::Text::Bold);
+            livesText.setPosition(10.f, 70.f);
         }
         else if (font.loadFromFile("arial.ttf"))
         {
@@ -201,6 +209,13 @@ namespace Vue
         if (fontCharge && modele.isJoueurDetecte())
         {
             fenetre.draw(joueurDetecteText);
+        }
+
+        // 6. Affichage des vies
+        if (fontCharge)
+        {
+            livesText.setString("Lives: " + std::to_string(modele.getLives()));
+            fenetre.draw(livesText);
         }
     }
 

@@ -10,10 +10,12 @@ namespace Modele
         int secondsRemaining = 0;
         int primaryObjectivesCompleted = 0;
         int secondaryObjectivesCompleted = 0;
+        int numberOfDetections = 0;
         
         int timeScore = 0;      // 500 * secondsRemaining
         int primaryScore = 0;   // 10000 * primaryObjectivesCompleted
         int secondaryScore = 0; // 5000 * secondaryObjectivesCompleted
+        int detectionMalus = 0;
         int totalScore = 0;     // sum of all
     };
 
@@ -23,7 +25,8 @@ namespace Modele
         // Calcule les détails du score basé sur les objectifs et le temps restant
         static ScoreDetails calculateScore(
             const std::vector<Objective>& objectives,
-            int secondsRemaining
+            int secondsRemaining,
+            int numberOfDetections
         );
 
         // Vérifie si tous les objectifs secondaires sont complétés

@@ -8,6 +8,7 @@
 
 #include "Objective.h"
 #include "ScoreCalculator.h"
+#include "Level.h"
 #include "../cmake-build-debug/json.hpp"
 #include "Agent.h"
 #include "Enemy.h"
@@ -63,10 +64,16 @@ namespace Modele
         bool joueurDetecte = false;
         std::unique_ptr<Agent> agent;
 
+        // Nombre de fois où le joueur a été détecté durant la partie
+        int detectionCount = 0;
+
         // --- Membres de la carte/pièce ---
         std::unique_ptr<RoomManager> roomManager;
         // Path to the currently loaded level JSON (used to reload/ recreate level)
         std::string currentLevelPath;
+
+    // --- Membres du système de vies ---
+    std::unique_ptr<Level> currentLevel;
 
 
         // Constantes de porte
@@ -134,6 +141,15 @@ namespace Modele
         void setDialogueTriggered(bool v);
         // Réinitialise l'état du déclenchement du dialogue
         void resetDialogueTriggered();
+
+    // Life system
+    int getLives() const;
+    void loseLives(int amount);
+    bool isGameOver() const;
+    // Detection count API
+    int getDetectionCount() const;
+    void incrementDetectionCount();
+    void resetDetectionCount();
 
         // Exposer centre et direction avant d'un obstacle (index par défaut 0)
         sf::Vector2f getObstacleCenter(size_t idx = 0) const; // <--- Corrigé

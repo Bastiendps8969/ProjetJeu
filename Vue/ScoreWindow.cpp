@@ -108,6 +108,14 @@ namespace Vue
         secondaryScoreText.setCharacterSize(22);
         secondaryScoreText.setFillColor(sf::Color(255, 200, 100));
         levelScores.push_back(secondaryScoreText);
+
+        detectionMalusText.setFont(font);
+        std::ostringstream oss4;
+        oss4 << "Malus detections: " << details.numberOfDetections << " x -2000 = " << details.detectionMalus;
+        detectionMalusText.setString(oss4.str());
+        detectionMalusText.setCharacterSize(22);
+        detectionMalusText.setFillColor(sf::Color(220, 140, 140));
+        levelScores.push_back(detectionMalusText);
     }
 
     void ScoreWindow::initializeTexts(const std::vector<int>& scores)

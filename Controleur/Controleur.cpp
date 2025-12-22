@@ -332,6 +332,24 @@ namespace Controleur
                     continue;
                 }
 
+                // Check if game over (lives = 0)
+                if (niveauController->isGameOver()) {
+                    std::cout << "[Controleur] Game Over! No more lives." << std::endl;
+                    // Destroy current level so replay starts from a fresh state
+                    modele.reset();
+                    niveauController.reset();
+
+                    // Go back to main menu
+                    afficherMenuAccueil();
+                    if (!niveauController) {
+                        modele.reset();
+                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+                        timeDialogueLaunched = false;
+                    }
+                    // skip rest of this frame iteration
+                    continue;
+                }
+
             vue.dessiner(fenetre);
             // draw HUD timer from the level controller
             if (niveauController) {

@@ -21,6 +21,8 @@ namespace Vue
         sf::Text timeScoreText;
         sf::Text primaryScoreText;
         sf::Text secondaryScoreText;
+        sf::Text detectionCountText;
+        sf::Text detectionMalusText;
 
         sf::RectangleShape backButton;
         sf::Text backButtonLabel;

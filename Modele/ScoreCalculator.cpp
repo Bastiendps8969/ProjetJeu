@@ -4,11 +4,13 @@ namespace Modele
 {
     ScoreDetails ScoreCalculator::calculateScore(
         const std::vector<Objective>& objectives,
-        int secondsRemaining
+        int secondsRemaining,
+        int numberOfDetections
     )
     {
         ScoreDetails details;
         details.secondsRemaining = secondsRemaining;
+        details.numberOfDetections = numberOfDetections;
         
         // Compter les objectifs complétés
         details.primaryObjectivesCompleted = countCompletedPrimaryObjectives(objectives);
@@ -18,9 +20,10 @@ namespace Modele
         details.timeScore = 500 * secondsRemaining;
         details.primaryScore = 10000 * details.primaryObjectivesCompleted;
         details.secondaryScore = 5000 * details.secondaryObjectivesCompleted;
-        
-        // Calculer le score total
-        details.totalScore = details.timeScore + details.primaryScore + details.secondaryScore;
+        details.detectionMalus = -2000 * details.numberOfDetections;
+
+        // Calculer le score total (inclut la pénalité de détection)
+        details.totalScore = details.timeScore + details.primaryScore + details.secondaryScore + details.detectionMalus;
         
         return details;
     }

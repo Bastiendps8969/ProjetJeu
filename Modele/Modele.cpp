@@ -2,6 +2,7 @@
 #include "Agent.h"
 #include "Enemy.h"
 #include "RoomManager.h"
+#include "Level.h"
 #include <cmath>
 #include <limits>
 #include <fstream>
@@ -23,7 +24,7 @@ namespace Modele {
 
     // Constructeur : toutes les variables membres sont maintenant initialisées
     Modele::Modele()
-    : collisionDetectee(false)
+    : collisionDetectee(false), currentLevel(std::make_unique<Level>("Tutorial", "Test level"))
     {
         // Détermine la résolution du bureau
         sf::VideoMode dm = sf::VideoMode::getDesktopMode();
@@ -569,8 +570,44 @@ namespace Modele {
         dialogueTriggeredFlag = false;
     }
 
+    int Modele::getLives() const
+    {
+        return currentLevel ? currentLevel->getLives() : 0;
+    }
+
+    void Modele::loseLives(int amount)
+    {
+        if (currentLevel) {
+            currentLevel->loseLives(amount);
+        }
+    }
+
+    bool Modele::isGameOver() const
+    {
+        return currentLevel ? currentLevel->isGameOver() : false;
+    }
+
+    int Modele::getDetectionCount() const
+    {
+        return detectionCount;
+    }
+
+    void Modele::incrementDetectionCount()
+    {
+        detectionCount++;
+    }
+
+    void Modele::resetDetectionCount()
+    {
+        detectionCount = 0;
+    }
+
     void Modele::reset()
     {
+        // Reset lives to 3
+        if (currentLevel) {
+            currentLevel->setLives(3);
+        }
         // Reset player position and animation
         joueur.setPosition(0.f, 0.f);
         playerFrameIndex = 0;
