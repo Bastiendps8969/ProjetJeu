@@ -1,5 +1,5 @@
 //
-// Created by bertr on 25-11-25.
+// LevelPage.cpp
 //
 
 #include "LevelPage.h"
@@ -14,7 +14,7 @@ namespace Vue
 {
     // Dessiner l'écran de sélection des chapitres
     void LevelPage::drawChapterSelection(sf::RenderWindow& window,
-                                         const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
+                                         const std::vector<Modele::ChapterInfo>& chapters,
                                          int chapterIdx,
                                          const sf::Sprite& backgroundSprite, bool bgLoaded)
     {
@@ -101,10 +101,10 @@ namespace Vue
 
             window.draw(chapBlock);
 
-            // Nom du chapitre
+            // Nom du chapitre (provenant du JSON)
             sf::Text chapText;
             chapText.setFont(font);
-            chapText.setString(chapters[i].first);
+            chapText.setString(chapters[i].name);
             chapText.setCharacterSize(32);
             chapText.setFillColor(sf::Color(255, 240, 220));
             chapText.setStyle(sf::Text::Bold);
@@ -119,7 +119,7 @@ namespace Vue
 
     // Dessiner l'écran de sélection de niveaux avec panneau droit
     void LevelPage::drawLevelSelection(sf::RenderWindow& window,
-                                       const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
+                                       const std::vector<Modele::ChapterInfo>& chapters,
                                        int chapterIdx, int levelIdx,
                                        const sf::Sprite& backgroundSprite, bool bgLoaded)
     {
@@ -127,6 +127,18 @@ namespace Vue
         sf::Vector2u win = window.getSize();
         sf::Font font;
         font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+
+        // DEBUG: show chapter and levels info when drawing level selection
+        if (chapterIdx >= 0 && chapterIdx < static_cast<int>(chapters.size())) {
+            const auto &ch = chapters[chapterIdx];
+            std::cerr << "[DEBUG] drawLevelSelection chapterIdx=" << chapterIdx << " name=\"" << ch.name << "\" levels=" << ch.levels.size() << " levelsFile=\"" << ch.levelsFile << "\"" << std::endl;
+            for (size_t i = 0; i < ch.levels.size(); ++i) {
+                const auto &L = ch.levels[i];
+                std::cerr << "[DEBUG]   level " << i << " id=\"" << L.id << "\" name=\"" << L.name << "\" neededScore=" << L.neededScore << " picture=\"" << L.picture << "\"" << std::endl;
+            }
+        } else {
+            std::cerr << "[DEBUG] drawLevelSelection invalid chapterIdx=" << chapterIdx << " chapters.size=" << chapters.size() << std::endl;
+        }
 
         // Dessiner l'arrière-plan s'il est chargé
         if (bgLoaded)
@@ -155,165 +167,11 @@ namespace Vue
         const float levelsTopY = static_cast<float>(win.y) * 0.12f;
         const float chapterBottomMargin = 60.f;
 
-        // --- Dessiner la rangée de niveaux en carrousel horizontal (zone supérieure gauche) ---
-        const auto& levels = chapters[chapterIdx].second;
+        // Récupérer niveaux depuis JSON (vide si non chargé)
+        const auto& levels = chapters[chapterIdx].levels;
         const int n = static_cast<int>(levels.size());
 
-        // Tailles de base
-        float baseW = std::min(300.f, static_cast<float>(win.x) * 0.18f);
-        float baseH = std::min(140.f, static_cast<float>(win.y) * 0.12f);
-        float selectedScale = 1.35f;
-        float normalScale = 1.0f;
-        float gap = std::max(15.f, baseW * 0.12f);
-
-        // Calculer largeurs/hauteurs redimensionnées
-        std::vector<float> widths(n), heights(n);
-        for (int i = 0; i < n; ++i)
-        {
-            float scale = (i == levelIdx) ? selectedScale : normalScale;
-            widths[i] = baseW * scale;
-            heights[i] = baseH * scale;
-        }
-
-        // Calculer les centres
-        std::vector<float> centers(n, 0.f);
-        centers[levelIdx] = centerX;
-
-        // à gauche
-        for (int i = levelIdx - 1; i >= 0; --i)
-        {
-            float rightCenter = centers[i + 1];
-            float wLeft = widths[i];
-            float wRight = widths[i + 1];
-            centers[i] = rightCenter - (wLeft + wRight) / 2.f - gap;
-        }
-        // à droite
-        for (int i = levelIdx + 1; i < n; ++i)
-        {
-            float leftCenter = centers[i - 1];
-            float wLeft = widths[i - 1];
-            float wRight = widths[i];
-            centers[i] = leftCenter + (wLeft + wRight) / 2.f + gap;
-        }
-
-        // Dessiner les niveaux
-        for (int i = 0; i < n; ++i)
-        {
-            float w = widths[i];
-            float h = heights[i];
-            sf::RectangleShape rect({w, h});
-            rect.setOrigin(w/2.f, h/2.f);
-            rect.setPosition(centers[i], levelsTopY + h * 0.5f);
-
-            if (i == levelIdx)
-            {
-                rect.setFillColor(sf::Color(230, 60, 60));
-                rect.setOutlineThickness(4.f);
-                rect.setOutlineColor(sf::Color(255, 120, 80));
-
-                sf::RectangleShape shine({w * 0.9f, h * 0.28f});
-                shine.setOrigin(shine.getSize().x / 2.f, 0.f);
-                shine.setPosition(rect.getPosition().x, rect.getPosition().y - h * 0.25f);
-                shine.setFillColor(sf::Color(255, 180, 140, 110));
-                window.draw(shine);
-            }
-            else
-            {
-                rect.setFillColor(sf::Color(170, 30, 30));
-                rect.setOutlineThickness(2.f);
-                rect.setOutlineColor(sf::Color(130, 50, 50));
-
-                sf::RectangleShape shine({w * 0.85f, h * 0.22f});
-                shine.setOrigin(shine.getSize().x / 2.f, 0.f);
-                shine.setPosition(rect.getPosition().x, rect.getPosition().y - h * 0.3f);
-                shine.setFillColor(sf::Color(255, 150, 120, 60));
-                window.draw(shine);
-            }
-            window.draw(rect);
-
-            // Étiquette du niveau
-            sf::Text txt;
-            txt.setFont(font);
-            txt.setString(levels[i]);
-            txt.setCharacterSize(static_cast<unsigned int>((i == levelIdx) ? std::max(18.f, h*0.16f) : std::max(14.f, h*0.13f)));
-            txt.setFillColor(i == levelIdx ? sf::Color(100, 50, 20) : sf::Color(80, 40, 20));
-            sf::FloatRect lb = txt.getLocalBounds();
-            txt.setPosition(rect.getPosition().x - lb.width / 2.f - lb.left,
-                            rect.getPosition().y - lb.height / 2.f - lb.top);
-            window.draw(txt);
-
-            // dessiner un petit cadenas si ce n'est pas le premier niveau
-            if (i != 0)
-            {
-                sf::CircleShape lockDot(std::max(5.f, std::min(10.f, w * 0.03f)));
-                lockDot.setFillColor(sf::Color(160, 40, 40));
-                lockDot.setPosition(rect.getPosition().x + w * 0.5f - lockDot.getRadius() * 2.f,
-                                    rect.getPosition().y - h * 0.5f + 4.f);
-                window.draw(lockDot);
-            }
-        }
-
-        // --- Dessiner le bloc du chapitre en bas-gauche ---
-        float chapW = std::min(static_cast<float>(win.x) * 0.55f, static_cast<float>(win.x) - 160.f);
-        float chapH = std::min(static_cast<float>(win.y) * 0.18f, 260.f);
-        sf::RectangleShape chapRect({chapW, chapH});
-        float chapX = centerX - chapW / 2.f;
-        float chapY = static_cast<float>(win.y) - chapH - chapterBottomMargin;
-        chapRect.setPosition(chapX, chapY);
-        chapRect.setFillColor(sf::Color(160, 30, 30));
-        window.draw(chapRect);
-
-        sf::Text chapText;
-        chapText.setFont(font);
-        chapText.setString(chapters[chapterIdx].first);
-        chapText.setCharacterSize(static_cast<unsigned int>(std::max(18.f, chapH * 0.14f)));
-        chapText.setFillColor(sf::Color(255, 180, 180));
-        sf::FloatRect cb = chapText.getLocalBounds();
-        chapText.setPosition(chapRect.getPosition().x + (chapW - cb.width) / 2.f - cb.left,
-                             chapRect.getPosition().y + (chapH - cb.height) / 2.f - cb.top);
-        window.draw(chapText);
-
-        // --- Panneau de prévisualisation à droite (titre, highscore, description, image) ---
-        float rightW = std::min(static_cast<float>(win.x) * 0.28f, 420.f);
-        float rightX = static_cast<float>(win.x) - rightW;
-        sf::RectangleShape rightRect({rightW, static_cast<float>(win.y)});
-        rightRect.setPosition(rightX, 0.f);
-        rightRect.setFillColor(sf::Color(18, 18, 18));
-        window.draw(rightRect);
-
-        // Données du niveau courant
-        std::string levelName = levels[levelIdx];
-
-        // Titre (accent rouge)
-        sf::Text lvlTitle;
-        lvlTitle.setFont(font);
-        lvlTitle.setString(levelName + " - OH");
-        lvlTitle.setCharacterSize(20);
-        lvlTitle.setFillColor(sf::Color(220, 30, 30));
-        lvlTitle.setStyle(sf::Text::Bold);
-        lvlTitle.setPosition(rightX + 20.f, 24.f);
-        window.draw(lvlTitle);
-
-        // Espace réservé HighScore (rouge clair)
-        sf::Text hs;
-        hs.setFont(font);
-        hs.setString("HighScore : Score");
-        hs.setCharacterSize(16);
-        hs.setFillColor(sf::Color(200, 90, 90));
-        hs.setPosition(rightX + 20.f, 60.f);
-        window.draw(hs);
-
-        // Map des descriptions
-        static std::unordered_map<std::string, std::string> descriptions = {
-            {"Tutoriel", "Un tutoriel pour l'Operation Hades."},
-            {"Lvl 1", "Premier niveau : BastiLove cherche Bertri."},
-            {"Lvl 2", "Deuxieme niveau : BastiLove trouve Bertri."},
-            {"Lvl 3", "Troisieme niveau : BastiLove et BertriLove."}
-        };
-
-        std::string desc = descriptions.count(levelName) ? descriptions[levelName] : "Description indisponible.";
-
-        // Wrap simple des lignes pour la description
+        // Si pas de niveaux : afficher message & panneau droit avec description du chapitre
         auto wrapToLines = [&](const std::string& text, float maxWidth, unsigned int charSize) {
             std::vector<std::string> lines;
             std::istringstream iss(text);
@@ -340,8 +198,180 @@ namespace Vue
             return lines;
         };
 
+        // --- Dessiner la rangée de niveaux en carrousel horizontal (si >=1) ---
+        if (n > 0)
+        {
+            // Tailles de base
+            float baseW = std::min(300.f, static_cast<float>(win.x) * 0.18f);
+            float baseH = std::min(140.f, static_cast<float>(win.y) * 0.12f);
+            float selectedScale = 1.35f;
+            float normalScale = 1.0f;
+            float gap = std::max(15.f, baseW * 0.12f);
+
+            // Calculer largeurs/hauteurs redimensionnées
+            std::vector<float> widths(n), heights(n);
+            for (int i = 0; i < n; ++i)
+            {
+                float scale = (i == levelIdx) ? selectedScale : normalScale;
+                widths[i] = baseW * scale;
+                heights[i] = baseH * scale;
+            }
+
+            // Calculer les centres
+            std::vector<float> centers(n, 0.f);
+            centers[levelIdx] = centerX;
+
+            // à gauche
+            for (int i = levelIdx - 1; i >= 0; --i)
+            {
+                float rightCenter = centers[i + 1];
+                float wLeft = widths[i];
+                float wRight = widths[i + 1];
+                centers[i] = rightCenter - (wLeft + wRight) / 2.f - gap;
+            }
+            // à droite
+            for (int i = levelIdx + 1; i < n; ++i)
+            {
+                float leftCenter = centers[i - 1];
+                float wLeft = widths[i - 1];
+                float wRight = widths[i];
+                centers[i] = leftCenter + (wLeft + wRight) / 2.f + gap;
+            }
+
+            // Dessiner les niveaux
+            for (int i = 0; i < n; ++i)
+            {
+                float w = widths[i];
+                float h = heights[i];
+                sf::RectangleShape rect({w, h});
+                rect.setOrigin(w/2.f, h/2.f);
+                rect.setPosition(centers[i], levelsTopY + h * 0.5f);
+
+                if (i == levelIdx)
+                {
+                    rect.setFillColor(sf::Color(230, 60, 60));
+                    rect.setOutlineThickness(4.f);
+                    rect.setOutlineColor(sf::Color(255, 120, 80));
+
+                    sf::RectangleShape shine({w * 0.9f, h * 0.28f});
+                    shine.setOrigin(shine.getSize().x / 2.f, 0.f);
+                    shine.setPosition(rect.getPosition().x, rect.getPosition().y - h * 0.25f);
+                    shine.setFillColor(sf::Color(255, 180, 140, 110));
+                    window.draw(shine);
+                }
+                else
+                {
+                    rect.setFillColor(sf::Color(170, 30, 30));
+                    rect.setOutlineThickness(2.f);
+                    rect.setOutlineColor(sf::Color(130, 50, 50));
+
+                    sf::RectangleShape shine({w * 0.85f, h * 0.22f});
+                    shine.setOrigin(shine.getSize().x / 2.f, 0.f);
+                    shine.setPosition(rect.getPosition().x, rect.getPosition().y - h * 0.3f);
+                    shine.setFillColor(sf::Color(255, 150, 120, 60));
+                    window.draw(shine);
+                }
+                window.draw(rect);
+
+                // Étiquette du niveau (provenant du JSON)
+                sf::Text txt;
+                txt.setFont(font);
+                txt.setString(levels[i].name);
+                txt.setCharacterSize(static_cast<unsigned int>((i == levelIdx) ? std::max(18.f, h*0.16f) : std::max(14.f, h*0.13f)));
+                txt.setFillColor(i == levelIdx ? sf::Color(100, 50, 20) : sf::Color(80, 40, 20));
+                sf::FloatRect lb = txt.getLocalBounds();
+                txt.setPosition(rect.getPosition().x - lb.width / 2.f - lb.left,
+                                rect.getPosition().y - lb.height / 2.f - lb.top);
+                window.draw(txt);
+
+                // dessiner un petit cadenas si ce n'est pas le premier niveau (comportement inchangé)
+                // dessiner un petit cadenas si le niveau nécessite un score (verrouillé)
+                if (levels[i].neededScore > 0)
+                {
+                    sf::CircleShape lockDot(std::max(5.f, std::min(10.f, w * 0.03f)));
+                    lockDot.setFillColor(sf::Color(160, 40, 40));
+                    lockDot.setPosition(rect.getPosition().x + w * 0.5f - lockDot.getRadius() * 2.f,
+                                        rect.getPosition().y - h * 0.5f + 4.f);
+                    window.draw(lockDot);
+                }
+            }
+        }
+        else
+        {
+            // Aucun niveau : message informatif
+            sf::Text noLevels;
+            noLevels.setFont(font);
+            noLevels.setString("No levels available");
+            noLevels.setCharacterSize(20);
+            noLevels.setFillColor(sf::Color(220,220,220));
+            noLevels.setPosition(centerX - 80.f, levelsTopY + 30.f);
+            window.draw(noLevels);
+        }
+
+        // --- Dessiner le bloc du chapitre en bas-gauche ---
+        float chapW = std::min(static_cast<float>(win.x) * 0.55f, static_cast<float>(win.x) - 160.f);
+        float chapH = std::min(static_cast<float>(win.y) * 0.18f, 260.f);
+        sf::RectangleShape chapRect({chapW, chapH});
+        float chapX = centerX - chapW / 2.f;
+        float chapY = static_cast<float>(win.y) - chapH - chapterBottomMargin;
+        chapRect.setPosition(chapX, chapY);
+        chapRect.setFillColor(sf::Color(160, 30, 30));
+        window.draw(chapRect);
+
+        sf::Text chapText;
+        chapText.setFont(font);
+        chapText.setString(chapters[chapterIdx].name);
+        chapText.setCharacterSize(static_cast<unsigned int>(std::max(18.f, chapH * 0.14f)));
+        chapText.setFillColor(sf::Color(255, 180, 180));
+        sf::FloatRect cb = chapText.getLocalBounds();
+        chapText.setPosition(chapRect.getPosition().x + (chapW - cb.width) / 2.f - cb.left,
+                             chapRect.getPosition().y + (chapH - cb.height) / 2.f - cb.top);
+        window.draw(chapText);
+
+        // --- Panneau de prévisualisation à droite (titre, neededScore, description, image) ---
+        float rightW = std::min(static_cast<float>(win.x) * 0.28f, 420.f);
+        float rightX = static_cast<float>(win.x) - rightW;
+        sf::RectangleShape rightRect({rightW, static_cast<float>(win.y)});
+        rightRect.setPosition(rightX, 0.f);
+        rightRect.setFillColor(sf::Color(18, 18, 18));
+        window.draw(rightRect);
+
+        // Titre & neededScore & description
+        sf::Text lvlTitle;
+        lvlTitle.setFont(font);
+        lvlTitle.setCharacterSize(20);
+        lvlTitle.setFillColor(sf::Color(220, 30, 30));
+        lvlTitle.setStyle(sf::Text::Bold);
+        lvlTitle.setPosition(rightX + 20.f, 24.f);
+
+        sf::Text hs;
+        hs.setFont(font);
+        hs.setCharacterSize(16);
+        hs.setFillColor(sf::Color(200, 90, 90));
+        hs.setPosition(rightX + 20.f, 60.f);
+
         float textMaxW = rightW - 40.f;
         unsigned int descCharSize = 14;
+
+        // Si pas de niveaux, afficher infos du chapitre ; sinon infos du niveau sélectionné
+        std::string desc;
+        if (n == 0)
+        {
+            const auto& ch = chapters[chapterIdx];
+            lvlTitle.setString(ch.name);
+            hs.setString("");
+            desc = ch.description.empty() ? "Description indisponible." : ch.description;
+        }
+        else
+        {
+            const auto& lvl = levels[levelIdx];
+            lvlTitle.setString(lvl.name + " - " + chapters[chapterIdx].name);
+            hs.setString("Needed score : " + std::to_string(lvl.neededScore));
+            desc = lvl.description.empty() ? "Description indisponible." : lvl.description;
+        }
+        window.draw(lvlTitle);
+        window.draw(hs);
+
         auto lines = wrapToLines(desc, textMaxW, descCharSize);
         float startY = 105.f;
         for (size_t i = 0; i < lines.size(); ++i)
@@ -355,79 +385,119 @@ namespace Vue
             window.draw(dt);
         }
 
-        // Zone du cadre de l'image
-        float imgW = std::min(rightW * 0.6f, 280.f);
-        float imgH = std::min(static_cast<float>(win.y) * 0.18f, 180.f);
-        float imgX = rightX + (rightW - imgW) / 2.f;
-        float imgY = static_cast<float>(win.y) * 0.60f;
-
-        // Cache de textures
+        // Image (si niveau présent) : utiliser lvl.picture si disponible, sinon essayer quelques chemins fallback
         static std::unordered_map<std::string, sf::Texture> texCache;
-        auto it = texCache.find(levelName);
         bool haveTexture = false;
-        if (it == texCache.end())
+        std::string texKey;
+        const Modele::LevelInfo* showLvl = (n > 0) ? &levels[levelIdx] : nullptr;
+        if (showLvl)
         {
-            std::vector<std::string> tryPaths = {
-                std::string("Asset/Menu/")+levelName+".png",
-                std::string("Asset/Menu/")+levelName+"Small.png",
-                std::string("cmake-build-debug/Asset/Menu/")+levelName+".png",
-                std::string("cmake-build-debug/Asset/Menu/")+levelName+"Small.png"
-            };
-            for (const auto& p : tryPaths)
+            texKey = !showLvl->picture.empty() ? showLvl->picture : ( !showLvl->id.empty() ? showLvl->id : showLvl->name );
+            auto it = texCache.find(texKey);
+            if (it == texCache.end())
             {
-                sf::Texture tex;
-                if (tex.loadFromFile(p))
+                std::vector<std::string> tryPaths;
+                if (!showLvl->picture.empty()) tryPaths.push_back(showLvl->picture);
+                if (!showLvl->id.empty()) tryPaths.push_back(std::string("Asset/levels/") + showLvl->id + ".png");
+                tryPaths.push_back(std::string("Asset/Menu/") + showLvl->name + ".png");
+                tryPaths.push_back(std::string("cmake-build-debug/Asset/Menu/") + showLvl->name + ".png");
+                for (const auto& p : tryPaths)
                 {
-                    texCache[levelName] = std::move(tex);
-                    it = texCache.find(levelName);
-                    haveTexture = true;
-                    break;
+                    sf::Texture tex;
+                    if (tex.loadFromFile(p))
+                    {
+                        texCache[texKey] = std::move(tex);
+                        it = texCache.find(texKey);
+                        haveTexture = true;
+                        break;
+                    }
                 }
             }
+            else
+            {
+                haveTexture = true;
+            }
+
+            float imgW = std::min(rightW * 0.6f, 280.f);
+            float imgH = std::min(static_cast<float>(win.y) * 0.18f, 180.f);
+            float imgX = rightX + (rightW - imgW) / 2.f;
+            float imgY = static_cast<float>(win.y) * 0.60f;
+
+            if (haveTexture && texCache.find(texKey) != texCache.end())
+            {
+                const sf::Texture& t = texCache[texKey];
+                sf::Sprite spr(t);
+                float tw = static_cast<float>(t.getSize().x);
+                float th = static_cast<float>(t.getSize().y);
+                float scale = std::min(imgW / tw, imgH / th);
+                spr.setScale(scale, scale);
+                float sw = tw * scale;
+                float sh = th * scale;
+                spr.setPosition(imgX + (imgW - sw) / 2.f, imgY + (imgH - sh) / 2.f);
+
+                sf::RectangleShape frame({imgW, imgH});
+                frame.setPosition(imgX, imgY);
+                frame.setFillColor(sf::Color::Transparent);
+                frame.setOutlineColor(sf::Color(200, 30, 30));
+                frame.setOutlineThickness(4.f);
+                window.draw(frame);
+                window.draw(spr);
+            }
+            else
+            {
+                sf::RectangleShape imgBox({imgW, imgH});
+                imgBox.setPosition(imgX, imgY);
+                imgBox.setFillColor(sf::Color(30, 30, 30));
+                imgBox.setOutlineColor(sf::Color(200, 30, 30));
+                imgBox.setOutlineThickness(4.f);
+                window.draw(imgBox);
+
+                sf::Text placeholder;
+                placeholder.setFont(font);
+                placeholder.setString("Image Lvl");
+                placeholder.setCharacterSize(18);
+                placeholder.setFillColor(sf::Color(200, 200, 200));
+                sf::FloatRect pb = placeholder.getLocalBounds();
+                placeholder.setPosition(imgBox.getPosition().x + (imgW - pb.width) / 2.f - pb.left,
+                                        imgBox.getPosition().y + (imgH - pb.height) / 2.f - pb.top);
+                window.draw(placeholder);
+            }
+        }
+
+        // --- Bouton START dans le panneau droit ---
+        float buttonW = rightW - 40.f;
+        float buttonH = 54.f;
+        float buttonX = rightX + 20.f;
+        float buttonY = static_cast<float>(win.y) - buttonH - 40.f;
+
+        sf::RectangleShape startButton({buttonW, buttonH});
+        startButton.setPosition(buttonX, buttonY);
+        // Niveau déverrouillé si neededScore <= 0
+        bool startEnabled = (n > 0 && levels[levelIdx].neededScore <= 0);
+        if (startEnabled)
+        {
+            startButton.setFillColor(sf::Color(230, 60, 60));
+            startButton.setOutlineColor(sf::Color(255, 120, 80));
+            startButton.setOutlineThickness(3.f);
         }
         else
         {
-            haveTexture = true;
+            startButton.setFillColor(sf::Color(60, 60, 60));
+            startButton.setOutlineColor(sf::Color(90, 90, 90));
+            startButton.setOutlineThickness(2.f);
         }
+        window.draw(startButton);
 
-        if (haveTexture && it != texCache.end())
-        {
-            sf::Sprite spr(it->second);
-            float tw = static_cast<float>(it->second.getSize().x);
-            float th = static_cast<float>(it->second.getSize().y);
-            float scale = std::min(imgW / tw, imgH / th);
-            spr.setScale(scale, scale);
-            float sw = tw * scale;
-            float sh = th * scale;
-            spr.setPosition(imgX + (imgW - sw) / 2.f, imgY + (imgH - sh) / 2.f);
-
-            sf::RectangleShape frame({imgW, imgH});
-            frame.setPosition(imgX, imgY);
-            frame.setFillColor(sf::Color::Transparent);
-            frame.setOutlineColor(sf::Color(200, 30, 30));
-            frame.setOutlineThickness(4.f);
-            window.draw(frame);
-            window.draw(spr);
-        }
-        else
-        {
-            sf::RectangleShape imgBox({imgW, imgH});
-            imgBox.setPosition(imgX, imgY);
-            imgBox.setFillColor(sf::Color(30, 30, 30));
-            imgBox.setOutlineColor(sf::Color(200, 30, 30));
-            imgBox.setOutlineThickness(4.f);
-            window.draw(imgBox);
-
-            sf::Text placeholder;
-            placeholder.setFont(font);
-            placeholder.setString("Image Lvl");
-            placeholder.setCharacterSize(18);
-            placeholder.setFillColor(sf::Color(200, 200, 200));
-            sf::FloatRect pb = placeholder.getLocalBounds();
-            placeholder.setPosition(imgBox.getPosition().x + (imgW - pb.width) / 2.f - pb.left,
-                                    imgBox.getPosition().y + (imgH - pb.height) / 2.f - pb.top);
-            window.draw(placeholder);
-        }
+        sf::Text startLabel;
+        startLabel.setFont(font);
+        startLabel.setCharacterSize(22);
+        startLabel.setStyle(sf::Text::Bold);
+        startLabel.setFillColor(startEnabled ? sf::Color(255, 240, 220) : sf::Color(180,180,180));
+        startLabel.setString(startEnabled ? "START" : "LOCKED");
+        sf::FloatRect slb = startLabel.getLocalBounds();
+        startLabel.setPosition(startButton.getPosition().x + (buttonW - slb.width) / 2.f - slb.left,
+                               startButton.getPosition().y + (buttonH - slb.height) / 2.f - slb.top);
+        window.draw(startLabel);
 
         window.display();
     }
@@ -477,9 +547,49 @@ namespace Vue
 
     LevelPage::Selection LevelPage::run()
     {
-        // Chapitres & niveaux
-        std::vector<std::pair<std::string, std::vector<std::string>>> chapters;
-        chapters.push_back({"Operation Hades", {"Tutoriel", "Lvl 1", "Lvl 2", "Lvl 3"}});
+        // Charger les chapitres depuis JSON (plusieurs chemins d'essai)
+        std::vector<Modele::ChapterInfo> chapters;
+        std::vector<std::string> tryPaths = {
+            "Asset/chapters/chapters.json",
+            "Asset/chapters.json",
+            "cmake-build-debug/Asset/chapters/chapters.json",
+            "cmake-build-debug/Asset/chapters.json"
+        };
+        bool loaded = false;
+        for (const auto& p : tryPaths)
+        {
+            std::cerr << "[DEBUG] try load chapters with: " << p << std::endl;
+            auto loadedChapters = Modele::ChapterLoader::loadChapters(p);
+            std::cerr << "[DEBUG] -> loadedChapters.size() = " << loadedChapters.size() << std::endl;
+            if (!loadedChapters.empty())
+            {
+                chapters = std::move(loadedChapters);
+                loaded = true;
+                break;
+            }
+        }
+        if (!loaded)
+        {
+            // Fallback: create Tutorial chapter using tutorial.json if possible
+            Modele::ChapterInfo ch;
+            ch.name = "Tutorial";
+            ch.description = "Fallback tutorial chapter.";
+            ch.levelsFile = "Asset/chapters/tutorial.json";
+            std::cerr << "[DEBUG] fallback: attempt to load levels from " << ch.levelsFile << std::endl;
+            ch.levels = Modele::ChapterLoader::loadLevels(ch.levelsFile);
+            std::cerr << "[DEBUG] fallback loaded levels = " << ch.levels.size() << std::endl;
+            chapters.push_back(std::move(ch));
+        }
+
+        // DEBUG: afficher ce qui a été chargé
+        std::cerr << "[DEBUG] chapters loaded: " << chapters.size() << std::endl;
+        for (size_t i = 0; i < chapters.size(); ++i) {
+            std::cerr << "[DEBUG] chapter " << i
+                      << " id=" << chapters[i].id
+                      << " name=\"" << chapters[i].name << "\""
+                      << " desc=\"" << chapters[i].description << "\""
+                      << " levelsFile=\"" << chapters[i].levelsFile << "\"" << std::endl;
+        }
 
         int chapterIdx = 0;
         int levelIdx = 0;
@@ -492,7 +602,7 @@ namespace Vue
         sf::Texture bgTexture;
         sf::Sprite bgSprite;
         bool bgLoaded = false;
-        
+
         std::vector<std::string> tryBgPaths = {
             "Asset/Menu/CherubMenuJeu.png",
             "Asset/Menu/CherubMenu.png",
@@ -501,7 +611,7 @@ namespace Vue
             "cmake-build-debug/Asset/Menu/CherubMenuJeu.png",
             "cmake-build-debug/Asset/Menu/CherubMenu.png"
         };
-        
+
         for (const auto& p : tryBgPaths)
         {
             if (bgTexture.loadFromFile(p))
@@ -545,6 +655,52 @@ namespace Vue
                         {
                             selectingChapter = false; // Passer à la sélection de niveau
                             levelIdx = 0;
+                            // lazy-load des niveaux si besoin
+                            if (chapters[chapterIdx].levels.empty() && !chapters[chapterIdx].levelsFile.empty())
+                            {
+                                // Try loading levels with several fallback paths
+                                std::vector<std::string> tryLvPaths;
+                                tryLvPaths.push_back(chapters[chapterIdx].levelsFile);
+                                tryLvPaths.push_back(std::string("cmake-build-debug/") + chapters[chapterIdx].levelsFile);
+                                // If path is just a filename, try in Asset/chapters/
+                                size_t lastSlash = chapters[chapterIdx].levelsFile.find_last_of("/\\");
+                                std::string base = (lastSlash == std::string::npos) ? chapters[chapterIdx].levelsFile : chapters[chapterIdx].levelsFile.substr(lastSlash+1);
+                                tryLvPaths.push_back(std::string("Asset/chapters/") + base);
+                                tryLvPaths.push_back(std::string("cmake-build-debug/Asset/chapters/") + base);
+
+                                for (const auto &p2 : tryLvPaths)
+                                {
+                                    std::cerr << "[DEBUG] try load levels with: " << p2 << std::endl;
+                                    auto loaded = Modele::ChapterLoader::loadLevels(p2);
+                                    if (!loaded.empty())
+                                    {
+                                        chapters[chapterIdx].levels = std::move(loaded);
+                                        std::cerr << "[DEBUG] loaded " << chapters[chapterIdx].levels.size() << " levels from: " << p2 << std::endl;
+                                        break;
+                                    }
+                                }
+
+                                // Fallback heuristic: try known chapter-specific filenames (Tutorial, OH)
+                                if (chapters[chapterIdx].levels.empty())
+                                {
+                                    std::string lname = chapters[chapterIdx].name;
+                                    std::transform(lname.begin(), lname.end(), lname.begin(), [](unsigned char c){ return std::tolower(c); });
+                                    if (lname.find("tutorial") != std::string::npos)
+                                    {
+                                        std::string p3 = std::string("Asset/chapters/tutorial.json");
+                                        std::cerr << "[DEBUG] fallback try: " << p3 << std::endl;
+                                        auto loaded = Modele::ChapterLoader::loadLevels(p3);
+                                        if (!loaded.empty()) { chapters[chapterIdx].levels = std::move(loaded); std::cerr << "[DEBUG] loaded " << chapters[chapterIdx].levels.size() << " levels from fallback: " << p3 << std::endl; }
+                                    }
+                                    else if (lname.find("hades") != std::string::npos || lname.find("operation hades") != std::string::npos || lname.find("oh") != std::string::npos)
+                                    {
+                                        std::string p3 = std::string("Asset/chapters/OH.json");
+                                        std::cerr << "[DEBUG] fallback try: " << p3 << std::endl;
+                                        auto loaded = Modele::ChapterLoader::loadLevels(p3);
+                                        if (!loaded.empty()) { chapters[chapterIdx].levels = std::move(loaded); std::cerr << "[DEBUG] loaded " << chapters[chapterIdx].levels.size() << " levels from fallback: " << p3 << std::endl; }
+                                    }
+                                }
+                            }
                         }
                     }
                     else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
@@ -569,6 +725,28 @@ namespace Vue
                                 chapterIdx = static_cast<int>(i);
                                 selectingChapter = false;
                                 levelIdx = 0;
+                                if (chapters[chapterIdx].levels.empty() && !chapters[chapterIdx].levelsFile.empty())
+                                {
+                                    std::vector<std::string> tryLvPaths;
+                                    tryLvPaths.push_back(chapters[chapterIdx].levelsFile);
+                                    tryLvPaths.push_back(std::string("cmake-build-debug/") + chapters[chapterIdx].levelsFile);
+                                    size_t lastSlash = chapters[chapterIdx].levelsFile.find_last_of("/\\");
+                                    std::string base = (lastSlash == std::string::npos) ? chapters[chapterIdx].levelsFile : chapters[chapterIdx].levelsFile.substr(lastSlash+1);
+                                    tryLvPaths.push_back(std::string("Asset/chapters/") + base);
+                                    tryLvPaths.push_back(std::string("cmake-build-debug/Asset/chapters/") + base);
+
+                                    for (const auto &p2 : tryLvPaths)
+                                    {
+                                        std::cerr << "[DEBUG] try load levels with: " << p2 << std::endl;
+                                        auto loaded = Modele::ChapterLoader::loadLevels(p2);
+                                        if (!loaded.empty())
+                                        {
+                                            chapters[chapterIdx].levels = std::move(loaded);
+                                            std::cerr << "[DEBUG] loaded " << chapters[chapterIdx].levels.size() << " levels from: " << p2 << std::endl;
+                                            break;
+                                        }
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -577,6 +755,8 @@ namespace Vue
                 else
                 {
                     // Gestion des entrées pour la sélection de niveau
+                    const auto& levelsVec = chapters[chapterIdx].levels;
+                    int nlevels = static_cast<int>(levelsVec.size());
                     if (event.type == sf::Event::KeyPressed)
                     {
                         if (event.key.code == sf::Keyboard::Escape)
@@ -585,15 +765,16 @@ namespace Vue
                         }
                         else if (event.key.code == sf::Keyboard::Right)
                         {
-                            levelIdx = std::min((int)chapters[chapterIdx].second.size() - 1, levelIdx + 1);
+                            if (nlevels > 0) levelIdx = std::min(nlevels - 1, levelIdx + 1);
                         }
                         else if (event.key.code == sf::Keyboard::Left)
                         {
-                            levelIdx = std::max(0, levelIdx - 1);
+                            if (nlevels > 0) levelIdx = std::max(0, levelIdx - 1);
                         }
                         else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
                         {
-                            if (levelIdx == 0)
+                            // Autoriser l'Enter si le niveau sélectionné est déverrouillé (neededScore <= 0)
+                            if (nlevels > 0 && levelsVec[levelIdx].neededScore <= 0)
                             {
                                 Selection sel;
                                 sel.chapterIndex = chapterIdx;
@@ -604,7 +785,7 @@ namespace Vue
                             }
                             else
                             {
-                                showUnavailableOverlay(window, "Niveau indisponible");
+                                showUnavailableOverlay(window, nlevels == 0 ? "No levels available" : "Niveau indisponible");
                             }
                         }
                     }
@@ -617,66 +798,86 @@ namespace Vue
                         const float centerX = static_cast<float>(winSz.x) * 0.35f;
                         const float levelsTopY = static_cast<float>(winSz.y) * 0.12f;
 
-                        float baseW = std::min(300.f, static_cast<float>(winSz.x) * 0.18f);
-                        float baseH = std::min(140.f, static_cast<float>(winSz.y) * 0.12f);
-                        float selectedScale = 1.35f;
-                        float normalScale = 1.0f;
-                        float gap = std::max(15.f, baseW * 0.12f);
-
-                        const auto& levelsVec = chapters[chapterIdx].second;
-                        int n = static_cast<int>(levelsVec.size());
-                        std::vector<float> widths(n), heights(n), centers(n);
-                        for (int i = 0; i < n; ++i)
+                        // Vérifier si l'utilisateur a cliqué sur le bouton START du panneau droit
+                        float rightW = std::min(static_cast<float>(winSz.x) * 0.28f, 420.f);
+                        float rightX = static_cast<float>(winSz.x) - rightW;
+                        float buttonW = rightW - 40.f;
+                        float buttonH = 54.f;
+                        float buttonX = rightX + 20.f;
+                        float buttonY = static_cast<float>(winSz.y) - buttonH - 40.f;
+                        sf::FloatRect startRect(buttonX, buttonY, buttonW, buttonH);
+                            bool startEnabled = (nlevels > 0 && levelsVec[levelIdx].neededScore <= 0);
+                        if (startEnabled && startRect.contains(mpos))
                         {
-                            float scale = (i == levelIdx) ? selectedScale : normalScale;
-                            widths[i] = baseW * scale;
-                            heights[i] = baseH * scale;
-                        }
-                        centers[levelIdx] = centerX;
-                        for (int i = levelIdx - 1; i >= 0; --i)
-                        {
-                            float rightCenter = centers[i + 1];
-                            centers[i] = rightCenter - (widths[i] + widths[i + 1]) / 2.f - gap;
-                        }
-                        for (int i = levelIdx + 1; i < n; ++i)
-                        {
-                            float leftCenter = centers[i - 1];
-                            centers[i] = leftCenter + (widths[i - 1] + widths[i]) / 2.f + gap;
+                            Selection sel;
+                            sel.chapterIndex = chapterIdx;
+                            sel.levelIndex = levelIdx;
+                            sel.valid = true;
+                            window.close();
+                            return sel;
                         }
 
-                        bool handled = false;
-                        for (int i = 0; i < n; ++i)
+                        if (nlevels > 0)
                         {
-                            float w = widths[i];
-                            float h = heights[i];
-                            sf::FloatRect r(centers[i] - w/2.f, levelsTopY, w, h);
-                            if (r.contains(mpos))
+                            float baseW = std::min(300.f, static_cast<float>(winSz.x) * 0.18f);
+                            float baseH = std::min(140.f, static_cast<float>(winSz.y) * 0.12f);
+                            float selectedScale = 1.35f;
+                            float normalScale = 1.0f;
+                            float gap = std::max(15.f, baseW * 0.12f);
+
+                            std::vector<float> widths(nlevels), heights(nlevels), centers(nlevels);
+                            for (int i = 0; i < nlevels; ++i)
                             {
-                                if (i != levelIdx)
+                                float scale = (i == levelIdx) ? selectedScale : normalScale;
+                                widths[i] = baseW * scale;
+                                heights[i] = baseH * scale;
+                            }
+                            centers[levelIdx] = centerX;
+                            for (int i = levelIdx - 1; i >= 0; --i)
+                            {
+                                float rightCenter = centers[i + 1];
+                                centers[i] = rightCenter - (widths[i] + widths[i + 1]) / 2.f - gap;
+                            }
+                            for (int i = levelIdx + 1; i < nlevels; ++i)
+                            {
+                                float leftCenter = centers[i - 1];
+                                centers[i] = leftCenter + (widths[i - 1] + widths[i]) / 2.f + gap;
+                            }
+
+                            bool handled = false;
+                            for (int i = 0; i < nlevels; ++i)
+                            {
+                                float w = widths[i];
+                                float h = heights[i];
+                                sf::FloatRect r(centers[i] - w/2.f, levelsTopY, w, h);
+                                if (r.contains(mpos))
                                 {
-                                    levelIdx = i;
-                                }
-                                else
-                                {
-                                    if (i == 0)
+                                    if (i != levelIdx)
                                     {
-                                        Selection sel;
-                                        sel.chapterIndex = chapterIdx;
-                                        sel.levelIndex = levelIdx;
-                                        sel.valid = true;
-                                        window.close();
-                                        return sel;
+                                        levelIdx = i;
                                     }
                                     else
                                     {
-                                        showUnavailableOverlay(window, "Niveau indisponible");
+                                        if (i == 0)
+                                        {
+                                            Selection sel;
+                                            sel.chapterIndex = chapterIdx;
+                                            sel.levelIndex = levelIdx;
+                                            sel.valid = true;
+                                            window.close();
+                                            return sel;
+                                        }
+                                        else
+                                        {
+                                            showUnavailableOverlay(window, "Niveau indisponible");
+                                        }
                                     }
+                                    handled = true;
+                                    break;
                                 }
-                                handled = true;
-                                break;
                             }
+                            (void)handled;
                         }
-                        (void)handled;
                     }
                 }
             }

@@ -64,8 +64,6 @@ namespace Modele
 
         // --- Membres de la carte/pièce ---
         std::unique_ptr<RoomManager> roomManager;
-        // Path to the currently loaded level JSON (used to reload/ recreate level)
-        std::string currentLevelPath;
 
 
         // Constantes de porte
@@ -73,11 +71,8 @@ namespace Modele
         const float DOOR_THICKNESS = 100.f;
 
         //  Collision with objective
-        Objective* objectiveContact = nullptr;
-        bool objectiveContactDetectee = false;
-        
-        // Dialogue triggered flag
-        bool dialogueTriggeredFlag = false;
+        Objective objectiveContact;
+        bool objectiveContactDetectee;
 
     public:
         // Constructeur
@@ -85,12 +80,6 @@ namespace Modele
 
         // Destructeur (géré par unique_ptr)
         ~Modele() = default;
-
-        // Réinitialiser le modèle (réinitialise le joueur, les objectifs, les ennemis, etc.)
-        void reset();
-
-        // Load a level JSON (recreates RoomManager and room data)
-        bool loadLevel(const std::string& levelJsonPath);
 
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }
@@ -103,7 +92,7 @@ namespace Modele
         const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
         const std::vector<Door>& getCurrentRoomDoors() const;
         std::string getCurrentRoomName() const;
-        std::vector<Objective>& getCurrentRoomObjectives();
+        const std::vector<Objective>& getCurrentRoomObjectives() const;
 
         // NOUVEAU: Getters pour les dimensions de l'écran (déléguent au RoomManager)
         float getScreenW() const;
@@ -149,10 +138,10 @@ namespace Modele
         // Synchronise l'échelle/position du sprite joueur avec le RectangleShape (taille & position)
         void syncPlayerSprite();
 
-        //  Objective collision (use pointers so original objects can be modified)
-        void setObjectiveContact(Objective* obj);
+        //  Objective collision
+        void setObjectiveContact(const Objective& obj);
         void setObjectiveContactDetectee(const bool b);
-        Objective* getObjectiveContact() const;
+        Objective getObjectiveContact() const;
         bool getObjectiveContactDetectee() const;
 
 

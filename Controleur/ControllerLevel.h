@@ -23,12 +23,7 @@ public:
     void checkDoors();
 
     // Traiter conséquences liées aux collisions (déclencher dialogues, flags)
-    void processCollisions(Vue::DialogueManager &dialogueManager);
-
-    // Vérifie si une fenêtre César doit s'ouvrir (après dialogue objectif César)
-    bool shouldOpenCesarWindow() const { return openCesarWindow; }
-    Objective* getCesarObjective() const { return cesrObjective; }
-    void resetCesarWindowFlag() { openCesarWindow = false; }
+    void processCollisions(Vue::DialogueManager& dialogueManager);
 
 private:
     Modele::Modele& modele;
@@ -37,10 +32,6 @@ private:
 
     // Mouvement courant calculé à partir de l'entrée
     sf::Vector2f mouvement;
-
-    // État pour la fenêtre César
-    bool openCesarWindow = false;
-    Objective* cesrObjective = nullptr;
 };
 
 } // namespace Controleur
