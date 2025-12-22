@@ -48,6 +48,8 @@ add_executable(TestCollision
         Vue/ConfirmationDialog.cpp
         Vue/ConfirmationDialog.h
         Vue/SplashPage.cpp
+        Modele/ScoreCalculator.cpp
+        Modele/ScoreCalculator.h
 )
 
 # Inclusion des headers (optionnel si bien organisés)

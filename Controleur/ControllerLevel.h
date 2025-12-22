@@ -4,6 +4,7 @@
 
 #include "Modele.h"
 #include "Vue.h"
+#include "ScoreCalculator.h"
 
 namespace Vue { class DialogueManager; }
 
@@ -31,6 +32,10 @@ public:
     void resetCesarWindowFlag() { openCesarWindow = false; }
     bool isExitRequested() const { return exitRequestedFlag; }
 
+    // Score API
+    Modele::ScoreDetails getScoreDetails() const;
+    bool areAllSecondaryObjectivesCompleted() const;
+
     // Level timer API
     int getRemainingSeconds() const;
     void resetLevelTimer();
@@ -53,7 +58,7 @@ private:
     Objective* cesrObjective = nullptr;
     bool exitRequestedFlag = false;
     // Level timer (countdown in seconds)
-    const int levelTimerStartSeconds = 5; // 5 minutes
+    const int levelTimerStartSeconds = 10; // 300
 
     // Timer internal data
     sf::Clock levelTimerClock;

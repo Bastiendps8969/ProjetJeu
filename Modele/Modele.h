@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "Objective.h"
+#include "ScoreCalculator.h"
 #include "../cmake-build-debug/json.hpp"
 #include "Agent.h"
 #include "Enemy.h"

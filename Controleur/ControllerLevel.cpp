@@ -6,6 +6,7 @@
 #include "CesarVue.h"
 #include "../Vue/DialogueManager.h"
 #include "../Vue/ConfirmationDialog.h"
+#include "../Vue/ScoreWindow.h"
 #include <sstream>
 
 // timer members
@@ -238,6 +239,19 @@ void ControllerLevel::setTimerPaused(bool p)
     }
 }
 
+Modele::ScoreDetails ControllerLevel::getScoreDetails() const
+{
+    const std::vector<Objective>& objectives = modele.getCurrentRoomObjectives();
+    int remainingSeconds = getRemainingSeconds();
+    return Modele::ScoreCalculator::calculateScore(objectives, remainingSeconds);
+}
+
+bool ControllerLevel::areAllSecondaryObjectivesCompleted() const
+{
+    const std::vector<Objective>& objectives = modele.getCurrentRoomObjectives();
+    return Modele::ScoreCalculator::areAllSecondaryObjectivesCompleted(objectives);
+}
+
 void ControllerLevel::checkDoors()
 {
     sf::FloatRect joueurBounds = modele.getJoueur().getGlobalBounds();
@@ -281,6 +295,29 @@ void ControllerLevel::checkDoors()
                 if (!fenetre.isOpen()) break;
 
                 if (confirm.isConfirmed()) {
+                    // Check if all secondary AND primary objectives are completed
+                    if (areAllSecondaryObjectivesCompleted() && Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getCurrentRoomObjectives()))
+                    {
+                        // Show score screen
+                        Vue::ScoreWindow scoreWindow([this]() -> Modele::ScoreDetails {
+                            return this->getScoreDetails();
+                        });
+
+                        while (fenetre.isOpen() && scoreWindow.isActive())
+                        {
+                            sf::Event se;
+                            while (fenetre.pollEvent(se))
+                            {
+                                if (se.type == sf::Event::Closed) fenetre.close();
+                                scoreWindow.handleEvent(se);
+                            }
+
+                            scoreWindow.draw(fenetre);
+                        }
+
+                        if (!fenetre.isOpen()) break;
+                    }
+                    
                     exitRequestedFlag = true;
                     
                 } else {
