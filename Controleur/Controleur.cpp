@@ -6,13 +6,11 @@
 #include "DialogueManager.h"
 #include "SplashPage.h"
 #include "ChapterLoader.h"
-#include "CesarVue.h"
-#include "../Vue/PauseMenu.h"
-#include "../Vue/ConfirmationDialog.h"
 #include <cmath>
 #include <iostream>
 
 #include "ControllerLevel.h"
+#include "../Vue/PauseMenu.h"
 
 namespace Controleur
 {
@@ -22,10 +20,8 @@ namespace Controleur
           fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
     {
         fenetre.setFramerateLimit(60);
-        // Do not create a level controller here. It will be created when
-        // the player starts a level from the main menu. This ensures the
-        // controller and level state are fresh each playthrough.
-        niveauController.reset();
+        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+        pauseMenu = std::make_unique<Vue::PauseMenu>(modele);
     }
 
     // Affiche le menu d'accueil (importé de ProjetJeu)
@@ -95,7 +91,7 @@ namespace Controleur
                 else if (selLevel == 2) roomId = 2;
                 else roomId = 0; // fallback
             }
-            // si tu ajoutes d'autres chapitres, gère ici leur mapping (selChapter == 1 ...)
+            // si tu ajoutes d'autres chapitres, gère ici leur mapping (selChapter == 1 ...) 
 
             if (roomId >= 0)
             {
@@ -116,19 +112,10 @@ namespace Controleur
     // DÉFINITION : Boucle principale
     void Controleur::gererBoucle()
     {
-        // Show main menu first
         afficherMenuAccueil();
-
-        // Create level controller when entering gameplay (fresh instance)
-        if (!niveauController) {
-            // Ensure model is reset so any previous progress is cleared
-            modele.reset();
-            niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-        }
 
         Vue::DialogueManager dialogueManager;
         bool agentDialogueLaunched = false; // Ajout
-        bool cesrDialogueClosed = false;  // Track si dialogue César terminé pour ouvrir CesarVue
 
         sf::Clock fpsTimer;
         int fpsFrames = 0;
@@ -144,100 +131,40 @@ namespace Controleur
                 if ((evenement.type == sf::Event::KeyPressed)
                     && (evenement.key.code == sf::Keyboard::Escape))
                 {
-                    // Show pause menu and require confirmation for destructive actions.
-                    bool abortOuter = false;
+                    // Open pause menu during gameplay (do not exit app immediately)
+                    if (!dialogueManager.isDialogueActive()) {
+                        if (pauseMenu) pauseMenu->setActive(true);
 
-                    while (fenetre.isOpen()) {
-                        Vue::PauseMenu pause(modele);
-
-                        // Pause loop
-                        while (fenetre.isOpen() && pause.isActive()) {
+                        // Modal loop for pause menu
+                        while (fenetre.isOpen() && pauseMenu && pauseMenu->isActive()) {
                             sf::Event pe;
                             while (fenetre.pollEvent(pe)) {
-                                if (pe.type == sf::Event::Closed) fenetre.close();
-                                pause.handleEvent(pe, fenetre);
+                                if (pe.type == sf::Event::Closed) { fenetre.close(); break; }
+                                // Forward events to pause menu
+                                pauseMenu->handleEvent(pe, fenetre);
                             }
 
-                            // Draw current game frame behind the pause menu
+                            // Draw current game frame underneath
                             fenetre.clear(sf::Color::Black);
                             vue.dessiner(fenetre);
-                            pause.draw(fenetre);
+                            pauseMenu->draw(fenetre);
                             fenetre.display();
                         }
 
-                        if (!fenetre.isOpen()) { abortOuter = true; break; }
-
-                        auto sel = pause.getSelectedOption();
-                        if (sel == Vue::PauseMenu::Option::Resume) {
-                            break; // resume game
-                        }
-
-                        if (sel == Vue::PauseMenu::Option::ExitLevel) {
-                            Vue::ConfirmationDialog confirm("Exit level? All your progress will be lost.");
-
-                            // confirmation loop
-                            while (fenetre.isOpen() && confirm.isActive()) {
-                                sf::Event ce;
-                                while (fenetre.pollEvent(ce)) {
-                                    if (ce.type == sf::Event::Closed) fenetre.close();
-                                    confirm.handleEvent(ce, fenetre);
-                                }
-
-                                fenetre.clear(sf::Color::Black);
-                                vue.dessiner(fenetre);
-                                confirm.draw(fenetre);
-                                fenetre.display();
-                            }
-
-                            if (!fenetre.isOpen()) { abortOuter = true; break; }
-
-                            if (confirm.isConfirmed()) {
-                                // Destroy current level so replay starts from a fresh state
-                                modele.reset();
-                                niveauController.reset();
-
-                                // Go back to main menu and recreate a fresh controller afterwards
+                        // After closing pause menu, check selection
+                        if (pauseMenu && !pauseMenu->isActive()) {
+                            auto sel = pauseMenu->getSelectedOption();
+                            if (sel == Vue::PauseMenu::Option::ExitLevel) {
+                                // Return to main menu
                                 afficherMenuAccueil();
-                                if (!niveauController) {
-                                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                                }
-                                break; // exit pause handling
-                            } else {
-                                // user canceled -> reopen pause menu (continue loop)
-                                continue;
-                            }
-                        }
-
-                        if (sel == Vue::PauseMenu::Option::ExitGame) {
-                            Vue::ConfirmationDialog confirm("Exit game? All your progress will be lost.");
-
-                            while (fenetre.isOpen() && confirm.isActive()) {
-                                sf::Event ce;
-                                while (fenetre.pollEvent(ce)) {
-                                    if (ce.type == sf::Event::Closed) fenetre.close();
-                                    confirm.handleEvent(ce, fenetre);
-                                }
-
-                                fenetre.clear(sf::Color::Black);
-                                vue.dessiner(fenetre);
-                                confirm.draw(fenetre);
-                                fenetre.display();
-                            }
-
-                            if (!fenetre.isOpen()) { abortOuter = true; break; }
-
-                            if (confirm.isConfirmed()) {
+                            } else if (sel == Vue::PauseMenu::Option::ExitGame) {
                                 fenetre.close();
-                                abortOuter = true;
                                 break;
-                            } else {
-                                // canceled -> reopen pause menu
-                                continue;
                             }
                         }
+                    } else {
+                        // If a dialogue is active we ignore Escape here
                     }
-
-                    if (abortOuter) break;
                 }
 
                 dialogueManager.handleEvent(evenement);
@@ -257,36 +184,6 @@ namespace Controleur
             if (!modele.isJoueurDetecte())
             {
                 agentDialogueLaunched = false;
-            }
-
-            // Si dialogue objectif César terminé, ouvrir la fenêtre CesarVue
-            bool shouldOpen = niveauController->shouldOpenCesarWindow();
-            bool dialogueNotActive = !dialogueManager.isDialogueActive();
-            bool notClosedYet = !cesrDialogueClosed;
-
-            if (shouldOpen && dialogueNotActive && notClosedYet)
-            {
-                cesrDialogueClosed = true;
-                // Ouvrir la fenêtre César
-                CesarVue cesarVue(niveauController->getCesarObjective());
-
-                // Boucle de gestion de la fenêtre César
-                while (fenetre.isOpen() && !cesarVue.shouldWindowClose()) {
-                    sf::Event cesarEvent;
-                    while (fenetre.pollEvent(cesarEvent)) {
-                        if (cesarEvent.type == sf::Event::Closed) {
-                            fenetre.close();
-                        }
-                        cesarVue.handleEvent(cesarEvent, fenetre);
-                    }
-
-                    fenetre.clear(sf::Color::Black);
-                    cesarVue.draw(fenetre);
-                    fenetre.display();
-                }
-
-                niveauController->resetCesarWindowFlag();
-                cesrDialogueClosed = false;
             }
 
             // Geler le gameplay si un dialogue est actif

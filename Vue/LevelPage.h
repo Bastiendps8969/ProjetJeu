@@ -1,6 +1,6 @@
 #pragma once
 //
-// Created by bertr on 25-11-25.
+// LevelPage.h
 //
 
 #ifndef TESTCOLLISION_LEVELPAGE_H
@@ -9,6 +9,7 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
+#include "../Modele/ChapterLoader.h"
 
 namespace Vue
 {
@@ -34,18 +35,18 @@ namespace Vue
 
     private:
         // Fonctions utilitaires internes pour le rendu
-        void drawFrame(sf::RenderWindow& window, const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
+        void drawFrame(sf::RenderWindow& window, const std::vector<Modele::ChapterInfo>& chapters,
                        int chapterIdx, int levelIdx, const sf::Sprite& backgroundSprite, bool bgLoaded);
 
         // Dessine l'écran de sélection de chapitre (liste verticale)
         void drawChapterSelection(sf::RenderWindow& window,
-                                  const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
+                                  const std::vector<Modele::ChapterInfo>& chapters,
                                   int chapterIdx,
                                   const sf::Sprite& backgroundSprite, bool bgLoaded);
 
         // Dessine l'écran de sélection de niveau (carrousel + panneau droit de prévisualisation)
         void drawLevelSelection(sf::RenderWindow& window,
-                                const std::vector<std::pair<std::string, std::vector<std::string>>>& chapters,
+                                const std::vector<Modele::ChapterInfo>& chapters,
                                 int chapterIdx, int levelIdx,
                                 const sf::Sprite& backgroundSprite, bool bgLoaded);
     };

@@ -4,36 +4,22 @@
     "doors": {
       "right": 1
     },
+    "obstacles": [
+      { "type": "rect", "x": 300, "y": 200, "w": 50, "h": 200 },
+      { "type": "rect", "x": 600, "y": 600, "w": 200, "h": 50 }
+    ],
     "objectives": [
       {
-        "title": "Bertrand's computer",
-        "description": "Bertrand's computer.",
+        "title": "Bastien's computer",
+        "description": "Strange computer belonging to the autistic Bastien.",
         "texture": "Asset/objectives/computer_on_table.png",
         "primary": true,
         "x": 1500,
-        "y": 800,
+        "y": 600,
         "w": 64,
         "h": 64,
         "dialogueFile" : "Asset/dialogues/dialogues.json",
-        "dialogueRef" : "primary_objective",
-        "cesar": true,
-        "code": "ABCD",
-        "changeValue": 1
-      },
-      {
-        "title": "Sebastian's computer",
-        "description": "Sebastian's computer.",
-        "texture": "Asset/objectives/computer_on_table.png",
-        "primary": false,
-        "x": 1500,
-        "y": 400,
-        "w": 64,
-        "h": 64,
-        "dialogueFile" : "Asset/dialogues/dialogues.json",
-        "dialogueRef" : "primary_objective",
-        "cesar": false,
-        "code": "ABCD",
-        "changeValue": 1
+        "dialogueRef" : "primary_objective"
       }
     ],
     "enemies": [
@@ -46,25 +32,25 @@
           [2300,1300],
           [128, 1300]
         ],
-        "speed": 30,
+        "speed": 10,
         "texture": "ennemy_textures1"
       },
       {
-        "x": 600,
-        "y": 400,
-        "type": "laser",
-        "facing" : "up",
+        "x": 2400,
+        "y": 700,
+        "type": "camera",
+        "facing": "left",
         "texture": "ennemy_textures1",
-        "laserLength": 1000
+        "visionRange": 600,
+        "visionAngle": 90
       },
       {
-        "x": 600,
-        "y": 800,
-        "type": "camera",
-        "facing" : "down",
-        "texture": "ennemy_textures1",
-        "visionRange": 400,
-        "visionAngle": 90
+        "x": 1200,
+        "y": 400,
+        "type": "laser",
+        "facing": "down",
+        "texture": "",
+        "laserLength": 500
       }
     ]
   },

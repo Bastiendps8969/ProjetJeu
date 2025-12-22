@@ -26,7 +26,7 @@ public:
 private:
 	Modele::Modele* modelePtr = nullptr;
 
-	bool active = true;
+	bool active = false;
 	Option selectedOption = Option::Resume;
 
 	sf::Font font;

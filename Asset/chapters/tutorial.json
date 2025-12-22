@@ -2,22 +2,22 @@
   "0": {
     "name": "Tutorial 1",
     "description": "Learning the basis.",
-    "picture": "Asset/levels/tutorial_1.png",
+    "picture": "Asset/levels/tutorial/tutorial_1.png",
     "neededScore": 0,
-    "levelData": "Asset/levels/tutorial_1.json"
+    "levelData": "Asset/levels/tutorial/tutorial_1.json"
   },
   "1": {
     "name": "Tutorial 2",
     "description": "The objectives.",
-    "picture": "Asset/levels/tutorial_2.png",
+    "picture": "Asset/levels/tutorial/tutorial_2.png",
     "neededScore": 0,
-    "levelData": "Asset/levels/tutorial_2.json"
+    "levelData": "Asset/levels/tutorial/tutorial_2.json"
   },
   "2": {
     "name": "Tutorial 3",
     "description": "The enemies.",
-    "picture": "Asset/levels/tutorial_3.png",
+    "picture": "Asset/levels/tutorial/tutorial_3.png",
     "neededScore": 0,
-    "levelData": "Asset/levels/tutorial_3.json"
+    "levelData": "Asset/levels/tutorial/tutorial_3.json"
   }
 }

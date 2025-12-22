@@ -30,6 +30,7 @@ namespace Modele {
         float screenW = static_cast<float>(dm.width);
         float screenH = static_cast<float>(dm.height);
 
+        roomManager = std::make_unique<RoomManager>(screenW, screenH);
 
         // Initialize enemy prototypes (Prototype pattern)
         enemyPrototypes.clear();
@@ -207,15 +208,34 @@ namespace Modele {
             }
         }
 
-        // Create room manager and load default level
-        currentLevelPath = "Asset/levels/tutorial/tutorial_1.json";
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
-        if (roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
+        // Chargement des pièces via RoomManager
+        // Try loading initial room JSON from several likely locations (working dir may be cmake-build-debug)
+        bool roomsLoaded = false;
+        std::vector<std::string> tryRoomPaths = {
+            std::string("Asset/levels/tutorial/tutorial_1.json"),
+            std::string("cmake-build-debug/Asset/levels/tutorial/tutorial_1.json"),
+            std::string("levels/tutorial/tutorial_1.json"),
+            std::string("cmake-build-debug/levels/tutorial/tutorial_1.json")
+        };
+        for (const auto &rp : tryRoomPaths) {
+            if (roomManager->loadRoomsFromJson(rp) && roomManager->getRooms().count(0)) {
+                std::cout << "[DEBUG] Rooms loaded from: " << rp << std::endl;
+                roomsLoaded = true;
+                break;
+            } else {
+                std::cout << "[DEBUG] Failed to load rooms from: " << rp << std::endl;
+            }
+        }
+
+        if (roomsLoaded)
+        {
             roomManager->changeRoom(0, "", joueur);
+            // positionner le joueur au centre de l'écran
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
             reloadEnemiesForCurrentRoom();
         }
-        else {
+        else
+        {
             std::cerr << "Échec du chargement de la carte. Pièce 0 non valide." << std::endl;
             roomManager->changeRoom(-1, "", joueur);
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
@@ -361,9 +381,9 @@ namespace Modele {
         return roomManager->getCurrentRoomName();
     }
 
-    std::vector<Objective>& Modele::getCurrentRoomObjectives()
+    const std::vector<Objective>& Modele::getCurrentRoomObjectives() const
     {
-        static std::vector<Objective> empty;
+        static const std::vector<Objective> empty;
         if (!roomManager) return empty;
         auto& rooms = roomManager->getRooms();
         int idx = roomManager->getCurrentRoomIndex();
@@ -540,8 +560,8 @@ namespace Modele {
         return ok;
     }
 
-    // Objective contact accessors (pointer-based)
-    void Modele::setObjectiveContact(Objective* obj) {
+    // Objective contact accessors
+    void Modele::setObjectiveContact(const Objective &obj) {
         objectiveContact = obj;
     }
 
@@ -549,55 +569,11 @@ namespace Modele {
         objectiveContactDetectee = b;
     }
 
-    Objective* Modele::getObjectiveContact() const {
+    Objective Modele::getObjectiveContact() const {
         return objectiveContact;
     }
 
     bool Modele::getObjectiveContactDetectee() const {
         return objectiveContactDetectee;
-    }
-
-    bool Modele::hasDialogueTriggered() const {
-        return dialogueTriggeredFlag;
-    }
-
-    void Modele::setDialogueTriggered(bool v) {
-        dialogueTriggeredFlag = v;
-    }
-
-    void Modele::resetDialogueTriggered() {
-        dialogueTriggeredFlag = false;
-    }
-
-    void Modele::reset()
-    {
-        // Reset player position and animation
-        joueur.setPosition(0.f, 0.f);
-        playerFrameIndex = 0;
-        playerRow = 3;
-        playerClock.restart();
-        playerIsMoving = false;
-
-        // Reset flags
-        collisionDetectee = false;
-        joueurDetecte = false;
-        objectiveContactDetectee = false;
-        dialogueTriggeredFlag = false;
-
-        // Destroy and recreate the room manager / level to ensure a fresh level state
-        float screenW = getScreenW();
-        float screenH = getScreenH();
-        roomManager.reset();
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
-        if (!currentLevelPath.empty() && roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
-            roomManager->changeRoom(0, "", joueur);
-        }
-
-        // Clear and reload enemies for current room
-        enemies.clear();
-        reloadEnemiesForCurrentRoom();
-
-        // Sync sprite with rectangle
-        syncPlayerSprite();
     }
 }
