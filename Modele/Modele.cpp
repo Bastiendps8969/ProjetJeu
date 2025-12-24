@@ -601,4 +601,16 @@ namespace Modele {
         if (!mapManager) return empty;
         return mapManager->getWallTextures();
     }
+        // Réinitialise l'état du modèle (joueur, ennemis, objectifs, etc.)
+        void Modele::reset() {
+            // Réinitialiser la position du joueur
+            joueur.setPosition(0, 0);
+            playerFrameIndex = 0;
+            playerRow = 3;
+            playerIsMoving = false;
+            // Réinitialiser les objectifs, ennemis, etc. selon la logique du jeu
+            collisionDetectee = false;
+            joueurDetecte = false;
+            // Si besoin, vider ou réinitialiser d'autres membres ici
+        }
 }

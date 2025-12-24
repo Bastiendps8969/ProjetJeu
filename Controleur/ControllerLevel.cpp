@@ -11,6 +11,20 @@ ControllerLevel::ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::Rend
 {
 }
 
+// --- Ajouts pour la fenêtre Cesar ---
+bool ControllerLevel::shouldOpenCesarWindow() const {
+    return openCesarWindow;
+}
+
+Objective* ControllerLevel::getCesarObjective() {
+    return cesarObjective;
+}
+
+void ControllerLevel::resetCesarWindowFlag() {
+    openCesarWindow = false;
+    cesarObjective = nullptr;
+}
+
 void ControllerLevel::handleInput()
 {
     mouvement = sf::Vector2f(0.f, 0.f);

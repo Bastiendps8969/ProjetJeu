@@ -79,6 +79,9 @@ namespace Modele
         // Destructeur (géré par unique_ptr)
         ~Modele() = default;
 
+        // Réinitialise l'état du modèle (joueur, ennemis, objectifs, etc.)
+        void reset();
+
         // Getters
         sf::RectangleShape& getJoueur() { return joueur; }
         const std::vector<std::vector<int>>& getFloorMatrix() const;
