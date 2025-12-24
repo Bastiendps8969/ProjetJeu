@@ -69,6 +69,8 @@ struct Room {
     std::vector<ObstacleDefinition> obstacleDefs;
     std::vector<std::unique_ptr<sf::Shape>> obstacleShapes;
     std::vector<Objective> objectives;
+    // Optional external map file for this room (path relative to exe)
+    std::string mapFile;
 };
 
 // RoomManager

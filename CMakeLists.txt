@@ -26,8 +26,11 @@ add_executable(TestCollision
         Vue/LevelPage.cpp
         Vue/ScoreWindow.cpp
         Modele/Objective.cpp
-        Modele/ChapterLoader.cpp
         Modele/Objective.h
+        Modele/RoomManager.cpp
+        Modele/RoomManager.h
+        Modele/Agent.cpp
+        Modele/Agent.h
         Controleur/ControllerLevel.cpp
         Controleur/ControllerLevel.h
         Controleur/ControllerLevel/ControllerLevelTutorial1.cpp
@@ -36,11 +39,15 @@ add_executable(TestCollision
         Modele/Level.h
         Controleur/ControllerLevel/ControllerLevelTutorial2.cpp
         Controleur/ControllerLevel/ControllerLevelTutorial2.h
-        Vue/SplashPage.cpp
-        Modele/RoomManager.cpp
-        Modele/Agent.cpp
+        Controleur/ControllerCesar.cpp
+        Controleur/ControllerCesar.h
+        Vue/CesarVue.cpp
+        Vue/CesarVue.h
         Vue/PauseMenu.cpp
         Vue/PauseMenu.h
+        Vue/ConfirmationDialog.cpp
+        Vue/ConfirmationDialog.h
+        Vue/SplashPage.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)

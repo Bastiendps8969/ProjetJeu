@@ -31,6 +31,8 @@ namespace Modele {
         float screenH = static_cast<float>(dm.height);
 
         roomManager = std::make_unique<RoomManager>(screenW, screenH);
+        // map manager for tile/floor handling
+        mapManager = std::make_unique<MapManager>();
 
         // Initialize enemy prototypes (Prototype pattern)
         enemyPrototypes.clear();
@@ -61,6 +63,9 @@ namespace Modele {
             if (playerTexture.loadFromFile(p)) {
                 playerLoaded = true;
                 std::cout << "[DEBUG] Spritesheet joueur chargée : " << p << std::endl;
+                // assign the texture to the sprite immediately
+                playerSprite.setTexture(playerTexture);
+                playerSprite.setTextureRect(computePlayerTextureRect());
                 break;
             } else {
                 std::cout << "[DEBUG] Echec chargement spritesheet joueur : " << p << std::endl;
@@ -87,151 +92,53 @@ namespace Modele {
             syncPlayerSprite();
         }
 
-        // --- Chargement de la texture de sol (Floor5.png) ---
-        bool loaded = false;
-        const std::vector<std::string> tryPaths = {
-            "cmake-build-debug/Asset/Floor/Floor5.png",
-            "Asset/Floor/Floor5.png",
-            "Floor5.png"
+        // Default asset search paths for floors and walls
+        const std::vector<std::string> tryFloorPaths = {
+            "cmake-build-debug/Asset/Floor/floor_01.png",
+            "Asset/Floor/floor_01.png",
+            "floor_01.png"
         };
-        for (const auto& p : tryPaths) {
-            if (floorTexture.loadFromFile(p)) {
-                loaded = true;
-                std::cout << "[DEBUG] Texture sol chargée : " << p << std::endl;
-                break;
-            } else {
-                std::cout << "[DEBUG] Echec chargement texture sol : " << p << std::endl;
-            }
-        }
-        if (!loaded) {
-            std::cerr << "[DEBUG] Avertissement: impossible de charger Floor5.png. Vérifiez le chemin.\n";
-        }
-
-        // --- Chargement des textures de murs (Wall1_1 .. Wall1_8) ---
-        const std::vector<std::string> tryPathsWall = {
-            "cmake-build-debug/Asset/Wall/Wall1_1.png",
-            "cmake-build-debug/Asset/Wall/Wall1_5.png",
-            "cmake-build-debug/Asset/Wall/Wall1_6.png",
-            "cmake-build-debug/Asset/Wall/Wall1_7.png",
+        const std::vector<std::string> tryFloor02Paths = {
+            "cmake-build-debug/Asset/Floor/floor_02.png",
+            "Asset/Floor/floor_02.png",
+            "floor_02.png"
+        };
+        const std::vector<std::string> tryWallPaths = {
             "cmake-build-debug/Asset/Wall/Wall1_2.png",
             "cmake-build-debug/Asset/Wall/Wall1_3.png",
             "cmake-build-debug/Asset/Wall/Wall1_4.png",
             "cmake-build-debug/Asset/Wall/Wall1_8.png"
         };
-        wallTextures.clear();
-        wallTextures.resize(8);
-        for (size_t i = 0; i < tryPathsWall.size(); ++i)
-        {
-            // Correction : chaque wallTextures[i] doit correspondre à Asset/Wall/Wall1_{i+1}.png
-            std::string assetPath = "Asset/Wall/Wall1_" + std::to_string(i+1) + ".png";
-            if (!wallTextures[i].loadFromFile(tryPathsWall[i]))
-            {
-                std::cout << "[DEBUG] Echec chargement mur : " << tryPathsWall[i] << std::endl;
-                if (!wallTextures[i].loadFromFile(assetPath))
-                {
-                    std::cout << "[DEBUG] Echec chargement mur : " << assetPath << std::endl;
-                    std::cerr << "[DEBUG] Avertissement: impossible de charger " << tryPathsWall[i] << " ni " << assetPath << "\n";
-                }
-                else
-                {
-                    std::cout << "[DEBUG] Texture mur chargée : " << assetPath << std::endl;
-                }
-            }
-            else
-            {
-                std::cout << "[DEBUG] Texture mur chargée : " << tryPathsWall[i] << std::endl;
-            }
-        }
 
-        // Recalcul de la matrice du sol / murs (cols, rows calculés plus haut)
-        int cols = static_cast<int>(std::ceil(screenW / static_cast<float>(tileSize)));
-        int rows = static_cast<int>(std::ceil(screenH / static_cast<float>(tileSize)));
-        floorMatrix.assign(rows, std::vector<int>(cols, 1)); // remplir tout l'écran avec la tuile sol (1)
+        if (mapManager) mapManager->loadDefaults(tryFloorPaths, tryFloor02Paths, tryWallPaths);
 
-        // Codes pour murs : 11..18 (correspondent aux wallTextures[0..7])
-        const int WALL_TL = 11;   // top-left
-        const int WALL_TOP = 12;  // top edge
-        const int WALL_TR = 13;   // top-right
-        const int WALL_LEFT = 14; // left edge
-        const int WALL_RIGHT = 15;// right edge
-        const int WALL_BL = 16;   // bottom-left
-        const int WALL_BOTTOM = 17;// bottom edge
-        const int WALL_BR = 18;   // bottom-right
+        // Wall/floor tile codes moved to MapManager (use Modele::MapManager::TILE_...)
 
-
-        for (int r = 0; r < rows; ++r)
-        {
-            for (int c = 0; c < cols; ++c)
-            {
-                // coins particuliers
-                if (r == 0 && c == 0)
-                {
-                    // coin haut-gauche
-                    floorMatrix[r][c] = WALL_TL;
-                }
-                else if (r == 0 && c == cols - 1)
-                {
-                    // coin haut-droit
-                    floorMatrix[r][c] = WALL_BL;
-                }
-                else if (r == rows - 1 && c == 0)
-                {
-                    // coin bas-gauche
-                    floorMatrix[r][c] = WALL_TR;
-                }
-                else if (r == rows - 1 && c == cols - 1)
-                {
-                    // coin bas-droit
-                    floorMatrix[r][c] = WALL_BR;
-                }
-                else if (r == 0)
-                {
-                    // bord haut
-                    floorMatrix[r][c] = WALL_RIGHT;
-                }
-                else if (r == rows - 1)
-                {
-                    // bord bas
-                    floorMatrix[r][c] = WALL_LEFT;
-                }
-                else if (c == 0)
-                {
-                    // bord gauche
-                    floorMatrix[r][c] = WALL_TOP;
-                }
-                else if (c == cols - 1)
-                {
-                    // bord droit
-                    floorMatrix[r][c] = WALL_BOTTOM;
-                }
-                // else: leave as 1 (floor)
-            }
-        }
+        // floor tile registrations (floor_01 -> 22, floor_02 -> 21) are handled
+        // by MapManager::loadDefaults called above.
+        // NOTE: Par défaut, nous n'assignons plus de codes de murs (11..18)
+        // automatiquement à la matrice de sol. Les murs doivent être
+        // explicitement définis par les données de niveau (JSON) ou par
+        // une logique dédiée. On laisse donc `floorMatrix` tel quel.
 
         // Chargement des pièces via RoomManager
-        // Try loading initial room JSON from several likely locations (working dir may be cmake-build-debug)
-        bool roomsLoaded = false;
-        std::vector<std::string> tryRoomPaths = {
-            std::string("Asset/levels/tutorial/tutorial_1.json"),
-            std::string("cmake-build-debug/Asset/levels/tutorial/tutorial_1.json"),
-            std::string("levels/tutorial/tutorial_1.json"),
-            std::string("cmake-build-debug/levels/tutorial/tutorial_1.json")
-        };
-        for (const auto &rp : tryRoomPaths) {
-            if (roomManager->loadRoomsFromJson(rp) && roomManager->getRooms().count(0)) {
-                std::cout << "[DEBUG] Rooms loaded from: " << rp << std::endl;
-                roomsLoaded = true;
-                break;
-            } else {
-                std::cout << "[DEBUG] Failed to load rooms from: " << rp << std::endl;
-            }
-        }
-
-        if (roomsLoaded)
+        if (roomManager->loadRoomsFromJson("Asset/levels/tutorial/tutorial_1.json") && roomManager->getRooms().count(0))
         {
             roomManager->changeRoom(0, "", joueur);
             // positionner le joueur au centre de l'écran
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
+            // sync sprite position/scale with the rectangle
+            syncPlayerSprite();
+
+            // If the room references an external map file, load it into the MapManager
+            auto& rooms = roomManager->getRooms();
+            auto it = rooms.find(0);
+            if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
+                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                    std::cerr << "Warning: failed to load map file '" << it->second.mapFile << "' for room 0" << std::endl;
+                }
+            }
+
             reloadEnemiesForCurrentRoom();
         }
         else
@@ -239,6 +146,8 @@ namespace Modele {
             std::cerr << "Échec du chargement de la carte. Pièce 0 non valide." << std::endl;
             roomManager->changeRoom(-1, "", joueur);
             joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
+            // sync sprite position if texture is loaded
+            syncPlayerSprite();
         }
 
         // Initialisation des points de patrouille (si non chargés par JSON)
@@ -282,19 +191,75 @@ namespace Modele {
             // common setup
             e->position = pos;
             e->textureName = ed.textureName;
-
-            // load texture if present
-            const std::vector<std::string> tryPathsTex = {
-                "cmake-build-debug/Asset/Human/" + e->textureName + ".png",
-                "Asset/Human/" + e->textureName + ".png",
-                "Human/" + e->textureName + ".png",
-                e->textureName + ".png"
-            };
-            for (const auto& p : tryPathsTex) {
-                if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); break; }
+            // If camera textureName not provided, default to camera_<facing>
+            if (type == "camera" && e->textureName.empty()) {
+                std::string facingDefault = ed.facing.empty() ? "left" : ed.facing;
+                e->textureName = std::string("camera_") + facingDefault;
             }
-            e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
-            e->sprite.setScale(2.5f, 2.5f);
+
+            // Load texture depending on enemy type. Cameras use their own asset folder
+            if (type == "camera") {
+                const std::vector<std::string> tryPathsCam = {
+                    "cmake-build-debug/Asset/camera/" + e->textureName + ".png",
+                    "Asset/camera/" + e->textureName + ".png",
+                    "camera/" + e->textureName + ".png",
+                    e->textureName + ".png"
+                };
+                bool camLoaded = false;
+                std::cout << "[DEBUG] Chargement texture camera: name='" << e->textureName << "'\n";
+                for (const auto& p : tryPathsCam) {
+                    std::cout << "[DEBUG]  Trying camera texture path: " << p << std::endl;
+                    if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); camLoaded = true; std::cout << "[DEBUG]   -> Loaded camera texture: " << p << std::endl; break; }
+                    else std::cout << "[DEBUG]   -> Failed: " << p << std::endl;
+                }
+                if (!camLoaded) {
+                    std::cerr << "[DEBUG] Avertissement: impossible de charger texture camera pour '" << e->textureName << "'\n";
+                } else {
+                    // Camera-specific settings: assume static image (no sprite-sheet animation)
+                    e->frameCount = 1;
+                    e->idleFrameCount = 1;
+                    e->frameIndex = 0;
+                    e->isMoving = false;
+
+                    sf::Vector2u ts = e->texture.getSize();
+                    if (ts.x > 0 && ts.y > 0) {
+                        // Use the real texture size for camera sprite rect and origin
+                        e->sprite.setTextureRect(sf::IntRect(0, 0, static_cast<int>(ts.x), static_cast<int>(ts.y)));
+                        e->sprite.setOrigin(static_cast<float>(ts.x) / 2.f, static_cast<float>(ts.y) / 2.f);
+                        e->sprite.setScale(1.f, 1.f);
+                        // Keep tileSize in case other logic depends on it, set to min dimension
+                        e->tileSize = static_cast<int>(std::min(ts.x, ts.y));
+                    } else {
+                        e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
+                        e->sprite.setScale(2.5f, 2.5f);
+                    }
+                    // Apply rotation based on facing (if CameraEnemy was configured)
+                    CameraEnemy* cc = dynamic_cast<CameraEnemy*>(e.get());
+                    if (cc) {
+                        if (cc->facing == "left") e->sprite.setRotation(180.f);
+                        else if (cc->facing == "up") e->sprite.setRotation(-90.f);
+                        else if (cc->facing == "down") e->sprite.setRotation(90.f);
+                        else e->sprite.setRotation(0.f);
+                    }
+                }
+            }
+            else {
+                // load texture if present (other enemies use Human spritesheets / tiles)
+                const std::vector<std::string> tryPathsTex = {
+                    "cmake-build-debug/Asset/Human/" + e->textureName + ".png",
+                    "Asset/Human/" + e->textureName + ".png",
+                    "Human/" + e->textureName + ".png",
+                    e->textureName + ".png"
+                };
+                std::cout << "[DEBUG1] Chargement texture ennemi: type='" << type << "' name='" << e->textureName << "'\n";
+                for (const auto& p : tryPathsTex) {
+                    std::cout << "[DEBUG1]  Trying enemy texture path: " << p << std::endl;
+                    if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); std::cout << "[DEBUG]   -> Loaded enemy texture: " << p << std::endl; break; }
+                    else std::cout << "[DEBUG1]   -> Failed: " << p << std::endl;
+                }
+                e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
+                e->sprite.setScale(2.5f, 2.5f);
+            }
 
             if (type == "generic") {
                 GenericEnemy* g = dynamic_cast<GenericEnemy*>(e.get());
@@ -556,8 +521,25 @@ namespace Modele {
         bool ok = roomManager->changeRoom(newRoomIndex, entryDirection, joueur);
         setCollisionDetectee(false);
         setJoueurDetecte(false);
-        if (ok) reloadEnemiesForCurrentRoom(); // Ajout ici
+        if (ok) {
+            // Charger la map uniquement si elle existe
+            auto& rooms = roomManager->getRooms();
+            auto it = rooms.find(newRoomIndex);
+            if (it != rooms.end() && !it->second.mapFile.empty()) {
+                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                    std::cerr << "Warning: failed to load map file '"
+                              << it->second.mapFile << "' for room "
+                              << newRoomIndex << std::endl;
+                }
+            } else {
+                // Aucune mapFile -> on efface la carte
+                mapManager->clearMap();
+            }
+
+            reloadEnemiesForCurrentRoom();
+        }
         return ok;
+
     }
 
     // Objective contact accessors
@@ -575,5 +557,48 @@ namespace Modele {
 
     bool Modele::getObjectiveContactDetectee() const {
         return objectiveContactDetectee;
+    }
+
+    bool Modele::setTileTexture(int id, const std::string& path)
+    {
+        if (!mapManager) return false;
+        return mapManager->setTileTexture(id, path);
+    }
+
+    const sf::Texture* Modele::getTileTexture(int id) const
+    {
+        if (!mapManager) return nullptr;
+        return mapManager->getTileTexture(id);
+    }
+
+    const std::vector<std::vector<int>>& Modele::getFloorMatrix() const
+    {
+        static const std::vector<std::vector<int>> empty;
+        if (!mapManager) return empty;
+        return mapManager->getFloorMatrix();
+    }
+
+    const sf::Texture& Modele::getFloorTexture() const
+    {
+        static sf::Texture dummy;
+        if (!mapManager) return dummy;
+        return mapManager->getFloorTexture();
+    }
+
+    void Modele::setFloorMatrix(const std::vector<std::vector<int>>& m)
+    {
+        if (mapManager) mapManager->setFloorMatrix(m);
+    }
+
+    int Modele::getTileSize() const
+    {
+        return mapManager ? mapManager->getTileSize() : 0;
+    }
+
+    const std::vector<sf::Texture>& Modele::getWallTextures() const
+    {
+        static const std::vector<sf::Texture> empty;
+        if (!mapManager) return empty;
+        return mapManager->getWallTextures();
     }
 }

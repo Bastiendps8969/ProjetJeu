@@ -1,6 +1,7 @@
 {
   "0": {
     "name": "Salle de depart (0)",
+    "mapFile": "Asset/Map/Map1.json",
     "doors": {
       "right": 1
     },
@@ -10,8 +11,8 @@
     ],
     "objectives": [
       {
-        "title": "Bastien's computer",
-        "description": "Strange computer belonging to the autistic Bastien.",
+        "title": "Bertrand's computer",
+        "description": "Bertrand's computer.",
         "texture": "Asset/objectives/computer_on_table.png",
         "primary": true,
         "x": 1500,
@@ -19,7 +20,25 @@
         "w": 64,
         "h": 64,
         "dialogueFile" : "Asset/dialogues/dialogues.json",
-        "dialogueRef" : "primary_objective"
+        "dialogueRef" : "primary_objective",
+        "cesar": true,
+        "code": "ABCD",
+        "changeValue": 1
+      },
+      {
+        "title": "Sebastian's computer",
+        "description": "Sebastian's computer.",
+        "texture": "Asset/objectives/computer_on_table.png",
+        "primary": false,
+        "x": 1500,
+        "y": 400,
+        "w": 64,
+        "h": 64,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "primary_objective",
+        "cesar": false,
+        "code": "ABCD",
+        "changeValue": 1
       }
     ],
     "enemies": [
@@ -40,7 +59,7 @@
         "y": 700,
         "type": "camera",
         "facing": "left",
-        "texture": "ennemy_textures1",
+        "texture": "camera_left",
         "visionRange": 600,
         "visionAngle": 90
       },
@@ -48,14 +67,24 @@
         "x": 1200,
         "y": 400,
         "type": "laser",
-        "facing": "down",
-        "texture": "",
-        "laserLength": 500
+        "facing" : "up",
+        "texture": "ennemy_textures1",
+        "laserLength": 1000
+      },
+      {
+        "x": 600,
+        "y": 800,
+        "type": "camera",
+        "facing" : "down",
+        "texture": "ennemy_textures1",
+        "visionRange": 400,
+        "visionAngle": 90
       }
     ]
   },
   "1": {
     "name": "Salle Est (1)",
+    "mapFile": "Asset/Map/Map1.json",
     "doors": {
       "left": 0,
       "up": 2
@@ -80,6 +109,7 @@
   },
   "2": {
     "name": "Salle Nord (2)",
+    "mapFile": "Asset/Map/Map2.json",
     "doors": {
       "down": 1
     },

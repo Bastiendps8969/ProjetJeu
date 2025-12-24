@@ -92,6 +92,13 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                 }
             }
 
+            // Optional: external map file for the room
+            if (roomJson.contains("mapFile")) {
+                try {
+                    newRoom.mapFile = roomJson.at("mapFile").get<std::string>();
+                } catch (...) {}
+            }
+
             // Objectives: parse JSON and construct Objective descriptors
             if (roomJson.contains("objectives")) {
                 for (const auto& objJson : roomJson.at("objectives"))

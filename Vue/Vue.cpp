@@ -3,94 +3,135 @@
 #include "Modele.h"
 #include <iostream>
 
-namespace Vue
-{
-    // DÉFINITION : Constructeur
-    Vue::Vue(Modele::Modele& modele)
+namespace Vue {
+
+// DÉFINITION : Constructeur
+Vue::Vue(Modele::Modele& modele)
     : modele(modele)
+{
+    if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
     {
-        if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
-        {
-            fontCharge = true;
-            std::cout << "[DEBUG] Police chargée : C:\\Windows\\Fonts\\arial.ttf" << std::endl;
+        fontCharge = true;
+        std::cout << "[DEBUG] Police chargée : C:\\Windows\\Fonts\\arial.ttf" << std::endl;
 
-            collisionText.setFont(font);
-            collisionText.setString("Collision detectee !");
-            collisionText.setCharacterSize(24);
-            collisionText.setFillColor(sf::Color::Red);
-            collisionText.setStyle(sf::Text::Bold);
-            collisionText.setPosition(10.f, 10.f);
+        collisionText.setFont(font);
+        collisionText.setString("Collision detectee !");
+        collisionText.setCharacterSize(24);
+        collisionText.setFillColor(sf::Color::Red);
+        collisionText.setStyle(sf::Text::Bold);
+        collisionText.setPosition(10.f, 10.f);
 
-            joueurDetecteText.setFont(font);
-            joueurDetecteText.setString("Joueur detecte !");
-            joueurDetecteText.setCharacterSize(22);
-            joueurDetecteText.setFillColor(sf::Color::Yellow);
-            joueurDetecteText.setStyle(sf::Text::Bold);
-            joueurDetecteText.setPosition(10.f, 40.f);
-        }
-        else if (font.loadFromFile("arial.ttf"))
-        {
-            fontCharge = true;
-            std::cout << "[DEBUG] Police chargée : arial.ttf (local)" << std::endl;
-        }
-        else
-        {
-            std::cerr << "[DEBUG] Erreur: Impossible de charger la police (arial.ttf)." << std::endl;
-        }
+        joueurDetecteText.setFont(font);
+        joueurDetecteText.setString("Joueur detecte !");
+        joueurDetecteText.setCharacterSize(22);
+        joueurDetecteText.setFillColor(sf::Color::Yellow);
+        joueurDetecteText.setStyle(sf::Text::Bold);
+        joueurDetecteText.setPosition(10.f, 40.f);
     }
-
-    // DÉFINITION : Méthode de dessin principale
-    void Vue::dessiner(sf::RenderWindow& fenetre)
+    else if (font.loadFromFile("arial.ttf"))
     {
-        // NE PAS appeler fenetre.clear() ni fenetre.display() ici.
-        // Se contenter de dessiner les éléments sur la fenêtre fournie.
+        fontCharge = true;
+        std::cout << "[DEBUG] Police chargée : arial.ttf (local)" << std::endl;
+    }
+    else
+    {
+        std::cerr << "[DEBUG] Erreur: Impossible de charger la police (arial.ttf)." << std::endl;
+    }
+}
 
-        // Dessine la grille de tuiles du sol (matrice)
-        const auto& matrix = modele.getFloorMatrix();
-        const sf::Texture& tex = modele.getFloorTexture();
-        const auto& wallTexs = modele.getWallTextures();
-        int tileSize = modele.getTileSize();
-        if (!matrix.empty())
+// DÉFINITION : Méthode de dessin principale
+void Vue::dessiner(sf::RenderWindow& fenetre)
+{
+    // ================================
+    // Dessin de la carte (tuiles)
+    // ================================
+
+    const auto& matrix = modele.getFloorMatrix();
+    const sf::Texture& floorTex = modele.getFloorTexture();
+    const auto& wallTexs = modele.getWallTextures();
+    int tileSize = modele.getTileSize();
+
+    if (!matrix.empty())
+    {
+        size_t rows = matrix.size();
+        size_t cols = 0;
+        for (const auto& row : matrix) {
+            if (row.size() > cols) cols = row.size();
+            }
+        float mapWidth = static_cast<float>(cols * tileSize);
+        float mapHeight = static_cast<float>(rows * tileSize);
+        sf::Vector2u winSize = fenetre.getSize();
+
+        // Calcul du facteur de zoom pour que toute la carte tienne dans la fenêtre
+        float scaleX = static_cast<float>(winSize.x) / mapWidth;
+        float scaleY = static_cast<float>(winSize.y) / mapHeight;
+        float offsetX = 0.f;
+        float offsetY = 0.f;
+
+        sf::Sprite tileSprite;
+        bool hasFloor = (floorTex.getSize().x > 0);
+        if (hasFloor) tileSprite.setTexture(floorTex);
+        for (size_t r = 0; r < rows; ++r)
         {
-            sf::Sprite tileSprite;
-            // Floor sprite
-            bool hasFloor = (tex.getSize().x > 0);
-            if (hasFloor) tileSprite.setTexture(tex);
-            for (size_t r = 0; r < matrix.size(); ++r)
+            if (r >= matrix.size()) break;
+            for (size_t c = 0; c < cols; ++c)
             {
-                for (size_t c = 0; c < matrix[r].size(); ++c)
+                if (c >= matrix[r].size()) break;
+                int val = matrix[r][c];
+                float drawX = offsetX + static_cast<float>(c * tileSize) * scaleX;
+                float drawY = offsetY + static_cast<float>(r * tileSize) * scaleY;
+                if (val >= 11 && val <= 18)
                 {
-                    int val = matrix[r][c];
-                    if (val == 1 && hasFloor)
-                    {
-                        float sx = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().x);
-                        float sy = static_cast<float>(tileSize) / static_cast<float>(tex.getSize().y);
-                        tileSprite.setScale(sx, sy);
-                        tileSprite.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
-                        fenetre.draw(tileSprite);
-                    }
-                    else if (val >= 11 && val <= 18)
-                    {
-                        int wi = val - 11;
-                        if (wi >= 0 && static_cast<size_t>(wi) < wallTexs.size()) {
-                            if (wallTexs[wi].getSize().x > 0) {
-                                sf::Sprite w;
-                                w.setTexture(wallTexs[wi]);
-                                float sx = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().x);
-                                float sy = static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().y);
-                                w.setScale(sx, sy);
-                                w.setPosition(static_cast<float>(c * tileSize), static_cast<float>(r * tileSize));
-                                fenetre.draw(w);
-                            } else {
-                                std::cerr << "[DEBUG] Texture mur wallTexs[" << wi << "] non chargée pour val=" << val << std::endl;
-                            }
+                    int wi = val - 11;
+                    if (wi >= 0 && static_cast<size_t>(wi) < wallTexs.size()) {
+                        if (wallTexs[wi].getSize().x > 0) {
+                            sf::Sprite w;
+                            w.setTexture(wallTexs[wi]);
+                            float sx = (static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().x)) * scaleX;
+                            float sy = (static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().y)) * scaleY;
+                            w.setScale(sx, sy);
+                            w.setPosition(drawX, drawY);
+                            fenetre.draw(w);
+                        } else {
+                            std::cerr << "[DEBUG] Texture mur wallTexs[" << wi << "] non chargée pour val=" << val << std::endl;
                         }
+                    }
+                }
+                else if (val == 1)
+                {
+                    // Ne rien dessiner pour la valeur 1 : floor_01 est désormais tile id 22
+                }
+                else if (val >= 1)
+                {
+                    const sf::Texture* t = modele.getTileTexture(val);
+                    if (t && t->getSize().x > 0)
+                    {
+                        sf::Sprite s;
+                        s.setTexture(*t);
+                        float sx = (static_cast<float>(tileSize) / static_cast<float>(t->getSize().x)) * scaleX;
+                        float sy = (static_cast<float>(tileSize) / static_cast<float>(t->getSize().y)) * scaleY;
+                        s.setScale(sx, sy);
+                        s.setPosition(drawX, drawY);
+                        fenetre.draw(s);
+                    }
+                    else if (hasFloor)
+                    {
+                        sf::Sprite s;
+                        s.setTexture(floorTex);
+                        float sx = (static_cast<float>(tileSize) / static_cast<float>(floorTex.getSize().x)) * scaleX;
+                        float sy = (static_cast<float>(tileSize) / static_cast<float>(floorTex.getSize().y)) * scaleY;
+                        s.setScale(sx, sy);
+                        s.setPosition(drawX, drawY);
+                        fenetre.draw(s);
                     }
                 }
             }
         }
+    }
 
-        // 1. Dessiner les portes (carré bleu)
+        // ================================
+        // Dessin des portes
+        // ================================
         for (const auto& door : modele.getCurrentRoomDoors())
         {
             if (door.visualShape)
@@ -102,9 +143,32 @@ namespace Vue
         // 2. (SUPPRIMER) Dessiner les obstacles physiques (ennemis, murs rouges, etc.)
         // for (const auto& obsPtr : modele.getObstacleShapes()) { fenetre.draw(*obsPtr); }
 
-        for (const auto& objective: modele.getCurrentRoomObjectives()) {
-            fenetre.draw(objective.getHitbox());
+        for (const auto& objective : modele.getCurrentRoomObjectives()) {
+            // Debug : afficher infos utiles sur l'objectif
+            // NOTE: ces logs ont été ajoutés temporairement pour diagnostiquer
+            // pourquoi le `sf::Sprite` n'affichait pas la texture. Ils
+            // montrent la position/tailles et si le sprite référence une
+            // texture valide. Une fois le bug corrigé, ces lignes peuvent
+            // être supprimées ou entourées par un flag de debug.
+            
+            sf::Vector2f hp = objective.getHitboxPosition();
+            sf::Vector2f hs = objective.getHitboxSize();
+            sf::Texture tex = objective.getTexture();
+            std::cout << "[DEBUG] Objective: title='" << objective.getTitle() << "' pos=(" << hp.x << "," << hp.y << ") size=(" << hs.x << "," << hs.y << ") texSize=(" << tex.getSize().x << "," << tex.getSize().y << ")" << std::endl;
+
+            // Dessine le sprite s’il est valide
+            sf::Sprite spr = objective.getSprite();
+            const sf::Texture* tptr = spr.getTexture();
+            if (tptr && tptr->getSize().x > 0) {
+                std::cout << "[DEBUG] Objective: drawing sprite (texture ptr=" << reinterpret_cast<const void*>(tptr) << ") scale=(" << spr.getScale().x << "," << spr.getScale().y << ") pos=(" << spr.getPosition().x << "," << spr.getPosition().y << ")" << std::endl;
+                fenetre.draw(spr);
+            }
+            else {
+                std::cout << "[DEBUG] Objective: sprite has no texture, drawing hitbox" << std::endl;
+                fenetre.draw(objective.getHitbox()); // fallback visuel
+            }
         }
+
 
         // 3. Dessiner le joueur (sprite animé si dispo, sinon rectangle)
         const sf::Sprite& ps = modele.getPlayerSprite();
