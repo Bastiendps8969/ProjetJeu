@@ -62,17 +62,14 @@ namespace Modele {
         for (const auto& p : tryPlayerPaths) {
             if (playerTexture.loadFromFile(p)) {
                 playerLoaded = true;
-                std::cout << "[DEBUG] Spritesheet joueur chargée : " << p << std::endl;
                 // assign the texture to the sprite immediately
                 playerSprite.setTexture(playerTexture);
                 playerSprite.setTextureRect(computePlayerTextureRect());
                 break;
-            } else {
-                std::cout << "[DEBUG] Echec chargement spritesheet joueur : " << p << std::endl;
             }
         }
         if (!playerLoaded) {
-            std::cerr << "[DEBUG] Avertissement: impossible de charger la spritesheet joueur (james_adams_textures.png)\n";
+            // (debug supprimé)
         } else {
             playerSprite.setTexture(playerTexture);
             // Initialiser le sprite sur la frame 0 de la row par défaut (playerRow)
@@ -346,9 +343,9 @@ namespace Modele {
         return roomManager->getCurrentRoomName();
     }
 
-    const std::vector<Objective>& Modele::getCurrentRoomObjectives() const
+    std::vector<Objective>& Modele::getCurrentRoomObjectives()
     {
-        static const std::vector<Objective> empty;
+        static std::vector<Objective> empty;
         if (!roomManager) return empty;
         auto& rooms = roomManager->getRooms();
         int idx = roomManager->getCurrentRoomIndex();
@@ -542,21 +539,38 @@ namespace Modele {
 
     }
 
-    // Objective contact accessors
-    void Modele::setObjectiveContact(const Objective &obj) {
+    // Objective contact accessors (pointer based so original objective can be modified)
+    void Modele::setObjectiveContact(Objective* obj) {
         objectiveContact = obj;
+        if (objectiveContact) {
+            std::cout << "[Modele] setObjectiveContact -> " << objectiveContact->getTitle()
+                      << " cesar=" << objectiveContact->isCesar()
+                      << " code=" << objectiveContact->getCode() << std::endl;
+        }
     }
 
     void Modele::setObjectiveContactDetectee(const bool b) {
         objectiveContactDetectee = b;
     }
 
-    Objective Modele::getObjectiveContact() const {
+    Objective* Modele::getObjectiveContact() const {
         return objectiveContact;
     }
 
     bool Modele::getObjectiveContactDetectee() const {
         return objectiveContactDetectee;
+    }
+
+    bool Modele::hasDialogueTriggered() const {
+        return dialogueTriggeredFlag;
+    }
+
+    void Modele::setDialogueTriggered(bool v) {
+        dialogueTriggeredFlag = v;
+    }
+
+    void Modele::resetDialogueTriggered() {
+        dialogueTriggeredFlag = false;
     }
 
     bool Modele::setTileTexture(int id, const std::string& path)
@@ -603,14 +617,47 @@ namespace Modele {
     }
         // Réinitialise l'état du modèle (joueur, ennemis, objectifs, etc.)
         void Modele::reset() {
-            // Réinitialiser la position du joueur
-            joueur.setPosition(0, 0);
+            // Réinitialiser la position du joueur à la position de départ de la pièce 0 (ou défaut)
+            float startX = 0.f, startY = 0.f;
+            if (roomManager && roomManager->getRooms().count(0)) {
+                auto& room0 = roomManager->getRooms()[0];
+                // Si le JSON contient un champ "playerStartX/Y", utilise-le, sinon centre par défaut
+                if (!room0.objectives.empty()) {
+                    // Cherche un objectif "player_start" pour la position de départ (optionnel)
+                    for (const auto& obj : room0.objectives) {
+                        if (obj.getTitle() == "player_start") {
+                            startX = obj.getHitboxPosition().x;
+                            startY = obj.getHitboxPosition().y;
+                            break;
+                        }
+                    }
+                }
+                if (startX == 0.f && startY == 0.f) {
+                    // Par défaut, centre l'écran
+                    float boxSize = joueur.getSize().x;
+                    startX = roomManager->getScreenW() * 0.5f - boxSize * 0.5f;
+                    startY = roomManager->getScreenH() * 0.5f - boxSize * 0.5f;
+                }
+            }
+            joueur.setPosition(startX, startY);
             playerFrameIndex = 0;
             playerRow = 3;
             playerIsMoving = false;
-            // Réinitialiser les objectifs, ennemis, etc. selon la logique du jeu
+            // Réinitialiser tous les objectifs de toutes les rooms
+            if (roomManager) {
+                for (auto& [idx, room] : roomManager->getRooms()) {
+                    for (auto& obj : room.objectives) {
+                        obj.setAccomplished(false);
+                        obj.setCesar(obj.isCesar()); // conserve le flag césar
+                        obj.setCode(obj.getCode()); // conserve le code
+                        obj.setchangeValue(obj.getChangeValue()); // conserve la valeur
+                    }
+                }
+            }
             collisionDetectee = false;
             joueurDetecte = false;
-            // Si besoin, vider ou réinitialiser d'autres membres ici
+            objectiveContactDetectee = false;
+            dialogueTriggeredFlag = false;
+            // If we recreate rooms we should also reset roomManager to reload level state.
         }
 }

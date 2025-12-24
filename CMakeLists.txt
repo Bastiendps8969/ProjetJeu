@@ -43,6 +43,7 @@ add_executable(TestCollision
         Vue/PauseMenu.h
         Vue/CesarVue.cpp
         Vue/ConfirmationDialog.cpp
+        Modele/MapManager.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)

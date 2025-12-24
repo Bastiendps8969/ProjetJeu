@@ -148,6 +148,7 @@ namespace Controleur
 
                     while (fenetre.isOpen()) {
                         Vue::PauseMenu pause(modele);
+                        pause.setActive(true);
 
                         // Pause loop
                         while (fenetre.isOpen() && pause.isActive()) {

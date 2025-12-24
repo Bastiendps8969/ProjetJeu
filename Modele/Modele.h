@@ -69,8 +69,10 @@ namespace Modele
         const float DOOR_THICKNESS = 100.f;
 
         //  Collision with objective
-        Objective objectiveContact;
-        bool objectiveContactDetectee;
+        Objective* objectiveContact = nullptr;
+        bool objectiveContactDetectee = false;
+        // Dialogue triggered flag (keeps state about whether a dialogue was triggered)
+        bool dialogueTriggeredFlag = false;
 
     public:
         // Constructeur
@@ -99,7 +101,7 @@ namespace Modele
         const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
         const std::vector<Door>& getCurrentRoomDoors() const;
         std::string getCurrentRoomName() const;
-        const std::vector<Objective>& getCurrentRoomObjectives() const;
+        std::vector<Objective>& getCurrentRoomObjectives();
 
         // NOUVEAU: Getters pour les dimensions de l'écran (déléguent au RoomManager)
         float getScreenW() const;
@@ -145,10 +147,10 @@ namespace Modele
         // Synchronise l'échelle/position du sprite joueur avec le RectangleShape (taille & position)
         void syncPlayerSprite();
 
-        //  Objective collision
-        void setObjectiveContact(const Objective& obj);
+        //  Objective collision (use pointers so original objects can be modified)
+        void setObjectiveContact(Objective* obj);
         void setObjectiveContactDetectee(const bool b);
-        Objective getObjectiveContact() const;
+        Objective* getObjectiveContact() const;
         bool getObjectiveContactDetectee() const;
 
 

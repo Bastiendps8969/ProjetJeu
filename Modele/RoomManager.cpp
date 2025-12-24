@@ -112,6 +112,10 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                     objective.setHitboxSize(objJson.value("w", 32.f), objJson.value("h", 32.f));
                     objective.setDialogueFile(objJson.value("dialogueFile", std::string("")));
                     objective.setDialogueRef(objJson.value("dialogueRef", std::string("")));
+                    // Optional Cesar fields (present in ProjetJeu format)
+                    objective.setCesar(objJson.value("cesar", false));
+                    objective.setCode(objJson.value("code", std::string("")));
+                    objective.setchangeValue(objJson.value("changeValue", 0));
                     newRoom.objectives.emplace_back(std::move(objective));
                 }
             }

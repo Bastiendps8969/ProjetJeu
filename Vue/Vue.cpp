@@ -154,13 +154,12 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
             sf::Vector2f hp = objective.getHitboxPosition();
             sf::Vector2f hs = objective.getHitboxSize();
             sf::Texture tex = objective.getTexture();
-            std::cout << "[DEBUG] Objective: title='" << objective.getTitle() << "' pos=(" << hp.x << "," << hp.y << ") size=(" << hs.x << "," << hs.y << ") texSize=(" << tex.getSize().x << "," << tex.getSize().y << ")" << std::endl;
 
             // Dessine le sprite s’il est valide
             sf::Sprite spr = objective.getSprite();
             const sf::Texture* tptr = spr.getTexture();
             if (tptr && tptr->getSize().x > 0) {
-                std::cout << "[DEBUG] Objective: drawing sprite (texture ptr=" << reinterpret_cast<const void*>(tptr) << ") scale=(" << spr.getScale().x << "," << spr.getScale().y << ") pos=(" << spr.getPosition().x << "," << spr.getPosition().y << ")" << std::endl;
+              //  std::cout << "[DEBUG] Objective: drawing sprite (texture ptr=" << reinterpret_cast<const void*>(tptr) << ") scale=(" << spr.getScale().x << "," << spr.getScale().y << ") pos=(" << spr.getPosition().x << "," << spr.getPosition().y << ")" << std::endl;
                 fenetre.draw(spr);
             }
             else {

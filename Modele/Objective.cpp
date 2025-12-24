@@ -34,7 +34,6 @@ Objective::Objective() {
     bool loaded = false;
     for (const auto& p : candidates) {
             if (texture.loadFromFile(p)) {
-                std::cout << "[DEBUG] Objective: loaded texture: " << p << std::endl;
                 // Important: appeler `sprite.setTexture(texture)` après avoir
                 // chargé/copier/déplacé la `sf::Texture`. `sf::Sprite` ne
                 // possède pas la texture mais un pointeur vers celle-ci — si
@@ -112,11 +111,12 @@ Objective::~Objective() {
 // déplacée/copied ailleurs. Pour garantir la validité du sprite après
 // déplacement, on réaffecte la texture au sprite via `sprite.setTexture(texture)`.
 Objective::Objective(Objective&& other) noexcept
-    : title(std::move(other.title)), description(std::move(other.description)),
-      primary(other.primary), accomplished(other.accomplished),
-      hitbox(std::move(other.hitbox)), sprite(std::move(other.sprite)),
-      texture(std::move(other.texture)), dialogueFile(std::move(other.dialogueFile)),
-      dialogueRef(std::move(other.dialogueRef))
+        : title(std::move(other.title)), description(std::move(other.description)),
+            primary(other.primary), accomplished(other.accomplished),
+            hitbox(std::move(other.hitbox)), sprite(std::move(other.sprite)),
+            texture(std::move(other.texture)), dialogueFile(std::move(other.dialogueFile)),
+            dialogueRef(std::move(other.dialogueRef)),
+            cesar(other.cesar), code(std::move(other.code)), changeValue(other.changeValue)
 {
     if (texture.getSize().x > 0 || texture.getSize().y > 0) {
         sprite.setTexture(texture);
@@ -136,6 +136,9 @@ Objective& Objective::operator=(Objective&& other) noexcept
         texture = std::move(other.texture);
         dialogueFile = std::move(other.dialogueFile);
         dialogueRef = std::move(other.dialogueRef);
+        cesar = other.cesar;
+        code = std::move(other.code);
+        changeValue = other.changeValue;
 
         if (texture.getSize().x > 0 || texture.getSize().y > 0) {
             sprite.setTexture(texture);
@@ -149,10 +152,11 @@ Objective& Objective::operator=(Objective&& other) noexcept
 // aussi réaffecter le sprite sur cette nouvelle texture afin d'éviter
 // que le sprite référence l'ancienne texture (ou un pointeur invalide).
 Objective::Objective(const Objective& other)
-    : title(other.title), description(other.description),
-      primary(other.primary), accomplished(other.accomplished),
-      hitbox(other.hitbox), sprite(other.sprite), texture(other.texture),
-      dialogueFile(other.dialogueFile), dialogueRef(other.dialogueRef)
+        : title(other.title), description(other.description),
+            primary(other.primary), accomplished(other.accomplished),
+            hitbox(other.hitbox), sprite(other.sprite), texture(other.texture),
+            dialogueFile(other.dialogueFile), dialogueRef(other.dialogueRef),
+            cesar(other.cesar), code(other.code), changeValue(other.changeValue)
 {
     if (texture.getSize().x > 0 || texture.getSize().y > 0) {
         sprite.setTexture(texture);
@@ -172,6 +176,9 @@ Objective& Objective::operator=(const Objective& other)
         texture = other.texture;
         dialogueFile = other.dialogueFile;
         dialogueRef = other.dialogueRef;
+        cesar = other.cesar;
+        code = other.code;
+        changeValue = other.changeValue;
 
         if (texture.getSize().x > 0 || texture.getSize().y > 0) {
             sprite.setTexture(texture);
