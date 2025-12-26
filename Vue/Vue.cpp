@@ -140,8 +140,18 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
             }
         }
 
-        // 2. (SUPPRIMER) Dessiner les obstacles physiques (ennemis, murs rouges, etc.)
-        // for (const auto& obsPtr : modele.getObstacleShapes()) { fenetre.draw(*obsPtr); }
+        // 2. Dessiner les obstacles physiques (obstacles/decors)
+        for (const auto& obsPtr : modele.getObstacleShapes()) {
+            if (!obsPtr) continue;
+            const sf::Texture* t = obsPtr->getTexture();
+            if (t) {
+                std::cout << "[Vue] Obstacle has texture ptr=" << reinterpret_cast<const void*>(t)
+                          << " size=(" << t->getSize().x << "," << t->getSize().y << ")" << std::endl;
+            } else {
+                std::cout << "[Vue] Obstacle has no texture; drawing fill" << std::endl;
+            }
+            fenetre.draw(*obsPtr);
+        }
 
         for (const auto& objective : modele.getCurrentRoomObjectives()) {
             // Debug : afficher infos utiles sur l'objectif

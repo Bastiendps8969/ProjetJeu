@@ -57,6 +57,7 @@ struct ObstacleDefinition
     std::string type;
     sf::Vector2f position;
     sf::Vector2f size;
+    std::string textureName; // Nom du skin/décor à appliquer (ex: nom de fichier dans Decoration)
 };
 
 // Room
