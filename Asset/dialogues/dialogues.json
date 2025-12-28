@@ -49,14 +49,6 @@
         "text": "Get the information and come back.",
         "displayDuration": 3.0
       }
-    ],
-    "time_up": [
-      {
-        "characterName" : "John Jones",
-        "characterPortraitPath": "Asset/portraits/agent.png",
-        "text": "It seems you've run out of time.\nFor your security you will be evacuated.",
-        "displayDuration": 3.0
-      }
     ]
   }
 }

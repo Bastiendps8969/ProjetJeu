@@ -36,7 +36,7 @@ void ConfirmationDialog::initUI(sf::RenderWindow& fenetre)
 
     // center message
     sf::FloatRect mb = messageText.getLocalBounds();
-    messageText.setPosition(cx - mb.width/2.f - mb.left, cy - 90.f);
+    messageText.setPosition(cx - mb.width/2.f - mb.left, cy - 60.f);
 
     yesButton.setPosition(cx - yesButton.getSize().x - 10.f, cy + 10.f);
     centerLabel(yesLabel, yesButton);

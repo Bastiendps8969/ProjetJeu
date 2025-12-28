@@ -53,71 +53,6 @@ namespace Vue
         }
     }
 
-    ScoreWindow::ScoreWindow(std::function<Modele::ScoreDetails()> getDetails)
-        : getDetailsCb(std::move(getDetails))
-    {
-        if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
-        {
-            fontLoaded = true;
-            Modele::ScoreDetails details = getDetailsCb();
-            initializeDetailedTexts(details);
-        }
-    }
-
-    void ScoreWindow::initializeDetailedTexts(const Modele::ScoreDetails& details)
-    {
-        // Titre
-        titleText.setFont(font);
-        titleText.setString("NIVEAU COMPLETE!");
-        titleText.setCharacterSize(48);
-        titleText.setFillColor(sf::Color(220, 30, 30));
-        titleText.setStyle(sf::Text::Bold);
-
-        // Score total (principale)
-        totalScoreText.setFont(font);
-        totalScoreText.setString("Score Total: " + std::to_string(details.totalScore));
-        totalScoreText.setCharacterSize(32);
-        totalScoreText.setFillColor(sf::Color(255, 200, 140));
-
-        // Clear previous scores
-        levelScores.clear();
-
-        // Time remaining score
-        timeScoreText.setFont(font);
-        std::ostringstream oss1;
-        oss1 << "Temps restant: " << details.secondsRemaining << " s x 500 = " << details.timeScore;
-        timeScoreText.setString(oss1.str());
-        timeScoreText.setCharacterSize(22);
-        timeScoreText.setFillColor(sf::Color(100, 200, 255));
-        levelScores.push_back(timeScoreText);
-
-        // Primary objectives score
-        primaryScoreText.setFont(font);
-        std::ostringstream oss2;
-        oss2 << "Objectifs primaires: " << details.primaryObjectivesCompleted << " x 10000 = " << details.primaryScore;
-        primaryScoreText.setString(oss2.str());
-        primaryScoreText.setCharacterSize(22);
-        primaryScoreText.setFillColor(sf::Color(150, 255, 150));
-        levelScores.push_back(primaryScoreText);
-
-        // Secondary objectives score
-        secondaryScoreText.setFont(font);
-        std::ostringstream oss3;
-        oss3 << "Objectifs secondaires: " << details.secondaryObjectivesCompleted << " x 5000 = " << details.secondaryScore;
-        secondaryScoreText.setString(oss3.str());
-        secondaryScoreText.setCharacterSize(22);
-        secondaryScoreText.setFillColor(sf::Color(255, 200, 100));
-        levelScores.push_back(secondaryScoreText);
-
-        detectionMalusText.setFont(font);
-        std::ostringstream oss4;
-        oss4 << "Malus detections: " << details.numberOfDetections << " x -2000 = " << details.detectionMalus;
-        detectionMalusText.setString(oss4.str());
-        detectionMalusText.setCharacterSize(22);
-        detectionMalusText.setFillColor(sf::Color(220, 140, 140));
-        levelScores.push_back(detectionMalusText);
-    }
-
     void ScoreWindow::initializeTexts(const std::vector<int>& scores)
     {
         // Titre
@@ -143,13 +78,15 @@ namespace Vue
 
             std::ostringstream oss;
             if (i == 0)
-                oss << "Tutorial: " << scores[i];
+                oss << "Tutoriel: " << scores[i];
+            else if (i == 1)
+                oss << "Test Mission: " << scores[i];
             else
-                oss << "Level " << i << ": " << scores[i];
+                oss << "Mission " << (i - 1) << ": " << scores[i];
 
             levelText.setString(oss.str());
             levelText.setCharacterSize(20);
-            levelText.setFillColor(sf::Color(200, 200, 200));
+            levelText.setFillColor(sf::Color(230, 230, 230));
             levelScores.push_back(levelText);
         }
     }

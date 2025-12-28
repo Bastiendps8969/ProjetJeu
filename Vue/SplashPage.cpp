@@ -103,9 +103,8 @@ namespace Vue
             startText.setFillColor(sf::Color(255,255,255,60));
 
         sf::FloatRect tb = startText.getLocalBounds();
-        //  y had been changed for better visual
         startText.setPosition((float)win.x * 0.5f - tb.width / 2.f - tb.left,
-                              (float)win.y * 0.93f - tb.height / 2.f - tb.top);
+                              (float)win.y * 0.78f - tb.height / 2.f - tb.top);
 
         fenetre.draw(startText);
 

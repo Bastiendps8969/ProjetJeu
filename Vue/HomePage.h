@@ -11,8 +11,6 @@
 #include <string>
 #include <functional>
 #include <vector>
-#include <memory>
-#include "CreditsWindow.h"
 
 namespace Vue
 {
@@ -52,9 +50,6 @@ namespace Vue
 
         bool soundsOn = true;
         bool showCredits = false;
-
-        // Fenêtre de crédits (modale)
-        std::unique_ptr<CreditsWindow> creditsWindow;
 
         // Arrière-plan "Cherub" (semi-transparent si présent)
         sf::Texture cherubTexture;

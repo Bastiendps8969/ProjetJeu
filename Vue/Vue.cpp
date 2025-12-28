@@ -2,7 +2,6 @@
 #include <cmath>
 #include "Modele.h"
 #include <iostream>
-#include <string>
 
 namespace Vue {
 
@@ -28,13 +27,6 @@ Vue::Vue(Modele::Modele& modele)
         joueurDetecteText.setFillColor(sf::Color::Yellow);
         joueurDetecteText.setStyle(sf::Text::Bold);
         joueurDetecteText.setPosition(10.f, 40.f);
-
-        livesText.setFont(font);
-        livesText.setString("Lives: 3");
-        livesText.setCharacterSize(28);
-        livesText.setFillColor(sf::Color::Red);
-        livesText.setStyle(sf::Text::Bold);
-        livesText.setPosition(10.f, 70.f);
     }
     else if (font.loadFromFile("arial.ttf"))
     {
@@ -158,7 +150,7 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
             // montrent la position/tailles et si le sprite référence une
             // texture valide. Une fois le bug corrigé, ces lignes peuvent
             // être supprimées ou entourées par un flag de debug.
-
+            
             sf::Vector2f hp = objective.getHitboxPosition();
             sf::Vector2f hs = objective.getHitboxSize();
             sf::Texture tex = objective.getTexture();
@@ -175,6 +167,7 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
                 fenetre.draw(objective.getHitbox()); // fallback visuel
             }
         }
+
 
         // 3. Dessiner le joueur (sprite animé si dispo, sinon rectangle)
         const sf::Sprite& ps = modele.getPlayerSprite();
@@ -270,13 +263,6 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
         if (fontCharge && modele.isJoueurDetecte())
         {
             fenetre.draw(joueurDetecteText);
-        }
-
-        // 6. Affichage des vies
-        if (fontCharge)
-        {
-            livesText.setString("Lives: " + std::to_string(modele.getLives()));
-            fenetre.draw(livesText);
         }
     }
 

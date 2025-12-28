@@ -3,20 +3,13 @@
     "name": "Salle de depart (0)",
     "mapFile": "Asset/Map/Map1.json",
     "doors": {
-      "right": 1,
-      "down": -1
+      "right": 1
     },
     "obstacles": [
       { "type": "rect", "x": 300, "y": 200, "w": 50, "h": 200 },
       { "type": "rect", "x": 600, "y": 600, "w": 200, "h": 50 }
     ],
     "objectives": [
-      {
-        "title": "Use ZQSD to move your character",
-        "description": "",
-        "texture": "",
-        "primary": true
-      },
       {
         "title": "Bertrand's computer",
         "description": "Bertrand's computer.",

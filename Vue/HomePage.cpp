@@ -163,13 +163,6 @@ namespace Vue
     {
         if (!active) return;
 
-        // Transmettre les événements à la fenêtre de crédits si elle est active
-        if (creditsWindow && creditsWindow->isActive())
-        {
-            creditsWindow->handleEvent(event);
-            return;
-        }
-
         if (event.type == sf::Event::TextEntered)
         {
             if (event.text.unicode >= 32 && event.text.unicode < 127 && playerName.size() < 32 && inputFocused)
@@ -211,15 +204,7 @@ namespace Vue
 
             if (creditsButton.getGlobalBounds().contains(world))
             {
-                // Créer ou afficher la fenêtre de crédits
-                if (!creditsWindow)
-                {
-                    creditsWindow = std::make_unique<CreditsWindow>();
-                }
-                else
-                {
-                    creditsWindow->setActive(true);
-                }
+                showCredits = !showCredits;
                 return;
             }
 
@@ -353,12 +338,6 @@ namespace Vue
             fenetre.draw(txt);
         }
 
-        // Afficher la fenêtre de crédits si active
-        if (creditsWindow && creditsWindow->isActive())
-        {
-            creditsWindow->draw(fenetre);
-        }
-
         fenetre.display();
     }
 
@@ -387,8 +366,13 @@ namespace Vue
     {
         CreditsWindow creditsWindow;
 
-        // Afficher les crédits comme une modale sur la page d'accueil
-        // La fenêtre parent est maintenant la fenêtre du jeu passée à handleEvent
+        // Si CreditsWindow fournit sa propre boucle de fenêtre, l'utiliser.
+        // Sinon, boucle de rendu locale utilisant update()/draw()
+        while (creditsWindow.isWindowOpen() && creditsWindow.isActive())
+        {
+            creditsWindow.update();
+            creditsWindow.draw();
+        }
     }
 
     // Ouvre le sélecteur LevelPage dans une fenêtre plein écran et stocke la sélection.

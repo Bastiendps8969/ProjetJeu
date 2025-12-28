@@ -128,7 +128,6 @@ namespace Controleur
         Vue::DialogueManager dialogueManager;
         bool agentDialogueLaunched = false; // Ajout
         bool cesrDialogueClosed = false;  // Track si dialogue César terminé pour ouvrir CesarVue
-        bool timeDialogueLaunched = false; // guard to start time-up dialogue once
 
         sf::Clock fpsTimer;
         int fpsFrames = 0;
@@ -200,8 +199,7 @@ namespace Controleur
                                 // Go back to main menu and recreate a fresh controller afterwards
                                 afficherMenuAccueil();
                                 if (!niveauController) {
-                                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                                        timeDialogueLaunched = false;
+                                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                                 }
                                 break; // exit pause handling
                             } else {
@@ -261,15 +259,6 @@ namespace Controleur
                 agentDialogueLaunched = false;
             }
 
-            // Start time-up dialogue once when timer reaches zero
-            if (niveauController && !timeDialogueLaunched && !dialogueManager.isDialogueActive()) {
-                if (niveauController->getRemainingSeconds() == 0) {
-                    //  Launch the dialogue
-                    dialogueManager.startDialogueSequence("time_up");
-                    timeDialogueLaunched = true;
-                }
-            }
-
             // Si dialogue objectif César terminé, ouvrir la fenêtre CesarVue
             bool shouldOpen = niveauController->shouldOpenCesarWindow();
             bool dialogueNotActive = !dialogueManager.isDialogueActive();
@@ -300,13 +289,7 @@ namespace Controleur
                 cesrDialogueClosed = false;
             }
 
-            // Pause the level timer while dialogues are active
-            if (!niveauController) {
-                // Ensure model is reset so any previous progress is cleared
-                modele.reset();
-                niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                timeDialogueLaunched = false;
-            }
+            // Geler le gameplay si un dialogue est actif
             if (!dialogueManager.isDialogueActive())
             {
                 niveauController->handleInput();
@@ -315,66 +298,11 @@ namespace Controleur
                 modele.updateEnemies(); // update enemy logic + animations (from sav)
                 niveauController->checkDoors();
             }
-                // If the level controller requested exit (via door -> -1 + confirmation), handle it here
-                if (niveauController->isExitRequested()) {
-                    // Destroy current level so replay starts from a fresh state
-                    modele.reset();
-                    niveauController.reset();
-
-                    // Go back to main menu and recreate a fresh controller afterwards
-                    afficherMenuAccueil();
-                    if (!niveauController) {
-                        modele.reset();
-                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                        timeDialogueLaunched = false;
-                    }
-                    // skip rest of this frame iteration
-                    continue;
-                }
-
-                // Check if game over (lives = 0)
-                if (niveauController->isGameOver()) {
-                    std::cout << "[Controleur] Game Over! No more lives." << std::endl;
-                    // Destroy current level so replay starts from a fresh state
-                    modele.reset();
-                    niveauController.reset();
-
-                    // Go back to main menu
-                    afficherMenuAccueil();
-                    if (!niveauController) {
-                        modele.reset();
-                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                        timeDialogueLaunched = false;
-                    }
-                    // skip rest of this frame iteration
-                    continue;
-                }
 
             vue.dessiner(fenetre);
-            // draw HUD timer from the level controller
-            if (niveauController) {
-                niveauController->drawUI(fenetre);
-            }
 
             dialogueManager.update(fenetre.getSize());
             dialogueManager.draw(fenetre);
-
-            // If the time-up dialogue finished, return to main menu
-            if (timeDialogueLaunched && !dialogueManager.isDialogueActive()) {
-                // Destroy current level and reset model
-                modele.reset();
-                niveauController.reset();
-
-                // Show main menu and recreate a fresh controller afterwards
-                afficherMenuAccueil();
-                if (!niveauController) {
-                    modele.reset();
-                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                }
-                timeDialogueLaunched = false;
-                // skip rendering the rest of this frame
-                continue;
-            }
 
             fenetre.display();
 
