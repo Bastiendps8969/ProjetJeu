@@ -43,6 +43,10 @@ add_executable(TestCollision
         Vue/PauseMenu.h
         Vue/CesarVue.cpp
         Vue/ConfirmationDialog.cpp
+        Vue/ConfirmationDialog.h
+        Vue/SplashPage.cpp
+        Modele/ScoreCalculator.cpp
+        Modele/ScoreCalculator.h
         Modele/MapManager.cpp
 )
 

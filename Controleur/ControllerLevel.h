@@ -4,6 +4,7 @@
 
 #include "Modele.h"
 #include "Vue.h"
+#include "ScoreCalculator.h"
 
 namespace Vue { class DialogueManager; }
 
@@ -29,6 +30,26 @@ public:
     bool shouldOpenCesarWindow() const;
     Objective* getCesarObjective();
     void resetCesarWindowFlag();
+    // Vérifie si une fenêtre César doit s'ouvrir (après dialogue objectif César)
+    bool isExitRequested() const { return exitRequestedFlag; }
+
+    // Score API
+    Modele::ScoreDetails getScoreDetails() const;
+    bool areAllSecondaryObjectivesCompleted() const;
+
+    // Level timer API
+    int getRemainingSeconds() const;
+    void resetLevelTimer();
+    void drawUI(sf::RenderWindow& fenetre);
+    // Pause control for the level timer (public so Controleur can toggle it)
+    void setTimerPaused(bool p);
+    bool isTimerPaused() const { return timerPaused; }
+
+    // Life system API
+    int getLives() const;
+    void loseLivesByDetection(bool isHuman);
+    bool isGameOver() const;
+
 
 private:
     Modele::Modele& modele;
@@ -41,6 +62,22 @@ private:
     // --- Ajouts pour la fenêtre Cesar ---
     bool openCesarWindow = false;
     Objective* cesarObjective = nullptr;
+    bool exitRequestedFlag = false;
+    bool playerWasDetectedLastFrame = false;  // Track if player was detected to apply life loss only once
+    // Level timer (countdown in seconds)
+    const int levelTimerStartSeconds = 10; // 300
+
+    // Timer internal data
+    sf::Clock levelTimerClock;
+    sf::Font hudFont;
+    bool hudFontLoaded = false;
+    sf::Text uiText;
+    // Pause support for the timer
+    bool timerPaused = false;
+    double pauseStartSeconds = 0.0;
+    double pausedAccumulated = 0.0; // total seconds paused
+
+
 };
 
 } // namespace Controleur

@@ -2,6 +2,7 @@
 #include "Agent.h"
 #include "Enemy.h"
 #include "RoomManager.h"
+#include "Level.h"
 #include <cmath>
 #include <limits>
 #include <fstream>
@@ -600,6 +601,39 @@ namespace Modele {
     }
 
     void Modele::setFloorMatrix(const std::vector<std::vector<int>>& m)
+    int Modele::getLives() const
+    {
+        return currentLevel ? currentLevel->getLives() : 0;
+    }
+
+    void Modele::loseLives(int amount)
+    {
+        if (currentLevel) {
+            currentLevel->loseLives(amount);
+        }
+    }
+
+    bool Modele::isGameOver() const
+    {
+        return currentLevel ? currentLevel->isGameOver() : false;
+    }
+
+    int Modele::getDetectionCount() const
+    {
+        return detectionCount;
+    }
+
+    void Modele::incrementDetectionCount()
+    {
+        detectionCount++;
+    }
+
+    void Modele::resetDetectionCount()
+    {
+        detectionCount = 0;
+    }
+
+    void Modele::reset()
     {
         if (mapManager) mapManager->setFloorMatrix(m);
     }
@@ -659,5 +693,29 @@ namespace Modele {
             objectiveContactDetectee = false;
             dialogueTriggeredFlag = false;
             // If we recreate rooms we should also reset roomManager to reload level state.
+        // Reset lives to 3
+        if (currentLevel) {
+            currentLevel->setLives(3);
+        }
+        // Reset player position and animation
+        joueur.setPosition(0.f, 0.f);
+        playerFrameIndex = 0;
+        playerRow = 3;
+        playerClock.restart();
+        playerIsMoving = false;
+
+        // Reset flags
+        collisionDetectee = false;
+        joueurDetecte = false;
+        objectiveContactDetectee = false;
+        dialogueTriggeredFlag = false;
+
+        // Destroy and recreate the room manager / level to ensure a fresh level state
+        float screenW = getScreenW();
+        float screenH = getScreenH();
+        roomManager.reset();
+        roomManager = std::make_unique<RoomManager>(screenW, screenH);
+        if (!currentLevelPath.empty() && roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
+            roomManager->changeRoom(0, "", joueur);
         }
 }
