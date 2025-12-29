@@ -3,6 +3,9 @@
 #include <iostream>
 #include "../cmake-build-debug/json.hpp"
 #include <cmath>
+#include <unordered_map>
+#include <memory>
+#include <filesystem>
 
 using json = nlohmann::json;
 
@@ -88,6 +91,7 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                     def.position.y = obsJson.value("y", 0.f);
                     def.size.x = obsJson.value("w", 64.f);
                     def.size.y = obsJson.value("h", 64.f);
+                    def.textureName = obsJson.value("textureName", "");
                     newRoom.obstacleDefs.emplace_back(std::move(def));
                 }
             }
@@ -210,12 +214,70 @@ void RoomManager::initializeRoomShapes(Room& room)
 {
     // Create obstacle shapes from definitions (rectangles for now)
     room.obstacleShapes.clear();
+    // Cache textures to avoid reloading the same file multiple times
+    static std::unordered_map<std::string, std::shared_ptr<sf::Texture>> texCache;
+    namespace fs = std::filesystem;
     for (const auto& def : room.obstacleDefs)
     {
         if (def.type == "rect") {
             auto rect = std::make_unique<sf::RectangleShape>(def.size);
             rect->setPosition(def.position);
-            rect->setFillColor(sf::Color::Red);
+            // Draw a visible green outline for debugging / visibility
+            rect->setOutlineColor(sf::Color::Green);
+            rect->setOutlineThickness(2.f);
+            // If a texture name is provided, try to load and apply it
+            if (!def.textureName.empty()) {
+                std::string rel = std::string("Asset/Decoration/") + def.textureName;
+                std::vector<std::string> candidates;
+                candidates.push_back(rel);
+                candidates.push_back("./" + rel);
+                candidates.push_back("../" + rel);
+                candidates.push_back("../../" + rel);
+                // also try build output relative paths (cmake-build-debug)
+                candidates.push_back(std::string("cmake-build-debug/") + rel);
+                candidates.push_back(std::string("./cmake-build-debug/") + rel);
+
+                std::shared_ptr<sf::Texture> tex;
+                std::string usedPath;
+                // Try to find a candidate that exists
+                for (const auto& c : candidates) {
+                    fs::path p = c;
+                    bool exists = false;
+                    try { exists = fs::exists(p); } catch(...) { exists = false; }
+                    std::cout << "[RoomManager] Trying texture path: '" << c << "' (exists=" << (exists?"yes":"no") << ")" << std::endl;
+                    if (exists) {
+                        usedPath = c;
+                        break;
+                    }
+                }
+
+                // if none exists, still try the original rel path last
+                if (usedPath.empty()) usedPath = rel;
+
+                auto it = texCache.find(usedPath);
+                if (it != texCache.end()) {
+                    tex = it->second;
+                } else {
+                    tex = std::make_shared<sf::Texture>();
+                    std::cout << "[RoomManager] Loading texture from: " << usedPath << std::endl;
+                    if (tex->loadFromFile(usedPath)) {
+                        tex->setSmooth(true);
+                        texCache[usedPath] = tex;
+                        std::cout << "[RoomManager] Texture loaded OK: " << usedPath << std::endl;
+                    } else {
+                        std::cerr << "[RoomManager] Failed to load obstacle texture: " << usedPath << std::endl;
+                        tex.reset();
+                    }
+                }
+
+                if (tex) {
+                    rect->setTexture(tex.get());
+                } else {
+                    rect->setFillColor(sf::Color::Red);
+                }
+            } else {
+                rect->setFillColor(sf::Color::Red);
+            }
             room.obstacleShapes.emplace_back(std::move(rect));
         }
     }
