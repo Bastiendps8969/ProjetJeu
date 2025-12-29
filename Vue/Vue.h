@@ -19,6 +19,9 @@ namespace Vue
         // Texte pour détection joueur
         sf::Text joueurDetecteText;
 
+        // Texte pour les vies
+        sf::Text livesText;
+
     public:
         // Constructeur
         Vue(Modele::Modele& modele);

@@ -19,6 +19,7 @@ namespace Vue
         DialogueManager(const std::string& dialogueFilePath = "Asset/dialogues/dialogues.json");
 
         void startDialogueSequence(const std::string& sequenceId);
+        bool hasDialogueSequence(const std::string& sequenceId) const;
         void nextDialogue();
         bool isDialogueActive() const { return dialogueBox.isActive(); }
 

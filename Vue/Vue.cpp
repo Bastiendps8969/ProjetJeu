@@ -2,6 +2,7 @@
 #include <cmath>
 #include "Modele.h"
 #include <iostream>
+#include <string>
 
 namespace Vue {
 
@@ -21,23 +22,30 @@ Vue::Vue(Modele::Modele& modele)
         collisionText.setStyle(sf::Text::Bold);
         collisionText.setPosition(10.f, 10.f);
 
-        joueurDetecteText.setFont(font);
-        joueurDetecteText.setString("Joueur detecte !");
-        joueurDetecteText.setCharacterSize(22);
-        joueurDetecteText.setFillColor(sf::Color::Yellow);
-        joueurDetecteText.setStyle(sf::Text::Bold);
-        joueurDetecteText.setPosition(10.f, 40.f);
+            joueurDetecteText.setFont(font);
+            joueurDetecteText.setString("Joueur detecte !");
+            joueurDetecteText.setCharacterSize(22);
+            joueurDetecteText.setFillColor(sf::Color::Yellow);
+            joueurDetecteText.setStyle(sf::Text::Bold);
+            joueurDetecteText.setPosition(10.f, 40.f);
+
+            livesText.setFont(font);
+            livesText.setString("Lives: 3");
+            livesText.setCharacterSize(28);
+            livesText.setFillColor(sf::Color::Red);
+            livesText.setStyle(sf::Text::Bold);
+            livesText.setPosition(10.f, 70.f);
+        }
+        else if (font.loadFromFile("arial.ttf"))
+        {
+            fontCharge = true;
+            std::cout << "[DEBUG] Police chargée : arial.ttf (local)" << std::endl;
+        }
+        else
+        {
+            std::cerr << "[DEBUG] Erreur: Impossible de charger la police (arial.ttf)." << std::endl;
+        }
     }
-    else if (font.loadFromFile("arial.ttf"))
-    {
-        fontCharge = true;
-        std::cout << "[DEBUG] Police chargée : arial.ttf (local)" << std::endl;
-    }
-    else
-    {
-        std::cerr << "[DEBUG] Erreur: Impossible de charger la police (arial.ttf)." << std::endl;
-    }
-}
 
 // DÉFINITION : Méthode de dessin principale
 void Vue::dessiner(sf::RenderWindow& fenetre)
@@ -153,17 +161,26 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
             fenetre.draw(*obsPtr);
         }
 
-        for (const auto& objective : modele.getCurrentRoomObjectives()) {
+        auto& currentObjectives = modele.getCurrentRoomObjectives();
+        if (!currentObjectives.empty()) {
+            std::cout << "[Vue] Current room has " << currentObjectives.size() << " objectives:\n";
+            for (const auto& o : currentObjectives) {
+                const sf::Sprite& s = o.getSprite();
+                const sf::Texture* tptr = s.getTexture();
+                std::cout << "  - '" << o.getTitle() << "' pos=(" << o.getHitboxPosition().x << "," << o.getHitboxPosition().y << ") size=(" << o.getHitboxSize().x << "," << o.getHitboxSize().y << ") texPtr=" << reinterpret_cast<const void*>(tptr) << " dialog='" << o.getDialogueRef() << "' cesar=" << o.isCesar() << std::endl;
+            }
+        }
+
+        for (const auto& objective : currentObjectives) {
             // Debug : afficher infos utiles sur l'objectif
             // NOTE: ces logs ont été ajoutés temporairement pour diagnostiquer
             // pourquoi le `sf::Sprite` n'affichait pas la texture. Ils
             // montrent la position/tailles et si le sprite référence une
             // texture valide. Une fois le bug corrigé, ces lignes peuvent
             // être supprimées ou entourées par un flag de debug.
-            
+
             sf::Vector2f hp = objective.getHitboxPosition();
             sf::Vector2f hs = objective.getHitboxSize();
-            sf::Texture tex = objective.getTexture();
 
             // Dessine le sprite s’il est valide
             sf::Sprite spr = objective.getSprite();
@@ -273,6 +290,13 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
         if (fontCharge && modele.isJoueurDetecte())
         {
             fenetre.draw(joueurDetecteText);
+        }
+
+        // 6. Affichage des vies
+        if (fontCharge)
+        {
+            livesText.setString("Lives: " + std::to_string(modele.getLives()));
+            fenetre.draw(livesText);
         }
     }
 

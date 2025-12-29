@@ -2,6 +2,7 @@
 #include "Agent.h"
 #include "Enemy.h"
 #include "RoomManager.h"
+#include "Level.h"
 #include <cmath>
 #include <limits>
 #include <fstream>
@@ -23,7 +24,7 @@ namespace Modele {
 
     // Constructeur : toutes les variables membres sont maintenant initialisées
     Modele::Modele()
-    : collisionDetectee(false)
+    : collisionDetectee(false), currentLevel(std::make_unique<Level>("Tutorial", "Test level"))
     {
         // Détermine la résolution du bureau
         sf::VideoMode dm = sf::VideoMode::getDesktopMode();
@@ -119,7 +120,8 @@ namespace Modele {
         // une logique dédiée. On laisse donc `floorMatrix` tel quel.
 
         // Chargement des pièces via RoomManager
-        if (roomManager->loadRoomsFromJson("Asset/levels/tutorial/tutorial_1.json") && roomManager->getRooms().count(0))
+        currentLevelPath = "Asset/levels/tutorial/tutorial_1.json";
+        if (roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0))
         {
             roomManager->changeRoom(0, "", joueur);
             // positionner le joueur au centre de l'écran
@@ -604,6 +606,40 @@ namespace Modele {
         if (mapManager) mapManager->setFloorMatrix(m);
     }
 
+    int Modele::getLives() const
+    {
+        return currentLevel ? currentLevel->getLives() : 0;
+    }
+
+    void Modele::loseLives(int amount)
+    {
+        if (currentLevel) {
+            currentLevel->loseLives(amount);
+        }
+    }
+
+    bool Modele::isGameOver() const
+    {
+        return currentLevel ? currentLevel->isGameOver() : false;
+    }
+
+    int Modele::getDetectionCount() const
+    {
+        return detectionCount;
+    }
+
+    void Modele::incrementDetectionCount()
+    {
+        detectionCount++;
+    }
+
+    void Modele::resetDetectionCount()
+    {
+        detectionCount = 0;
+    }
+
+    // (old stray small reset removed — a full reset implementation is present later in this file)
+
     int Modele::getTileSize() const
     {
         return mapManager ? mapManager->getTileSize() : 0;
@@ -659,5 +695,37 @@ namespace Modele {
             objectiveContactDetectee = false;
             dialogueTriggeredFlag = false;
             // If we recreate rooms we should also reset roomManager to reload level state.
+        // Reset lives to 3
+        if (currentLevel) {
+            currentLevel->setLives(3);
         }
+        // Reset player position and animation
+        joueur.setPosition(0.f, 0.f);
+        playerFrameIndex = 0;
+        playerRow = 3;
+        playerClock.restart();
+        playerIsMoving = false;
+
+        // Reset flags
+        collisionDetectee = false;
+        joueurDetecte = false;
+        objectiveContactDetectee = false;
+        dialogueTriggeredFlag = false;
+
+        // Destroy and recreate the room manager / level to ensure a fresh level state
+        float screenW = getScreenW();
+        float screenH = getScreenH();
+        roomManager.reset();
+        roomManager = std::make_unique<RoomManager>(screenW, screenH);
+        if (!currentLevelPath.empty() && roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
+            roomManager->changeRoom(0, "", joueur);
+        }
+
+        // Clear and reload enemies for current room
+        enemies.clear();
+        reloadEnemiesForCurrentRoom();
+
+        // Sync sprite with rectangle
+        syncPlayerSprite();
+    }
 }

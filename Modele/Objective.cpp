@@ -19,48 +19,11 @@ Objective::Objective() {
     hitbox.setOutlineColor(sf::Color::Magenta);
     hitbox.setOutlineThickness(1.f);
 
-    // Texture par défaut (optionnelle) — tenter plusieurs chemins courants
-    // Notes:
-    // - Les chemins tentés couvrent l'emplacement dans le repo source
-    //   (`Asset/...`) et l'emplacement copié dans le dossier de build
-    //   (`cmake-build-debug/Asset/...`). Cela évite les problèmes
-    //   liés au répertoire de travail lors de l'exécution depuis CLion
-    //   ou depuis l'exécutable buildé.
-    std::vector<std::string> candidates = {
-        "Asset/objectives/computer_on_table.png",
-        "cmake-build-debug/Asset/objectives/computer_on_table.png",
-        "../cmake-build-debug/Asset/objectives/computer_on_table.png"
-    };
-    bool loaded = false;
-    for (const auto& p : candidates) {
-            if (texture.loadFromFile(p)) {
-                // Important: appeler `sprite.setTexture(texture)` après avoir
-                // chargé/copier/déplacé la `sf::Texture`. `sf::Sprite` ne
-                // possède pas la texture mais un pointeur vers celle-ci — si
-                // la texture est réallouée ou déplacée, le pointeur du sprite
-                // peut devenir invalide. En (ré)affectant explicitement la
-                // texture ici on garantit que le sprite référence bien les
-                // pixels chargés.
-                sprite.setTexture(texture);
-
-                // Ajuster la taille du sprite à la hitbox
-                sprite.setScale(
-                    hitbox.getSize().x / texture.getSize().x,
-                    hitbox.getSize().y / texture.getSize().y
-                );
-                sprite.setPosition(hitbox.getPosition());
-
-                // retirer le contour de debug si la texture est chargée
-                hitbox.setOutlineThickness(0.f);
-                loaded = true;
-                break;
-            } else {
-                std::cout << "[DEBUG] Objective: failed to load texture: " << p << std::endl;
-            }
-    }
-    if (!loaded) {
-        std::cerr << "Erreur: impossible de charger la texture d'objectif par défaut" << std::endl;
-    }
+    // Ne pas charger de texture par défaut ici. Si le JSON ne fournit pas de
+    // texture pour cet objectif, on affichera simplement la hitbox de debug
+    // (contour magenta) au lieu d'un sprite par défaut non désiré.
+    // L'affectation d'une texture doit être faite explicitement via
+    // `setTexture()` lorsque le JSON en spécifie une.
 }
 
 Objective::Objective(std::string t, std::string d, sf::Texture tex,

@@ -67,6 +67,12 @@ namespace Vue
         dialogueSequences[id] = sequence;
     }
 
+    bool DialogueManager::hasDialogueSequence(const std::string& sequenceId) const
+    {
+        auto it = dialogueSequences.find(sequenceId);
+        return it != dialogueSequences.end() && !it->second.empty();
+    }
+
     void DialogueManager::startDialogueSequence(const std::string& sequenceId)
     {
         auto it = dialogueSequences.find(sequenceId);
