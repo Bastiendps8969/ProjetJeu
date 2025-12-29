@@ -15,7 +15,7 @@
 using json = nlohmann::json;
 
 namespace Modele {
-
+    //  Just a new comment
     const float DOOR_MARGIN = 20.f;
 
     // Room loading is handled by RoomManager now.
