@@ -65,13 +65,14 @@ private:
     bool playerWasDetectedLastFrame = false;  // Track if player was detected to apply life loss only once
     bool agentDialogueStartedForCurrentDetection = false; // prevent re-triggering agent dialog while still detected
     // Level timer (countdown in seconds)
-    const int levelTimerStartSeconds = 10; // 300
+    const int levelTimerStartSeconds = 120; // 300
 
     // Timer internal data
     sf::Clock levelTimerClock;
     sf::Font hudFont;
     bool hudFontLoaded = false;
     sf::Text uiText;
+    sf::Text uiScoreText;
     // Pause support for the timer
     bool timerPaused = false;
     double pauseStartSeconds = 0.0;

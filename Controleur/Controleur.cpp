@@ -32,8 +32,7 @@ namespace Controleur
     {
         // Lambda pour récupérer les scores du joueur
         auto getScores = [this]() -> std::vector<int> {
-            std::vector<int> scores(12, 0); // Placeholder: 12 niveaux avec score 0
-            return scores;
+            return this->playerScores; // return stored scores (may be empty)
         };
 
         // 1) afficher splash
@@ -98,6 +97,9 @@ namespace Controleur
 
             if (roomId >= 0)
             {
+                // Starting a new playthrough: clear previous stored scores and reset detection count
+                modele.resetDetectionCount();
+                playerScores.clear();
                 if (!modele.changeRoom(roomId, "")) // entryDirection vide => centrage par défaut
                 {
                     std::cerr << "[Controleur] Échec du chargement du niveau (room " << roomId << ")\n";
@@ -122,6 +124,9 @@ namespace Controleur
         if (!niveauController) {
             // Ensure model is reset so any previous progress is cleared
             modele.reset();
+            // Reset stored scores and detection count when starting a fresh controller/level
+            modele.resetDetectionCount();
+            playerScores.clear();
             niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
         }
 
@@ -144,6 +149,7 @@ namespace Controleur
             afficherMenuAccueil();
             if (!niveauController) {
                 modele.reset();
+                playerScores.clear();
                 niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                 timeDialogueLaunched = false;
             }
@@ -227,10 +233,13 @@ namespace Controleur
 
                                 // Go back to main menu and recreate a fresh controller afterwards
                                 afficherMenuAccueil();
-                                if (!niveauController) {
+                                    if (!niveauController) {
+                                        // new playthrough: reset detection count and clear stored scores
+                                        modele.resetDetectionCount();
+                                        playerScores.clear();
                                         niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                                         timeDialogueLaunched = false;
-                                }
+                                    }
                                 break; // exit pause handling
                             } else {
                                 // user canceled -> reopen pause menu (continue loop)
@@ -332,6 +341,8 @@ namespace Controleur
             if (!niveauController) {
                 // Ensure model is reset so any previous progress is cleared
                 modele.reset();
+                modele.resetDetectionCount();
+                playerScores.clear();
                 niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                 timeDialogueLaunched = false;
             }
@@ -345,6 +356,14 @@ namespace Controleur
             }
                 // If the level controller requested exit (via door -> -1 + confirmation), handle it here
                 if (niveauController->isExitRequested()) {
+                    // Capture final score before destroying level
+                    try {
+                        Modele::ScoreDetails details = niveauController->getScoreDetails();
+                        playerScores.push_back(details.totalScore);
+                    } catch (...) {
+                        // ignore if something goes wrong retrieving score
+                    }
+
                     // Destroy current level so replay starts from a fresh state
                     modele.reset();
                     niveauController.reset();
@@ -353,6 +372,8 @@ namespace Controleur
                     afficherMenuAccueil();
                     if (!niveauController) {
                         modele.reset();
+                        modele.resetDetectionCount();
+                        playerScores.clear();
                         niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                         timeDialogueLaunched = false;
                     }
@@ -385,7 +406,7 @@ namespace Controleur
 
                 gameOverRequested = false;
                 processGameOver();
-                continue; // ⚠️ ON SORT DE LA FRAME
+                continue;
 
             }
 
@@ -400,6 +421,8 @@ namespace Controleur
                 afficherMenuAccueil();
                 if (!niveauController) {
                     modele.reset();
+                    modele.resetDetectionCount();
+                    playerScores.clear();
                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                 }
                 timeDialogueLaunched = false;

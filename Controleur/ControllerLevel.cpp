@@ -23,6 +23,9 @@ ControllerLevel::ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::Rend
         uiText.setFont(hudFont);
         uiText.setCharacterSize(28);
         uiText.setFillColor(sf::Color::White);
+        uiScoreText.setFont(hudFont);
+        uiScoreText.setCharacterSize(28);
+        uiScoreText.setFillColor(sf::Color::Yellow);
     }
 }
 
@@ -237,6 +240,19 @@ void ControllerLevel::drawUI(sf::RenderWindow& fenetre)
     float y = 20.f;
     uiText.setPosition(x - tb.left, y - tb.top);
     fenetre.draw(uiText);
+
+    // Score HUD (top-left)
+    // Show only objective/detection components during play (exclude time so it doesn't decrease)
+    const std::vector<Objective>& objectives = modele.getCurrentRoomObjectives();
+    Modele::ScoreDetails nonTimeDetails = Modele::ScoreCalculator::calculateScore(objectives, 0, modele.getDetectionCount());
+    std::ostringstream scoreStr;
+    scoreStr << "Score: " << nonTimeDetails.primaryScore + nonTimeDetails.secondaryScore + nonTimeDetails.detectionMalus;
+    uiScoreText.setString(scoreStr.str());
+    sf::FloatRect sb = uiScoreText.getLocalBounds();
+    float sx = 20.f;
+    float sy = 20.f;
+    uiScoreText.setPosition(sx - sb.left, sy - sb.top);
+    fenetre.draw(uiScoreText);
 }
 
 void ControllerLevel::setTimerPaused(bool p)
@@ -311,31 +327,27 @@ void ControllerLevel::checkDoors()
                 if (!fenetre.isOpen()) break;
 
                 if (confirm.isConfirmed()) {
-                    // Check if all secondary AND primary objectives are completed
-                    if (areAllSecondaryObjectivesCompleted() && Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getCurrentRoomObjectives()))
+                    // Always show score screen on exit
+                    Vue::ScoreWindow scoreWindow([this]() -> Modele::ScoreDetails {
+                        return this->getScoreDetails();
+                    });
+
+                    while (fenetre.isOpen() && scoreWindow.isActive())
                     {
-                        // Show score screen
-                        Vue::ScoreWindow scoreWindow([this]() -> Modele::ScoreDetails {
-                            return this->getScoreDetails();
-                        });
-
-                        while (fenetre.isOpen() && scoreWindow.isActive())
+                        sf::Event se;
+                        while (fenetre.pollEvent(se))
                         {
-                            sf::Event se;
-                            while (fenetre.pollEvent(se))
-                            {
-                                if (se.type == sf::Event::Closed) fenetre.close();
-                                scoreWindow.handleEvent(se);
-                            }
-
-                            scoreWindow.draw(fenetre);
+                            if (se.type == sf::Event::Closed) fenetre.close();
+                            scoreWindow.handleEvent(se);
                         }
 
-                        if (!fenetre.isOpen()) break;
+                        scoreWindow.draw(fenetre);
                     }
-                    
+
+                    if (!fenetre.isOpen()) break;
+
                     exitRequestedFlag = true;
-                    
+
                 } else {
                     // canceled -> do not exit level
                     int x = modele.getJoueur().getPosition().x;

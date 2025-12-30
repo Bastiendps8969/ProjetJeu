@@ -2,6 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <memory>
+#include <vector>
 #include "Modele.h"
 #include "Vue.h"
 #include "../Vue/PauseMenu.h"
@@ -27,6 +28,9 @@ namespace Controleur
 
         // Pause menu (modal during gameplay)
         std::unique_ptr<Vue::PauseMenu> pauseMenu;
+
+        // Stored player scores (appended when a level is exited)
+        std::vector<int> playerScores;
 
         // --- NOUVEAU: Affichage du menu d'accueil ---
         void afficherMenuAccueil();
