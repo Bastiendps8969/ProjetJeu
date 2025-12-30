@@ -36,6 +36,8 @@ private:
 
 	// UI elements
 	sf::Text titleText;
+	// Shadow for title to match other menus
+	sf::Text titleShadow;
 	sf::RectangleShape resumeButton;
 	sf::Text resumeLabel;
 	sf::RectangleShape exitLevelButton;

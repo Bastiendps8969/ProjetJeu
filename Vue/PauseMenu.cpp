@@ -12,31 +12,47 @@ PauseMenu::PauseMenu(Modele::Modele& modele)
 {
 	fontLoaded = font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
 
+	// Title styling (match other menus)
 	titleText.setFont(font);
-	titleText.setString("Pause");
-	titleText.setCharacterSize(40);
-	titleText.setFillColor(textColor);
+	titleText.setString("PAUSE");
+	titleText.setCharacterSize(48);
+	titleText.setFillColor(sf::Color(255,80,80));
+	titleText.setStyle(sf::Text::Bold);
 
-	resumeButton.setSize(sf::Vector2f(300.f, 80.f));
+	// Shadow for consistency with HomePage
+	titleShadow = titleText;
+	titleShadow.setFillColor(sf::Color(0,0,0,160));
+
+	// Buttons (sizes/labels)
+	resumeButton.setSize(sf::Vector2f(360.f, 72.f));
 	resumeButton.setFillColor(buttonColor);
+	resumeButton.setOutlineColor(sf::Color(255,100,100));
+	resumeButton.setOutlineThickness(0.f);
 	resumeLabel.setFont(font);
 	resumeLabel.setString("Resume");
-	resumeLabel.setCharacterSize(24);
+	resumeLabel.setCharacterSize(28);
 	resumeLabel.setFillColor(textColor);
+	resumeLabel.setStyle(sf::Text::Bold);
 
-	exitLevelButton.setSize(sf::Vector2f(300.f, 80.f));
+	exitLevelButton.setSize(sf::Vector2f(360.f, 72.f));
 	exitLevelButton.setFillColor(buttonColor);
+	exitLevelButton.setOutlineColor(sf::Color(255,100,100));
+	exitLevelButton.setOutlineThickness(0.f);
 	exitLevelLabel.setFont(font);
 	exitLevelLabel.setString("Exit level");
-	exitLevelLabel.setCharacterSize(24);
+	exitLevelLabel.setCharacterSize(28);
 	exitLevelLabel.setFillColor(textColor);
+	exitLevelLabel.setStyle(sf::Text::Bold);
 
-	exitGameButton.setSize(sf::Vector2f(300.f, 80.f));
+	exitGameButton.setSize(sf::Vector2f(360.f, 72.f));
 	exitGameButton.setFillColor(buttonColor);
+	exitGameButton.setOutlineColor(sf::Color(255,100,100));
+	exitGameButton.setOutlineThickness(0.f);
 	exitGameLabel.setFont(font);
 	exitGameLabel.setString("Exit game");
-	exitGameLabel.setCharacterSize(24);
+	exitGameLabel.setCharacterSize(28);
 	exitGameLabel.setFillColor(textColor);
+	exitGameLabel.setStyle(sf::Text::Bold);
 
 
 }
@@ -64,6 +80,37 @@ void PauseMenu::centerLabel(sf::Text& label, const sf::RectangleShape& button)
 	sf::FloatRect tb = label.getLocalBounds();
 	sf::FloatRect bb = button.getGlobalBounds();
 	label.setPosition(bb.left + (bb.width - tb.width)/2.f - tb.left, bb.top + (bb.height - tb.height)/2.f - tb.top);
+}
+
+// Reuse the same stylized button rendering used on HomePage to keep visual consistency
+static void drawStyledButton(sf::RenderWindow& window, sf::RectangleShape button, sf::Text label, bool hovered)
+{
+	// Base du bouton (couleurs adaptées selon l'état)
+	sf::RectangleShape base = button;
+	sf::Color baseColor = hovered ? sf::Color(230, 60, 60) : sf::Color(170, 30, 30);
+	base.setFillColor(baseColor);
+	base.setOutlineColor(hovered ? sf::Color(255, 120, 80) : sf::Color(200, 80, 60));
+	base.setOutlineThickness(hovered ? 4.f : 2.f);
+	window.draw(base);
+
+	// Lueur au survol
+	if (hovered)
+	{
+		sf::RectangleShape glow = button;
+		glow.setFillColor(sf::Color::Transparent);
+		glow.setOutlineColor(sf::Color(255, 160, 110, 200));
+		glow.setOutlineThickness(6.f);
+		window.draw(glow);
+	}
+
+	// Texte centré dans le bouton
+	sf::FloatRect lb = label.getLocalBounds();
+	label.setPosition(
+		button.getPosition().x + (button.getSize().x - lb.width) / 2.f - lb.left,
+		button.getPosition().y + (button.getSize().y - lb.height) / 2.f - lb.top
+	);
+	label.setFillColor(hovered ? sf::Color(255, 250, 240) : sf::Color(255, 220, 200));
+	window.draw(label);
 }
 
 void PauseMenu::updateButtonColors()
@@ -169,15 +216,21 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
 		}
 	}
 
-	// Title and buttons
+	// Title and buttons (use shared stylized rendering)
+	// Draw shadow + title
+	titleShadow.setPosition(titleText.getPosition().x + 3.f, titleText.getPosition().y + 3.f);
+	fenetre.draw(titleShadow);
 	fenetre.draw(titleText);
 
-	fenetre.draw(resumeButton);
-	fenetre.draw(resumeLabel);
+	// Hover detection (mouse or keyboard selection)
+	sf::Vector2i mousePixel = sf::Mouse::getPosition(fenetre);
+	sf::Vector2f mousePos = fenetre.mapPixelToCoords(mousePixel);
+	bool hoveredResume = resumeButton.getGlobalBounds().contains(mousePos) || selectedOption == Option::Resume;
+	bool hoveredExitLevel = exitLevelButton.getGlobalBounds().contains(mousePos) || selectedOption == Option::ExitLevel;
+	bool hoveredExitGame = exitGameButton.getGlobalBounds().contains(mousePos) || selectedOption == Option::ExitGame;
 
-	fenetre.draw(exitLevelButton);
-	fenetre.draw(exitLevelLabel);
-
-	fenetre.draw(exitGameButton);
-	fenetre.draw(exitGameLabel);
+	// Draw buttons using the shared styled function for consistent look
+	drawStyledButton(fenetre, resumeButton, resumeLabel, hoveredResume);
+	drawStyledButton(fenetre, exitLevelButton, exitLevelLabel, hoveredExitLevel);
+	drawStyledButton(fenetre, exitGameButton, exitGameLabel, hoveredExitGame);
 }
