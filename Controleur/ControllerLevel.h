@@ -77,6 +77,7 @@ private:
     bool timerPaused = false;
     double pauseStartSeconds = 0.0;
     double pausedAccumulated = 0.0; // total seconds paused
+        bool timerActive = false; // true once the level timer has been started
 
 
 };

@@ -107,6 +107,8 @@ namespace Controleur
                 else
                 {
                     std::cout << "[Controleur] Niveau sélectionné chargé : room " << roomId << "\n";
+                    // Start the level timer now that the player actually entered the level
+                    if (niveauController) niveauController->resetLevelTimer();
                 }
             }
         }

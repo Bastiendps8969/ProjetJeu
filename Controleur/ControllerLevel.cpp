@@ -15,8 +15,8 @@ namespace Controleur {
 ControllerLevel::ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::RenderWindow& fenetre)
     : modele(modele), vue(vue), fenetre(fenetre), mouvement(0.f, 0.f)
 {
-    // Start level timer
-    levelTimerClock.restart();
+    // Do not start the level timer in the constructor — start when the player actually begins the level
+    timerActive = false;
     // Load HUD font
     hudFontLoaded = hudFont.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
     if (hudFontLoaded) {
@@ -206,6 +206,10 @@ void ControllerLevel::update()
 
 int ControllerLevel::getRemainingSeconds() const
 {
+    if (!timerActive) {
+        // Timer hasn't started yet — return full remaining time
+        return levelTimerStartSeconds;
+    }
     double elapsedSec;
     double current = levelTimerClock.getElapsedTime().asSeconds();
     if (timerPaused) {
@@ -224,6 +228,7 @@ void ControllerLevel::resetLevelTimer()
     timerPaused = false;
     pauseStartSeconds = 0.0;
     pausedAccumulated = 0.0;
+    timerActive = true;
 }
 
 void ControllerLevel::drawUI(sf::RenderWindow& fenetre)
