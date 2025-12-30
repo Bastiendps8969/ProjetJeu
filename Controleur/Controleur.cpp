@@ -132,6 +132,7 @@ namespace Controleur
         bool gameOverPending = false; // attente si un dialogue est actif lors du game over
         bool gameOverRequested = false; // demande différée de retour au menu (exécuter quand aucun dialogue n'est actif)
 
+
         // lambda pour centraliser le traitement du Game Over (reset + retour menu)
         auto processGameOver = [&]() {
             std::cout << "[Controleur] Game Over! No more lives." << std::endl;
@@ -153,6 +154,14 @@ namespace Controleur
 
         while (fenetre.isOpen())
         {
+
+            if (!niveauController)
+            {
+                fenetre.clear();
+                fenetre.display();
+                continue;
+            }
+
             sf::Event evenement;
             while (fenetre.pollEvent(evenement))
             {
@@ -354,26 +363,7 @@ namespace Controleur
                 // Check if game over (lives = 0)
                 if (niveauController->isGameOver())
                 {
-                    // Si un dialogue est en cours, on attend qu'il se termine
-                    if (dialogueManager.isDialogueActive())
-                    {
-                        gameOverPending = true;
-                    }
-                    else
-                    {
-                        // Si un dialogue "game_over" existe, on le joue
-                        if (dialogueManager.hasDialogueSequence("game_over"))
-                        {
-                            dialogueManager.startDialogueSequence("game_over");
-                            gameOverPending = true;
-                        }
-                        else
-                        {
-                            gameOverRequested = true;
-                        }
-                    }
-
-                    continue;
+                    gameOverRequested = true;
                 }
 
 
@@ -393,21 +383,10 @@ namespace Controleur
                 gameOverPending = false;
                 gameOverRequested = false;
 
-                // Détruit le niveau actuel
-                modele.reset();
-                niveauController.reset();
+                gameOverRequested = false;
+                processGameOver();
+                continue; // ⚠️ ON SORT DE LA FRAME
 
-                // Retour au menu
-                afficherMenuAccueil();
-
-                // Recréation d’un niveau propre
-                if (!niveauController)
-                {
-                    modele.reset();
-                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                }
-
-                continue;
             }
 
 

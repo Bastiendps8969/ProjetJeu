@@ -50,6 +50,10 @@ Vue::Vue(Modele::Modele& modele)
 // DÉFINITION : Méthode de dessin principale
 void Vue::dessiner(sf::RenderWindow& fenetre)
 {
+
+    if (modele.getFloorMatrix().empty())
+        return;
+
     // ================================
     // Dessin de la carte (tuiles)
     // ================================

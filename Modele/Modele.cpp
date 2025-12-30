@@ -653,6 +653,9 @@ namespace Modele {
     }
         // Réinitialise l'état du modèle (joueur, ennemis, objectifs, etc.)
         void Modele::reset() {
+        objectiveContact = nullptr;
+        objectiveContactDetectee = false;
+
             // Réinitialiser la position du joueur à la position de départ de la pièce 0 (ou défaut)
             float startX = 0.f, startY = 0.f;
             if (roomManager && roomManager->getRooms().count(0)) {
