@@ -72,7 +72,7 @@ void CesarVue::draw(sf::RenderWindow &window) {
     if (isValidated) {
         sf::Text successMessage;
         successMessage.setFont(font);
-        successMessage.setString(objective ? (objective->getTitle() + " ouvert !") : "Ordinateur deverrouille !");
+        successMessage.setString(objective ? (objective->getTitle() + " unlocked!") : "");
         successMessage.setCharacterSize(50);
         successMessage.setFillColor(sf::Color::Green);
         sf::FloatRect successBounds = successMessage.getLocalBounds();
