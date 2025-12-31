@@ -34,7 +34,7 @@ public:
 
     // Score API
     Modele::ScoreDetails getScoreDetails() const;
-    bool areAllSecondaryObjectivesCompleted() const;
+    bool areAllPrimaryObjectivesCompleted() const;
 
     // Level timer API
     int getRemainingSeconds() const;
@@ -65,7 +65,7 @@ private:
     bool playerWasDetectedLastFrame = false;  // Track if player was detected to apply life loss only once
     bool agentDialogueStartedForCurrentDetection = false; // prevent re-triggering agent dialog while still detected
     // Level timer (countdown in seconds)
-    const int levelTimerStartSeconds = 10; // 300
+    const int levelTimerStartSeconds = 300; // 5minutes
 
     // Timer internal data
     sf::Clock levelTimerClock;

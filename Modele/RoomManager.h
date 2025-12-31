@@ -70,6 +70,10 @@ struct Room {
     std::vector<ObstacleDefinition> obstacleDefs;
     std::vector<std::unique_ptr<sf::Shape>> obstacleShapes;
     std::vector<Objective> objectives;
+    // Optional dialogue sequence id associated to this room (refer to dialogues.json)
+    std::string dialogueRef;
+        // Indicates whether the room-level dialogue has already been shown
+        bool dialogueShown = false;
     // Optional external map file for this room (path relative to exe)
     std::string mapFile;
 };
@@ -101,6 +105,13 @@ public:
     std::string getCurrentRoomName() const;
     bool changeRoom(int newRoomIndex, const std::string& entryDirection, sf::RectangleShape& joueur);
     const std::vector<EnemyDefinition>& getCurrentRoomEnemies() const;
+
+    // Return the dialogue reference (sequence id) associated with the current room
+    std::string getCurrentRoomDialogueRef() const;
+
+    // Dialogue shown tracking
+    bool isCurrentRoomDialogueShown() const;
+    void markCurrentRoomDialogueShown();
 
     int getCurrentRoomIndex() const { return currentRoomIndex_; }
     std::map<int, Room>& getRooms() { return rooms_; }

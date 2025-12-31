@@ -112,6 +112,11 @@ namespace Modele
         const std::vector<Door>& getCurrentRoomDoors() const;
         std::string getCurrentRoomName() const;
         std::vector<Objective>& getCurrentRoomObjectives();
+        std::vector<Objective> getAllLevelObjectives() const;
+        int getCurrentRoomIndex() const;
+        std::string getCurrentRoomDialogueRef() const;
+        bool isCurrentRoomDialogueShown() const;
+        void markCurrentRoomDialogueShown();
 
         // NOUVEAU: Getters pour les dimensions de l'écran (déléguent au RoomManager)
         float getScreenW() const;

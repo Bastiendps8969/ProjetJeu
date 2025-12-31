@@ -257,15 +257,15 @@ void ControllerLevel::setTimerPaused(bool p)
 
 Modele::ScoreDetails ControllerLevel::getScoreDetails() const
 {
-    const std::vector<Objective>& objectives = modele.getCurrentRoomObjectives();
+    const std::vector<Objective>& objectives = modele.getAllLevelObjectives();
     int remainingSeconds = getRemainingSeconds();
     return Modele::ScoreCalculator::calculateScore(objectives, remainingSeconds, modele.getDetectionCount());
 }
 
-bool ControllerLevel::areAllSecondaryObjectivesCompleted() const
+bool ControllerLevel::areAllPrimaryObjectivesCompleted() const
 {
-    const std::vector<Objective>& objectives = modele.getCurrentRoomObjectives();
-    return Modele::ScoreCalculator::areAllSecondaryObjectivesCompleted(objectives);
+    const std::vector<Objective>& objectives = modele.getAllLevelObjectives();
+    return Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(objectives);
 }
 
 void ControllerLevel::checkDoors()
@@ -311,8 +311,8 @@ void ControllerLevel::checkDoors()
                 if (!fenetre.isOpen()) break;
 
                 if (confirm.isConfirmed()) {
-                    // Check if all secondary AND primary objectives are completed
-                    if (areAllSecondaryObjectivesCompleted() && Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getCurrentRoomObjectives()))
+                    // Check if all primary objectives are completed
+                    if (areAllPrimaryObjectivesCompleted() && Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getAllLevelObjectives()))
                     {
                         // Show score screen
                         Vue::ScoreWindow scoreWindow([this]() -> Modele::ScoreDetails {
@@ -439,7 +439,6 @@ void ControllerLevel::loseLivesByDetection(bool isHuman)
 bool ControllerLevel::isGameOver() const
 {
     return modele.isGameOver();
-
 }
 
 } // namespace Controleur

@@ -103,6 +103,13 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                 } catch (...) {}
             }
 
+            // Optional: room-level dialogue reference (sequence id in dialogues.json)
+            if (roomJson.contains("dialogueRef")) {
+                try {
+                    newRoom.dialogueRef = roomJson.at("dialogueRef").get<std::string>();
+                } catch (...) { newRoom.dialogueRef = std::string(); }
+            }
+
             // Objectives: parse JSON and construct Objective descriptors
             if (roomJson.contains("objectives")) {
                 for (const auto& objJson : roomJson.at("objectives"))
@@ -311,7 +318,12 @@ void RoomManager::initializeRoomShapes(Room& room)
         // Définition visuelle et calcul des bounds utilisés par le jeu
         // pour détecter les entrées/sorties de pièce.
         if (door.visualShape) {
-            door.visualShape->setFillColor(sf::Color(0, 150, 255, 128));
+            // If targetRoomIndex < 0, this is an exit door -> highlight with a distinct color
+            if (door.targetRoomIndex < 0) {
+                door.visualShape->setFillColor(sf::Color(255, 140, 0, 200)); // orange-ish, more opaque
+            } else {
+                door.visualShape->setFillColor(sf::Color(0, 150, 255, 128)); // default bluish translucent
+            }
             door.bounds = door.visualShape->getGlobalBounds();
         }
     }
@@ -341,6 +353,26 @@ const std::vector<EnemyDefinition>& RoomManager::getCurrentRoomEnemies() const
         // (clonage de prototypes) dans la couche modèle runtime.
         return it->second.enemyDefs;
     return empty;
+}
+
+std::string RoomManager::getCurrentRoomDialogueRef() const
+{
+    auto it = rooms_.find(currentRoomIndex_);
+    if (it != rooms_.end()) return it->second.dialogueRef;
+    return std::string();
+}
+
+bool RoomManager::isCurrentRoomDialogueShown() const
+{
+    auto it = rooms_.find(currentRoomIndex_);
+    if (it != rooms_.end()) return it->second.dialogueShown;
+    return false;
+}
+
+void RoomManager::markCurrentRoomDialogueShown()
+{
+    auto it = rooms_.find(currentRoomIndex_);
+    if (it != rooms_.end()) it->second.dialogueShown = true;
 }
 
 std::string RoomManager::getCurrentRoomName() const

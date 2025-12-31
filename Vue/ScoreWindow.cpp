@@ -84,35 +84,35 @@ namespace Vue
 
         // Time remaining score
         timeScoreText.setFont(font);
-        std::ostringstream oss1;
-        oss1 << "Temps restant: " << details.secondsRemaining << " s x 500 = " << details.timeScore;
-        timeScoreText.setString(oss1.str());
+        std::ostringstream str1;
+        str1 << "Remaining time: " << details.secondsRemaining << " s x 50 = " << details.timeScore;
+        timeScoreText.setString(str1.str());
         timeScoreText.setCharacterSize(22);
         timeScoreText.setFillColor(sf::Color(100, 200, 255));
         levelScores.push_back(timeScoreText);
 
         // Primary objectives score
         primaryScoreText.setFont(font);
-        std::ostringstream oss2;
-        oss2 << "Objectifs primaires: " << details.primaryObjectivesCompleted << " x 10000 = " << details.primaryScore;
-        primaryScoreText.setString(oss2.str());
+        std::ostringstream str2;
+        str2 << "Primary objectives: " << details.primaryObjectivesCompleted << " x 10000 = " << details.primaryScore;
+        primaryScoreText.setString(str2.str());
         primaryScoreText.setCharacterSize(22);
         primaryScoreText.setFillColor(sf::Color(150, 255, 150));
         levelScores.push_back(primaryScoreText);
 
         // Secondary objectives score
         secondaryScoreText.setFont(font);
-        std::ostringstream oss3;
-        oss3 << "Objectifs secondaires: " << details.secondaryObjectivesCompleted << " x 5000 = " << details.secondaryScore;
-        secondaryScoreText.setString(oss3.str());
+        std::ostringstream str3;
+        str3 << "Secondary objectives: " << details.secondaryObjectivesCompleted << " x 5000 = " << details.secondaryScore;
+        secondaryScoreText.setString(str3.str());
         secondaryScoreText.setCharacterSize(22);
         secondaryScoreText.setFillColor(sf::Color(255, 200, 100));
         levelScores.push_back(secondaryScoreText);
 
         detectionMalusText.setFont(font);
-        std::ostringstream oss4;
-        oss4 << "Malus detections: " << details.numberOfDetections << " x -2000 = " << details.detectionMalus;
-        detectionMalusText.setString(oss4.str());
+        std::ostringstream str4;
+        str4 << "Detection malus: " << details.numberOfDetections << " x -2000 = " << details.detectionMalus;
+        detectionMalusText.setString(str4.str());
         detectionMalusText.setCharacterSize(22);
         detectionMalusText.setFillColor(sf::Color(220, 140, 140));
         levelScores.push_back(detectionMalusText);
@@ -141,13 +141,13 @@ namespace Vue
             sf::Text levelText;
             levelText.setFont(font);
 
-            std::ostringstream oss;
+            std::ostringstream str;
             if (i == 0)
-                oss << "Tutorial: " << scores[i];
+                str << "Tutorial: " << scores[i];
             else
-                oss << "Level " << i << ": " << scores[i];
+                str << "Level " << i << ": " << scores[i];
 
-            levelText.setString(oss.str());
+            levelText.setString(str.str());
             levelText.setCharacterSize(20);
             levelText.setFillColor(sf::Color(200, 200, 200));
             levelScores.push_back(levelText);
