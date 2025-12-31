@@ -93,7 +93,6 @@ private:
 public:
     // Constructeur : reçoit la taille d'écran pour positionner les portes
     RoomManager(float w, float h);
-    void setWorldSize(float w, float h);
 
     // Charge et parse le JSON. Retourne true si réussi.
     bool loadRoomsFromJson(const std::string& filename);
