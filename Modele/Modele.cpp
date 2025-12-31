@@ -135,6 +135,29 @@ namespace Modele {
             if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
                 if (!mapManager->loadMapFromFile(it->second.mapFile)) {
                     std::cerr << "Warning: failed to load map file '" << it->second.mapFile << "' for room 0" << std::endl;
+                } else {
+                    // Convert positions that may be tile indices into world pixels
+                    const auto& m = mapManager->getFloorMatrix();
+                    int ts = mapManager->getTileSize();
+                    if (!m.empty() && ts > 0) {
+                        size_t rows = m.size();
+                        size_t cols = 0; for (const auto& row : m) cols = std::max(cols, row.size());
+
+                        for (auto& ed : it->second.enemyDefs) {
+                            if (ed.position.x <= static_cast<float>(cols) && ed.position.y <= static_cast<float>(rows)) {
+                                ed.position.x *= ts; ed.position.y *= ts;
+                            }
+                            for (auto& pt : ed.patrolPoints) {
+                                if (pt.x <= static_cast<float>(cols) && pt.y <= static_cast<float>(rows)) { pt.x *= ts; pt.y *= ts; }
+                            }
+                        }
+
+                        for (auto& obj : it->second.objectives) {
+                            sf::Vector2f hp = obj.getHitboxPosition();
+                            if (hp.x <= static_cast<float>(cols) && hp.y <= static_cast<float>(rows))
+                                obj.setHitboxPosition(hp.x * ts, hp.y * ts);
+                        }
+                    }
                 }
             }
 
@@ -165,143 +188,139 @@ namespace Modele {
     void Modele::reloadEnemiesForCurrentRoom()
     {
         enemies.clear();
-        float refW = 2560.f; // résolution de référence (modifiez selon votre design JSON)
-        float refH = 1440.f;
-        float scaleW = getScreenW() / refW;
-        float scaleH = getScreenH() / refH;
 
         for (const auto& ed : roomManager->getCurrentRoomEnemies())
         {
-            std::vector<sf::Vector2f> patrol;
-            for (const auto& pt : ed.patrolPoints) {
-                patrol.push_back(sf::Vector2f(pt.x * scaleW, pt.y * scaleH));
-            }
-            sf::Vector2f pos(ed.position.x * scaleW, ed.position.y * scaleH);
-            float scaledVisionRange = ed.visionRange * std::sqrt(scaleW * scaleH);
-            float scaledLaserLength = ed.laserLength * std::sqrt(scaleW * scaleH);
+            std::vector<sf::Vector2f> patrol = ed.patrolPoints;
 
-            // Determine type
+            sf::Vector2f pos(ed.position.x, ed.position.y);
+
+            float visionRange = ed.visionRange;
+            float laserLength = ed.laserLength;
+
             std::string type = ed.isLaser ? "laser" : (ed.isCamera ? "camera" : "generic");
             auto it = enemyPrototypes.find(type);
+
             std::unique_ptr<Enemy> e;
             if (it != enemyPrototypes.end()) e = it->second->clone();
             else e = enemyPrototypes["generic"]->clone();
 
-            // common setup
             e->position = pos;
             e->textureName = ed.textureName;
-            // If camera textureName not provided, default to camera_<facing>
-            if (type == "camera" && e->textureName.empty()) {
+
+            if (type == "camera" && e->textureName.empty())
+            {
                 std::string facingDefault = ed.facing.empty() ? "left" : ed.facing;
                 e->textureName = std::string("camera_") + facingDefault;
             }
 
-            // Load texture depending on enemy type. Cameras use their own asset folder
-            if (type == "camera") {
+            // Chargement textures (ta logique conservée)
+            if (type == "camera")
+            {
                 const std::vector<std::string> tryPathsCam = {
                     "cmake-build-debug/Asset/camera/" + e->textureName + ".png",
                     "Asset/camera/" + e->textureName + ".png",
                     "camera/" + e->textureName + ".png",
                     e->textureName + ".png"
                 };
-                bool camLoaded = false;
-                std::cout << "[DEBUG] Chargement texture camera: name='" << e->textureName << "'\n";
-                for (const auto& p : tryPathsCam) {
-                    std::cout << "[DEBUG]  Trying camera texture path: " << p << std::endl;
-                    if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); camLoaded = true; std::cout << "[DEBUG]   -> Loaded camera texture: " << p << std::endl; break; }
-                    else std::cout << "[DEBUG]   -> Failed: " << p << std::endl;
-                }
-                if (!camLoaded) {
-                    std::cerr << "[DEBUG] Avertissement: impossible de charger texture camera pour '" << e->textureName << "'\n";
-                } else {
-                    // Camera-specific settings: assume static image (no sprite-sheet animation)
-                    e->frameCount = 1;
-                    e->idleFrameCount = 1;
-                    e->frameIndex = 0;
-                    e->isMoving = false;
 
-                    sf::Vector2u ts = e->texture.getSize();
-                    if (ts.x > 0 && ts.y > 0) {
-                        // Use the real texture size for camera sprite rect and origin
-                        e->sprite.setTextureRect(sf::IntRect(0, 0, static_cast<int>(ts.x), static_cast<int>(ts.y)));
-                        e->sprite.setOrigin(static_cast<float>(ts.x) / 2.f, static_cast<float>(ts.y) / 2.f);
-                        e->sprite.setScale(1.f, 1.f);
-                        // Keep tileSize in case other logic depends on it, set to min dimension
-                        e->tileSize = static_cast<int>(std::min(ts.x, ts.y));
-                    } else {
-                        e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
-                        e->sprite.setScale(2.5f, 2.5f);
-                    }
-                    // Apply rotation based on facing (if CameraEnemy was configured)
-                    CameraEnemy* cc = dynamic_cast<CameraEnemy*>(e.get());
-                    if (cc) {
-                        if (cc->facing == "left") e->sprite.setRotation(180.f);
-                        else if (cc->facing == "up") e->sprite.setRotation(-90.f);
-                        else if (cc->facing == "down") e->sprite.setRotation(90.f);
-                        else e->sprite.setRotation(0.f);
+                bool camLoaded = false;
+                for (const auto& p : tryPathsCam)
+                {
+                    if (e->texture.loadFromFile(p))
+                    {
+                        e->sprite.setTexture(e->texture);
+                        camLoaded = true;
+                        break;
                     }
                 }
+
+                if (camLoaded)
+                {
+                    sf::Vector2u ts = e->texture.getSize();
+                    if (ts.x > 0 && ts.y > 0)
+                    {
+                        e->sprite.setTextureRect(sf::IntRect(0, 0, (int)ts.x, (int)ts.y));
+                        e->sprite.setOrigin((float)ts.x / 2.f, (float)ts.y / 2.f);
+                        e->sprite.setScale(1.f, 1.f);
+                        e->tileSize = (int)std::min(ts.x, ts.y);
+                    }
+                }
+
+                CameraEnemy* c = dynamic_cast<CameraEnemy*>(e.get());
+                if (c)
+                {
+                    c->facing = ed.facing;
+                    if (c->facing == "left")  c->direction = {-1.f, 0.f};
+                    else if (c->facing == "right") c->direction = {1.f, 0.f};
+                    else if (c->facing == "up")    c->direction = {0.f, -1.f};
+                    else c->direction = {0.f, 1.f};
+
+                    // Rotation sprite si tu veux (optionnel)
+                    if (c->facing == "left") e->sprite.setRotation(180.f);
+                    else if (c->facing == "up") e->sprite.setRotation(-90.f);
+                    else if (c->facing == "down") e->sprite.setRotation(90.f);
+                    else e->sprite.setRotation(0.f);
+                }
+
+                e->isCamera = true;
+                e->isLaser = false;
+                e->visionRange = visionRange;
+                e->visionAngle = ed.visionAngle;
             }
-            else {
-                // load texture if present (other enemies use Human spritesheets / tiles)
+            else
+            {
                 const std::vector<std::string> tryPathsTex = {
                     "cmake-build-debug/Asset/Human/" + e->textureName + ".png",
                     "Asset/Human/" + e->textureName + ".png",
                     "Human/" + e->textureName + ".png",
                     e->textureName + ".png"
                 };
-                std::cout << "[DEBUG1] Chargement texture ennemi: type='" << type << "' name='" << e->textureName << "'\n";
-                for (const auto& p : tryPathsTex) {
-                    std::cout << "[DEBUG1]  Trying enemy texture path: " << p << std::endl;
-                    if (e->texture.loadFromFile(p)) { e->sprite.setTexture(e->texture); std::cout << "[DEBUG]   -> Loaded enemy texture: " << p << std::endl; break; }
-                    else std::cout << "[DEBUG1]   -> Failed: " << p << std::endl;
+
+                for (const auto& p : tryPathsTex)
+                {
+                    if (e->texture.loadFromFile(p))
+                    {
+                        e->sprite.setTexture(e->texture);
+                        break;
+                    }
                 }
+
                 e->sprite.setOrigin(e->tileSize / 2.f, e->tileSize / 2.f);
                 e->sprite.setScale(2.5f, 2.5f);
-            }
 
-            if (type == "generic") {
-                GenericEnemy* g = dynamic_cast<GenericEnemy*>(e.get());
-                if (g) {
-                    g->patrolPoints = patrol;
-                    g->speed = ed.speed;
-                    if (!g->patrolPoints.empty())
-                        g->direction = Enemy::normalize(g->patrolPoints[0] - g->position);
+                if (type == "generic")
+                {
+                    GenericEnemy* g = dynamic_cast<GenericEnemy*>(e.get());
+                    if (g)
+                    {
+                        g->patrolPoints = patrol;
+                        g->speed = ed.speed;
+                        if (!g->patrolPoints.empty())
+                            g->direction = Enemy::normalize(g->patrolPoints[0] - g->position);
+                    }
+
+                    e->isCamera = false;
+                    e->isLaser = false;
+                    e->visionRange = visionRange;
+                    e->visionAngle = ed.visionAngle;
                 }
-                e->isCamera = false;
-                e->isLaser = false;
-                e->visionRange = scaledVisionRange;
-                e->visionAngle = ed.visionAngle;
-            }
-            else if (type == "camera") {
-                CameraEnemy* c = dynamic_cast<CameraEnemy*>(e.get());
-                if (c) {
-                    c->facing = ed.facing;
-                    // `visionRange` / `visionAngle` sont des membres hérités de la classe de base `Enemy`.
-                    // On positionne les valeurs via l'objet `e` ci‑dessous.
-                    if (c->facing == "left") c->direction = {-1.f, 0.f};
-                    else if (c->facing == "right") c->direction = {1.f, 0.f};
-                    else if (c->facing == "up") c->direction = {0.f, -1.f};
-                    else c->direction = {0.f, 1.f};
+                else if (type == "laser")
+                {
+                    LaserEnemy* l = dynamic_cast<LaserEnemy*>(e.get());
+                    if (l)
+                    {
+                        l->facing = ed.facing;
+                        if (l->facing == "left")  l->direction = {-1.f, 0.f};
+                        else if (l->facing == "right") l->direction = {1.f, 0.f};
+                        else if (l->facing == "up")    l->direction = {0.f, -1.f};
+                        else l->direction = {0.f, 1.f};
+                    }
+
+                    e->isLaser = true;
+                    e->isCamera = false;
+                    e->laserLength = laserLength;
                 }
-                e->isCamera = true;
-                e->isLaser = false;
-                e->visionRange = scaledVisionRange;
-                e->visionAngle = ed.visionAngle;
-            }
-            else if (type == "laser") {
-                LaserEnemy* l = dynamic_cast<LaserEnemy*>(e.get());
-                if (l) {
-                    l->facing = ed.facing;
-                    // `laserLength` est hérité de `Enemy`; on l'initialise via `e` ci-dessous.
-                    if (l->facing == "left") l->direction = {-1.f, 0.f};
-                    else if (l->facing == "right") l->direction = {1.f, 0.f};
-                    else if (l->facing == "up") l->direction = {0.f, -1.f};
-                    else l->direction = {0.f, 1.f};
-                }
-                e->isLaser = true;
-                e->isCamera = false;
-                e->laserLength = scaledLaserLength;
             }
 
             enemies.push_back(std::move(e));
@@ -531,28 +550,89 @@ namespace Modele {
 
     bool Modele::changeRoom(int newRoomIndex, const std::string& entryDirection)
     {
-        bool ok = roomManager->changeRoom(newRoomIndex, entryDirection, joueur);
-        setCollisionDetectee(false);
-        setJoueurDetecte(false);
-        if (ok) {
-            // Charger la map uniquement si elle existe
-            auto& rooms = roomManager->getRooms();
-            auto it = rooms.find(newRoomIndex);
-            if (it != rooms.end() && !it->second.mapFile.empty()) {
-                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+        if (!roomManager) return false;
+
+        // 1) Préparer map du futur room avant teleport
+        auto& rooms = roomManager->getRooms();
+        auto it = rooms.find(newRoomIndex);
+
+        if (it != rooms.end())
+        {
+            if (!it->second.mapFile.empty() && mapManager)
+            {
+                if (!mapManager->loadMapFromFile(it->second.mapFile))
+                {
                     std::cerr << "Warning: failed to load map file '"
                               << it->second.mapFile << "' for room "
                               << newRoomIndex << std::endl;
                 }
-            } else {
-                // Aucune mapFile -> on efface la carte
-                mapManager->clearMap();
+                else
+                {
+                    // Heuristic: convert positions given as tile indices into world pixels
+                    const auto& m = mapManager->getFloorMatrix();
+                    int ts = mapManager->getTileSize();
+                    if (!m.empty() && ts > 0)
+                    {
+                        size_t rows = m.size();
+                        size_t cols = 0; for (const auto& row : m) cols = std::max(cols, row.size());
+
+                        for (auto& ed : it->second.enemyDefs)
+                        {
+                            if (ed.position.x <= static_cast<float>(cols) && ed.position.y <= static_cast<float>(rows))
+                            {
+                                ed.position.x *= ts; ed.position.y *= ts;
+                            }
+                            for (auto& pt : ed.patrolPoints)
+                            {
+                                if (pt.x <= static_cast<float>(cols) && pt.y <= static_cast<float>(rows)) { pt.x *= ts; pt.y *= ts; }
+                            }
+                        }
+
+                        for (auto& obj : it->second.objectives)
+                        {
+                            sf::Vector2f hp = obj.getHitboxPosition();
+                            if (hp.x <= static_cast<float>(cols) && hp.y <= static_cast<float>(rows))
+                                obj.setHitboxPosition(hp.x * ts, hp.y * ts);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (mapManager) mapManager->clearMap();
             }
 
-            reloadEnemiesForCurrentRoom();
-        }
-        return ok;
+            // 2) [MODIF] world size d'après la map
+            if (mapManager)
+            {
+                const auto& m = mapManager->getFloorMatrix();
+                int ts = mapManager->getTileSize();
 
+                if (!m.empty() && ts > 0)
+                {
+                    size_t rows = m.size();
+                    size_t cols = 0;
+                    for (const auto& row : m) cols = std::max(cols, row.size());
+
+                    float worldW = static_cast<float>(cols * ts);
+                    float worldH = static_cast<float>(rows * ts);
+
+                    roomManager->setWorldSize(worldW, worldH);
+                }
+            }
+        }
+
+        // 3) Teleport joueur après setWorldSize (portes correctes)
+        bool ok = roomManager->changeRoom(newRoomIndex, entryDirection, joueur);
+
+        setCollisionDetectee(false);
+        setJoueurDetecte(false);
+
+        if (ok)
+            reloadEnemiesForCurrentRoom();
+
+        syncPlayerSprite();
+        return ok;
     }
 
     int Modele::getCurrentRoomIndex() const
@@ -754,11 +834,33 @@ namespace Modele {
         dialogueTriggeredFlag = false;
 
         // Destroy and recreate the room manager / level to ensure a fresh level state
-        float screenW = getScreenW();
-        float screenH = getScreenH();
+        // Use desktop resolution as a safe temporary until the map sets the real world size
+        sf::VideoMode dm = sf::VideoMode::getDesktopMode();
+        float desktopW = static_cast<float>(dm.width);
+        float desktopH = static_cast<float>(dm.height);
         roomManager.reset();
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
+        roomManager = std::make_unique<RoomManager>(desktopW, desktopH);
         if (!currentLevelPath.empty() && roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
+            // If the room references a map file, load it so RoomManager can get the world size
+            auto& rooms = roomManager->getRooms();
+            auto it = rooms.find(0);
+            if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
+                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                    std::cerr << "Warning: failed to load map file '" << it->second.mapFile << "' for room 0\n";
+                } else {
+                    // set world size from map
+                    const auto& m = mapManager->getFloorMatrix();
+                    int ts = mapManager->getTileSize();
+                    if (!m.empty() && ts > 0) {
+                        size_t rows = m.size();
+                        size_t cols = 0; for (const auto& row : m) cols = std::max(cols, row.size());
+                        float worldW = static_cast<float>(cols * ts);
+                        float worldH = static_cast<float>(rows * ts);
+                        roomManager->setWorldSize(worldW, worldH);
+                    }
+                }
+            }
+
             roomManager->changeRoom(0, "", joueur);
         }
 

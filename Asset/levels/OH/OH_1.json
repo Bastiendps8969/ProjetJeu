@@ -1,26 +1,135 @@
 {
   "0": {
     "name": "Salle de depart (0)",
+    "mapFile": "Asset/Map/Map1.json",
     "doors": {
-      "right": 1
+      "right": 1,
+      "up": 2,
+      "down": -1
     },
     "obstacles": [
-      { "type": "rect", "x": 300, "y": 200, "w": 50, "h": 200 },
-      { "type": "rect", "x": 600, "y": 600, "w": 200, "h": 50 }
+      { "type": "rect", "x": 300, "y": 200, "w": 200, "h": 130, "textureName": "objects_house_0000_Layer-1.png" },
+      { "type": "rect", "x": 600, "y": 600, "w": 200, "h": 50, "textureName": "objects_house_0001_Layer-2.png" }
     ],
     "objectives": [
       {
-        "title": "Bastien's computer",
-        "description": "Strange computer belonging to the autistic Bastien.",
+        "title": "Bertrand's computer",
+        "description": "Bertrand's computer.",
         "texture": "Asset/objectives/computer_on_table.png",
         "primary": true,
         "x": 1500,
-        "y": 600,
+        "y": 800,
         "w": 64,
         "h": 64,
         "dialogueFile" : "Asset/dialogues/dialogues.json",
-        "dialogueRef" : "primary_objective"
+        "dialogueRef" : "primary_objective",
+        "cesar": true,
+        "code": "ABCD",
+        "changeValue": 1
+      },
+      {
+        "title": "Sebastian's computer",
+        "description": "Sebastian's computer.",
+        "texture": "Asset/objectives/computer_on_table.png",
+        "primary": false,
+        "x": 1500,
+        "y": 400,
+        "w": 64,
+        "h": 64,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "primary_objective",
+        "cesar": false,
+        "code": "ABCD",
+        "changeValue": 1
       }
+    ],
+    "enemies": [
+      {
+        "x": 2400,
+        "y": 700,
+        "type": "camera",
+        "facing": "left",
+        "texture": "camera_left",
+        "visionRange": 600,
+        "visionAngle": 90
+      },
+      {
+        "x": 1000,
+        "y": 50,
+        "type": "laser",
+        "facing": "down",
+        "texture": "",
+        "laserLength": 800
+      }
+    ]
+  },
+  "1": {
+    "name": "Salle Est (1)",
+    "mapFile": "Asset/Map/Map1.json",
+    "doors": {
+      "left": 0
+    },
+    "obstacles": [
+      { "type": "rect", "x": 500, "y": 300, "w": 100, "h": 100, "textureName": "objects_house_0002_Layer-3.png" }
+    ],
+    "objectives": [
+      {
+        "title": "Sebastian's computer",
+        "description": "Sebastian's computer.",
+        "texture": "Asset/objectives/computer_on_table.png",
+        "primary": false,
+        "x": 2300,
+        "y": 700,
+        "w": 90,
+        "h": 90,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "primary_objective",
+        "cesar": false,
+        "code": "ABCD",
+        "changeValue": 1
+      }
+    ],
+    "enemies": [
+      {
+        "x": 1600,
+        "y": 600,
+        "patrol": [
+          [1600, 600],
+          [700, 600]
+        ],
+        "speed": 3,
+        "texture": "ennemy_textures1"
+      },
+      {
+        "x": 1600,
+        "y": 1400,
+        "type": "camera",
+        "facing": "up",
+        "texture": "",
+        "visionRange": 900,
+        "visionAngle": 55
+      },
+      {
+        "x": 800,
+        "y": 50,
+        "type": "camera",
+        "facing": "down",
+        "texture": "",
+        "visionRange": 900,
+        "visionAngle": 55
+      }
+    ]
+  },
+  "2": {
+    "name": "Salle Nord (2)",
+    "mapFile": "Asset/Map/Map2.json",
+    "doors": {
+      "down": 0,
+      "up": 3,
+      "left": 4
+    },
+    "obstacles": [
+      { "type": "rect", "x": 100, "y": 100, "w": 100, "h": 100, "textureName": "objects_house_0003_Layer-4.png" }
     ],
     "enemies": [
       {
@@ -32,42 +141,19 @@
           [2300,1300],
           [128, 1300]
         ],
-        "speed": 30,
+        "speed": 10,
         "texture": "ennemy_textures1"
       }
     ]
   },
-  "1": {
-    "name": "Salle Est (1)",
-    "doors": {
-      "left": 0,
-      "up": 2
-    },
-    "obstacles": [
-      { "type": "rect", "x": 500, "y": 300, "w": 100, "h": 100 }
-    ],
-    "enemies": [
-      {
-        "x": 550,
-        "y": 350,
-        "patrol": [
-          [550, 350],
-          [650, 350],
-          [650, 450],
-          [550, 450]
-        ],
-        "speed": 2,
-        "texture": "ennemy_textures1"
-      }
-    ]
-  },
-  "2": {
+  "3": {
     "name": "Salle Nord (2)",
+    "mapFile": "Asset/Map/Map1.json",
     "doors": {
-      "down": 1
+      "down": 2
     },
     "obstacles": [
-      { "type": "rect", "x": 100, "y": 100, "w": 100, "h": 100 }
+      { "type": "rect", "x": 100, "y": 100, "w": 100, "h": 100, "textureName": "objects_house_0003_Layer-4.png" }
     ],
     "enemies": [
       {
@@ -81,6 +167,63 @@
         ],
         "speed": 3,
         "texture": "ennemy_textures1"
+      }
+    ]
+  },
+  "4": {
+    "name": "Salle Nord (2)",
+    "mapFile": "Asset/Map/Map2.json",
+    "doors": {
+      "right": 2
+    },
+    "obstacles": [
+      { "type": "rect", "x": 100, "y": 100, "w": 100, "h": 100, "textureName": "objects_house_0003_Layer-4.png" }
+    ],
+    "objectives": [
+      {
+        "title": "Bertrand's computer",
+        "description": "Bertrand's computer.",
+        "texture": "Asset/objectives/computer_on_table.png",
+        "primary": true,
+        "x": 500,
+        "y": 500,
+        "w": 90,
+        "h": 90,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "primary_objective",
+        "cesar": true,
+        "code": "ABCD",
+        "changeValue": 1
+      }
+    ],
+    "enemies": [
+      {
+        "x": 1600,
+        "y": 1020,
+        "patrol": [
+          [1600, 1020],
+          [600, 1020]
+        ],
+        "speed": 3,
+        "texture": "ennemy_textures1"
+      },
+      {
+        "x": 600,
+        "y": 1200,
+        "patrol": [
+          [600, 1200],
+          [1600, 1200]
+        ],
+        "speed": 3,
+        "texture": "ennemy_textures1"
+      },
+      {
+        "x": 1000,
+        "y": 50,
+        "type": "laser",
+        "facing": "down",
+        "texture": "",
+        "laserLength": 800
       }
     ]
   }
