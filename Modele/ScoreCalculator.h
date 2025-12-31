@@ -29,11 +29,6 @@ namespace Modele
             int numberOfDetections
         );
 
-        // Vérifie si tous les objectifs secondaires sont complétés
-        static bool areAllSecondaryObjectivesCompleted(
-            const std::vector<Objective>& objectives
-        );
-
         // Compte les objectifs primaires complétés
         static int countCompletedPrimaryObjectives(
             const std::vector<Objective>& objectives

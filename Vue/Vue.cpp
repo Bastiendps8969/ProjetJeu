@@ -32,7 +32,8 @@ Vue::Vue(Modele::Modele& modele)
             livesText.setFont(font);
             livesText.setString("Lives: 3");
             livesText.setCharacterSize(28);
-            livesText.setFillColor(sf::Color::Red);
+            //  Change from Red cause the obstacles are red too
+            livesText.setFillColor(sf::Color::White);
             livesText.setStyle(sf::Text::Bold);
             livesText.setPosition(10.f, 70.f);
         }

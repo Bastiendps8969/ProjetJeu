@@ -120,7 +120,7 @@ namespace Modele {
         // une logique dédiée. On laisse donc `floorMatrix` tel quel.
 
         // Chargement des pièces via RoomManager
-        currentLevelPath = "Asset/levels/tutorial/tutorial_1.json";
+        currentLevelPath = "Asset/levels/tutorial/tutorial.json";
         if (roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0))
         {
             roomManager->changeRoom(0, "", joueur);
@@ -356,6 +356,20 @@ namespace Modele {
         return empty;
     }
 
+    std::vector<Objective> Modele::getAllLevelObjectives() const
+    {
+        std::vector<Objective> allObjectives;
+        if (!roomManager) return allObjectives;
+        
+        auto& rooms = roomManager->getRooms();
+        for (auto& [idx, room] : rooms) {
+            for (auto& obj : room.objectives) {
+                allObjectives.push_back(obj);
+            }
+        }
+        return allObjectives;
+    }
+
     const std::vector<std::unique_ptr<Enemy>>& Modele::getEnemies() const
     {
         return enemies;
@@ -539,6 +553,30 @@ namespace Modele {
         }
         return ok;
 
+    }
+
+    int Modele::getCurrentRoomIndex() const
+    {
+        if (!roomManager) return -1;
+        return roomManager->getCurrentRoomIndex();
+    }
+
+    std::string Modele::getCurrentRoomDialogueRef() const
+    {
+        if (!roomManager) return std::string();
+        return roomManager->getCurrentRoomDialogueRef();
+    }
+
+    bool Modele::isCurrentRoomDialogueShown() const
+    {
+        if (!roomManager) return false;
+        return roomManager->isCurrentRoomDialogueShown();
+    }
+
+    void Modele::markCurrentRoomDialogueShown()
+    {
+        if (!roomManager) return;
+        roomManager->markCurrentRoomDialogueShown();
     }
 
     // Objective contact accessors (pointer based so original objective can be modified)

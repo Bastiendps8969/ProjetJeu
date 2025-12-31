@@ -126,6 +126,24 @@ namespace Controleur
         }
 
         Vue::DialogueManager dialogueManager;
+        int prevRoomIndex = modele.getCurrentRoomIndex();
+        // At level start, if current room (often 0) has a dialogue and it wasn't shown yet, start it once
+        {
+            std::string startDialog = modele.getCurrentRoomDialogueRef();
+            if (!startDialog.empty() && !modele.isCurrentRoomDialogueShown() && dialogueManager.hasDialogueSequence(startDialog)) {
+                // Ensure visuals are updated for the new room before showing dialogue
+                modele.syncPlayerSprite();
+                modele.mettreAJourObstacles();
+                modele.updateEnemies();
+                vue.dessiner(fenetre);
+                dialogueManager.update(fenetre.getSize());
+                dialogueManager.draw(fenetre);
+                fenetre.display();
+
+                dialogueManager.startDialogueSequence(startDialog);
+                modele.markCurrentRoomDialogueShown();
+            }
+        }
         bool agentDialogueLaunched = false; // Ajout
         bool cesrDialogueClosed = false;  // Track si dialogue César terminé pour ouvrir CesarVue
         bool timeDialogueLaunched = false; // guard to start time-up dialogue once
@@ -335,14 +353,36 @@ namespace Controleur
                 niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                 timeDialogueLaunched = false;
             }
-            if (!dialogueManager.isDialogueActive())
-            {
-                niveauController->handleInput();
-                niveauController->update();
-                modele.mettreAJourObstacles();
-                modele.updateEnemies(); // update enemy logic + animations (from sav)
-                niveauController->checkDoors();
-            }
+                if (!dialogueManager.isDialogueActive())
+                {
+                    niveauController->handleInput();
+                    niveauController->update();
+                    modele.mettreAJourObstacles();
+                    modele.updateEnemies(); // update enemy logic + animations (from sav)
+                    // check doors and possibly change room
+                    int before = modele.getCurrentRoomIndex();
+                    niveauController->checkDoors();
+                    int after = modele.getCurrentRoomIndex();
+
+                    // If room changed, attempt to start its associated dialogue sequence
+                    if (after != before) {
+                        prevRoomIndex = after;
+                        std::string roomDialog = modele.getCurrentRoomDialogueRef();
+                        if (!roomDialog.empty() && !modele.isCurrentRoomDialogueShown() && dialogueManager.hasDialogueSequence(roomDialog) && !dialogueManager.isDialogueActive()) {
+                            // Update visuals once so the enemy/agent positions reflect the new room
+                            modele.syncPlayerSprite();
+                            modele.mettreAJourObstacles();
+                            modele.updateEnemies();
+                            vue.dessiner(fenetre);
+                            dialogueManager.update(fenetre.getSize());
+                            dialogueManager.draw(fenetre);
+                            fenetre.display();
+
+                            dialogueManager.startDialogueSequence(roomDialog);
+                            modele.markCurrentRoomDialogueShown();
+                        }
+                    }
+                }
                 // If the level controller requested exit (via door -> -1 + confirmation), handle it here
                 if (niveauController->isExitRequested()) {
                     // Destroy current level so replay starts from a fresh state

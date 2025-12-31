@@ -17,7 +17,7 @@ namespace Modele
         details.secondaryObjectivesCompleted = countCompletedSecondaryObjectives(objectives);
         
         // Calculer chaque composante du score
-        details.timeScore = 500 * secondsRemaining;
+        details.timeScore = 50 * secondsRemaining;
         details.primaryScore = 10000 * details.primaryObjectivesCompleted;
         details.secondaryScore = 5000 * details.secondaryObjectivesCompleted;
         details.detectionMalus = -2000 * details.numberOfDetections;
@@ -28,28 +28,6 @@ namespace Modele
         return details;
     }
 
-    bool ScoreCalculator::areAllSecondaryObjectivesCompleted(
-        const std::vector<Objective>& objectives
-    )
-    {
-        // Vérifier s'il y a au moins un objectif secondaire
-        bool hasSecondaryObjective = false;
-        
-        for (const auto& obj : objectives)
-        {
-            if (!obj.isPrimary())
-            {
-                hasSecondaryObjective = true;
-                if (!obj.isAccomplished())
-                {
-                    return false; // Au moins un objectif secondaire non complété
-                }
-            }
-        }
-        
-        // Si pas d'objectif secondaire, on considère que c'est complété
-        return true;
-    }
 
     int ScoreCalculator::countCompletedPrimaryObjectives(
         const std::vector<Objective>& objectives

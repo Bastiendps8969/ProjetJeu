@@ -180,7 +180,7 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
 	// Objectives on left
 	if (modelePtr)
 	{
-		auto& objs = modelePtr->getCurrentRoomObjectives();
+		auto objs = modelePtr->getAllLevelObjectives();
 		float x = 40.f;
 		float y = 120.f;
 

@@ -1,0 +1,185 @@
+{
+  "0": {
+    "name": "Salle de depart (0)",
+    "mapFile": "Asset/Map/Map1.json",
+    "doors": {
+      "right": 1,
+      "down": -1
+    },
+    "dialogueRef": "start_level"
+  },
+  "1": {
+    "name": "Salle Centre (1)",
+    "mapFile": "Asset/Map/Map1.json",
+    "doors": {
+      "left": 0,
+      "up": 3,
+      "right": 2
+    },
+    "obstacles": [
+      { "type": "rect", "x": 0, "y": 0, "w": 800, "h": 500, "textureName": "wall_800_500.png" },
+      { "type": "rect", "x": 0, "y": 700, "w": 800, "h": 500, "textureName": "wall_800_500.png" },
+      { "type": "rect", "x": 1100, "y": 0, "w": 800, "h": 500, "textureName": "wall_800_500.png" },
+      { "type": "rect", "x": 1100, "y": 700, "w": 800, "h": 500, "textureName": "wall_800_500.png" }
+    ],
+    "objectives": [
+      {
+        "title": "Bastien's computer",
+        "description": "Strange computer belonging to the autistic Bastien.",
+        "texture": "Asset/objectives/computer_on_table.png",
+        "primary": true,
+        "x": 870,
+        "y": 1000,
+        "w": 150,
+        "h": 150,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "primary_objective"
+      }
+    ],
+    "dialogueRef": "objective_discovery"
+  },
+  "2": {
+    "name": "Salle Est (2)",
+    "mapFile": "Asset/Map/Map1.json",
+    "doors": {
+      "left": 1
+    },
+    "obstacles": [
+      { "type": "rect", "x": 600, "y": 0, "w": 100, "h": 800, "textureName": "wall_100_800.png"  },
+      { "type": "rect", "x": 1200, "y": 400, "w": 100, "h": 800, "textureName": "wall_100_800.png"  }
+    ],
+    "objectives": [
+      {
+        "title": "Strange paper 2",
+        "description": "A pile of paper containing informations",
+        "texture": "Asset/objectives/paper_table.png",
+        "primary": false,
+        "x": 1500,
+        "y": 500,
+        "w": 150,
+        "h": 150,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "secondary_objective"
+      }
+    ],
+    "enemies": [
+      {
+        "x": 1000,
+        "y": 300,
+        "patrol": [
+          [1000, 300],
+          [1500, 300]
+        ],
+        "speed": 5,
+        "texture": "ennemy_textures1"
+      },
+      {
+        "x": 1500,
+        "y": 1200,
+        "patrol": [
+          [1000, 1200],
+          [1500, 1200]
+        ],
+        "speed": 5,
+        "texture": "ennemy_textures1"
+      },
+      {
+        "x": 870,
+        "y": 950,
+        "type": "camera",
+        "facing": "down",
+        "texture": "camera_down",
+        "visionRange": 600,
+        "visionAngle": 20
+      },
+      {
+        "x": 1670,
+        "y": 470,
+        "type": "laser",
+        "facing": "up",
+        "texture": "",
+        "laserLength": 500
+      }
+    ],
+    "dialogueRef": "secondary_blocked"
+  },
+  "3": {
+    "name": "Salle Nord (3)",
+    "mapFile": "Asset/Map/Map1.json",
+    "doors": {
+      "down": 1,
+      "right": 4
+    },
+    "obstacles": [
+      { "type": "rect", "x": 600, "y": 0, "w": 100, "h": 800, "textureName": "wall_100_800.png" },
+      { "type": "rect", "x": 1200, "y": 400, "w": 100, "h": 800, "textureName": "wall_100_800.png" }
+    ],
+    "objectives": [
+      {
+        "title": "Strange paper 1",
+        "description": "A pile of paper containing informations",
+        "texture": "Asset/objectives/paper_table.png",
+        "primary": false,
+        "x": 300,
+        "y": 100,
+        "w": 150,
+        "h": 150,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "secondary_objective"
+      }
+    ],
+    "enemies": [
+      {
+        "x": 300,
+        "y": 600,
+        "patrol": [
+          [300, 600],
+          [500, 600],
+          [500, 1200],
+          [300, 1200]
+        ],
+        "speed": 5,
+        "texture": "ennemy_textures1"
+      },
+      {
+        "x": 1600,
+        "y": 200,
+        "patrol": [
+          [2100, 200],
+          [2100, 1200]
+        ],
+        "speed": 5,
+        "texture": "ennemy_textures1"
+      }
+    ],
+    "dialogueRef": "north_room"
+  },
+  "4": {
+    "name": "Salle Nord-Est (4)",
+    "mapFile": "Asset/Map/Map1.json",
+    "doors": {
+      "left": 3
+    },
+    "obstacles": [
+      { "type": "rect", "x": 600, "y": 0, "w": 100, "h": 800, "textureName": "wall_100_800.png" },
+      { "type": "rect", "x": 1200, "y": 400, "w": 100, "h": 800, "textureName": "wall_100_800.png" }
+    ],
+    "objectives": [
+      {
+        "title": "Bertrand's computer",
+        "description": "Normal computer",
+        "texture": "Asset/objectives/computer_on_table.png",
+        "primary": true,
+        "x": 1500,
+        "y": 800,
+        "w": 150,
+        "h": 150,
+        "dialogueFile" : "Asset/dialogues/dialogues.json",
+        "dialogueRef" : "caesar_objective",
+        "cesar": true,
+        "code": "admin",
+        "changeValue": 2
+      }
+    ]
+  }
+}
