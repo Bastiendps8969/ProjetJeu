@@ -35,6 +35,7 @@ private:
     //  Cesar code
     bool cesar = false;
     std::string code;
+    //  Could be defined randomly
     int changeValue;
 
 
