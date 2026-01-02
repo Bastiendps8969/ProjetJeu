@@ -798,9 +798,17 @@ namespace Vue
                         }
                         else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
                         {
-                            // Autoriser l'Enter si le niveau sélectionné est déverrouillé (neededScore <= 0)
-                            if (nlevels > 0 && levelsVec[levelIdx].neededScore <= 0)
-                            {
+                            // Check whether the selected level is unlocked (neededScore <= 0 OR tutorial score > needed)
+                            bool unlocked = false;
+                            if (nlevels > 0) {
+                                int needed = levelsVec[levelIdx].neededScore;
+                                if (needed <= 0) unlocked = true;
+                                else if (this->getScoresCb) {
+                                    try { std::vector<int> sc = this->getScoresCb(); if (safeGetScore(sc,0) > needed) unlocked = true; } catch(...) {}
+                                }
+                            }
+
+                            if (unlocked) {
                                 Selection sel;
                                 sel.chapterIndex = chapterIdx;
                                 sel.levelIndex = levelIdx;
@@ -813,9 +821,7 @@ namespace Vue
                                 }
                                 window.close();
                                 return sel;
-                            }
-                            else
-                            {
+                            } else {
                                 showUnavailableOverlay(window, nlevels == 0 ? "No levels available" : "Niveau indisponible");
                             }
                         }
@@ -837,7 +843,15 @@ namespace Vue
                         float buttonX = rightX + 20.f;
                         float buttonY = static_cast<float>(winSz.y) - buttonH - 40.f;
                         sf::FloatRect startRect(buttonX, buttonY, buttonW, buttonH);
-                            bool startEnabled = (nlevels > 0 && levelsVec[levelIdx].neededScore <= 0);
+                            // Compute startEnabled according to unlocking rules
+                            bool startEnabled = false;
+                            if (nlevels > 0) {
+                                int needed = levelsVec[levelIdx].neededScore;
+                                if (needed <= 0) startEnabled = true;
+                                else if (this->getScoresCb) {
+                                    try { std::vector<int> sc = this->getScoresCb(); if (safeGetScore(sc,0) > needed) startEnabled = true; } catch(...) {}
+                                }
+                            }
                         if (startEnabled && startRect.contains(mpos))
                         {
                             Selection sel;
@@ -895,7 +909,15 @@ namespace Vue
                                     }
                                     else
                                     {
-                                        if (i == 0)
+                                        // Clicking again the selected level: only start if unlocked
+                                        bool unlockedClick = false;
+                                        int needed = levelsVec[i].neededScore;
+                                        if (needed <= 0) unlockedClick = true;
+                                        else if (this->getScoresCb) {
+                                            try { std::vector<int> sc = this->getScoresCb(); if (safeGetScore(sc,0) > needed) unlockedClick = true; } catch(...) {}
+                                        }
+
+                                        if (unlockedClick)
                                         {
                                             Selection sel;
                                             sel.chapterIndex = chapterIdx;
