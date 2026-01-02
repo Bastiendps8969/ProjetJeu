@@ -17,10 +17,10 @@
       "right": 2
     },
     "obstacles": [
-      { "type": "rect", "x": 0, "y": 0, "w": 800, "h": 500, "textureName": "wall_800_500.png" },
-      { "type": "rect", "x": 0, "y": 700, "w": 800, "h": 500, "textureName": "wall_800_500.png" },
-      { "type": "rect", "x": 1100, "y": 0, "w": 800, "h": 500, "textureName": "wall_800_500.png" },
-      { "type": "rect", "x": 1100, "y": 700, "w": 800, "h": 500, "textureName": "wall_800_500.png" }
+      { "type": "rect", "x": 0, "y": 0, "w": 1050, "h": 600, "textureName": "wall_800_500.png" },
+      { "type": "rect", "x": 0, "y": 850, "w": 1050, "h": 600, "textureName": "wall_800_500.png" },
+      { "type": "rect", "x": 1500, "y": 0, "w": 1050, "h": 600, "textureName": "wall_800_500.png" },
+      { "type": "rect", "x": 1500, "y": 850, "w": 1050, "h": 600, "textureName": "wall_800_500.png" }
     ],
     "objectives": [
       {
@@ -28,10 +28,10 @@
         "description": "Strange computer belonging to the autistic Bastien.",
         "texture": "Asset/objectives/computer_on_table.png",
         "primary": true,
-        "x": 870,
-        "y": 1000,
-        "w": 150,
-        "h": 150,
+        "x": 1180,
+        "y": 1150,
+        "w": 200,
+        "h": 200,
         "dialogueFile" : "Asset/dialogues/dialogues.json",
         "dialogueRef" : "primary_objective"
       }
@@ -45,8 +45,8 @@
       "left": 1
     },
     "obstacles": [
-      { "type": "rect", "x": 600, "y": 0, "w": 100, "h": 800, "textureName": "wall_100_800.png"  },
-      { "type": "rect", "x": 1200, "y": 400, "w": 100, "h": 800, "textureName": "wall_100_800.png"  }
+      { "type": "rect", "x": 700, "y": 0, "w": 130, "h": 1000, "textureName": "wall_100_800.png"  },
+      { "type": "rect", "x": 1630, "y": 440, "w": 130, "h": 1000, "textureName": "wall_100_800.png"  }
     ],
     "objectives": [
       {
@@ -54,10 +54,10 @@
         "description": "A pile of paper containing informations",
         "texture": "Asset/objectives/paper_table.png",
         "primary": false,
-        "x": 1500,
-        "y": 500,
-        "w": 150,
-        "h": 150,
+        "x": 2000,
+        "y": 650,
+        "w": 200,
+        "h": 200,
         "dialogueFile" : "Asset/dialogues/dialogues.json",
         "dialogueRef" : "secondary_objective"
       }
@@ -70,7 +70,7 @@
           [1000, 300],
           [1500, 300]
         ],
-        "speed": 5,
+        "speed": 4,
         "texture": "ennemy_textures1"
       },
       {
@@ -80,12 +80,12 @@
           [1000, 1200],
           [1500, 1200]
         ],
-        "speed": 5,
+        "speed": 4,
         "texture": "ennemy_textures1"
       },
       {
-        "x": 870,
-        "y": 950,
+        "x": 765,
+        "y": 980,
         "type": "camera",
         "facing": "down",
         "texture": "camera_down",
@@ -93,7 +93,7 @@
         "visionAngle": 20
       },
       {
-        "x": 1670,
+        "x": 1695,
         "y": 470,
         "type": "laser",
         "facing": "up",
@@ -111,8 +111,8 @@
       "right": 4
     },
     "obstacles": [
-      { "type": "rect", "x": 600, "y": 0, "w": 100, "h": 800, "textureName": "wall_100_800.png" },
-      { "type": "rect", "x": 1200, "y": 400, "w": 100, "h": 800, "textureName": "wall_100_800.png" }
+      { "type": "rect", "x": 700, "y": 0, "w": 130, "h": 1000, "textureName": "wall_100_800.png"  },
+      { "type": "rect", "x": 1630, "y": 440, "w": 130, "h": 1000, "textureName": "wall_100_800.png"  }
     ],
     "objectives": [
       {
@@ -130,15 +130,15 @@
     ],
     "enemies": [
       {
-        "x": 300,
+        "x": 200,
         "y": 600,
         "patrol": [
-          [300, 600],
+          [200, 600],
           [500, 600],
           [500, 1200],
-          [300, 1200]
+          [200, 1200]
         ],
-        "speed": 5,
+        "speed": 4,
         "texture": "ennemy_textures1"
       },
       {
@@ -148,7 +148,7 @@
           [2100, 200],
           [2100, 1200]
         ],
-        "speed": 5,
+        "speed": 4,
         "texture": "ennemy_textures1"
       }
     ],
@@ -161,8 +161,8 @@
       "left": 3
     },
     "obstacles": [
-      { "type": "rect", "x": 600, "y": 0, "w": 100, "h": 800, "textureName": "wall_100_800.png" },
-      { "type": "rect", "x": 1200, "y": 400, "w": 100, "h": 800, "textureName": "wall_100_800.png" }
+      { "type": "rect", "x": 700, "y": 0, "w": 130, "h": 1000, "textureName": "wall_100_800.png"  },
+      { "type": "rect", "x": 1630, "y": 440, "w": 130, "h": 1000, "textureName": "wall_100_800.png"  }
     ],
     "objectives": [
       {
@@ -170,10 +170,10 @@
         "description": "Normal computer",
         "texture": "Asset/objectives/computer_on_table.png",
         "primary": true,
-        "x": 1500,
-        "y": 800,
-        "w": 150,
-        "h": 150,
+        "x": 2000,
+        "y": 650,
+        "w": 200,
+        "h": 200,
         "dialogueFile" : "Asset/dialogues/dialogues.json",
         "dialogueRef" : "caesar_objective",
         "cesar": true,
