@@ -84,6 +84,9 @@ namespace Modele
         // Dialogue triggered flag (keeps state about whether a dialogue was triggered)
         bool dialogueTriggeredFlag = false;
 
+        // Player scores stored in-memory (no persistent DB)
+        std::vector<int> playerScores = std::vector<int>(12, 0);
+
     public:
         // Constructeur
         Modele();
@@ -171,11 +174,17 @@ namespace Modele
         // Synchronise l'échelle/position du sprite joueur avec le RectangleShape (taille & position)
         void syncPlayerSprite();
 
+        // Load a level (rooms JSON) and initialize RoomManager accordingly
+        bool loadLevelFromFile(const std::string& levelJsonPath);
         //  Objective collision (use pointers so original objects can be modified)
         void setObjectiveContact(Objective* obj);
         void setObjectiveContactDetectee(const bool b);
         Objective* getObjectiveContact() const;
         bool getObjectiveContactDetectee() const;
+
+        // Player scores (local, in-memory)
+        void setPlayerScore(int levelIndex, int score);
+        std::vector<int> getPlayerScores() const;
 
 
     };

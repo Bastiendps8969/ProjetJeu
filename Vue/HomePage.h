@@ -82,6 +82,7 @@ namespace Vue
         // Indices sélectionnés après la fermeture du sélecteur (chapter, level)
         int selectedChapter = -1;
         int selectedLevel = -1;
+        std::string selectedLevelData;
 
     public:
         /**
@@ -99,6 +100,7 @@ namespace Vue
         // Après la fermeture du LevelPage, obtenir les indices choisis
         int getSelectedChapter() const { return selectedChapter; }
         int getSelectedLevel() const { return selectedLevel; }
+        const std::string& getSelectedLevelData() const { return selectedLevelData; }
 
         // Gestion des événements et rendu
         void handleEvent(const sf::Event& event, sf::RenderWindow& fenetre);

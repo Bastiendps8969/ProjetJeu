@@ -619,6 +619,107 @@ namespace Modele {
         return mapManager->setTileTexture(id, path);
     }
 
+    // Player score API (in-memory)
+    void Modele::setPlayerScore(int levelIndex, int score)
+    {
+        if (levelIndex < 0 || levelIndex >= static_cast<int>(playerScores.size())) return;
+        // Only update if new score is better
+        if (score > playerScores[levelIndex]) playerScores[levelIndex] = score;
+    }
+
+    std::vector<int> Modele::getPlayerScores() const
+    {
+        return playerScores;
+    }
+
+    bool Modele::loadLevelFromFile(const std::string& levelJsonPath)
+    {
+        if (levelJsonPath.empty()) return false;
+
+        float screenW = getScreenW();
+        float screenH = getScreenH();
+
+        // Try several candidate paths to be robust to different asset layouts
+        std::vector<std::string> candidates;
+        candidates.push_back(levelJsonPath);
+        candidates.push_back(std::string("cmake-build-debug/") + levelJsonPath);
+        candidates.push_back(std::string("./") + levelJsonPath);
+
+        // basename (file name only)
+        std::string basename = levelJsonPath;
+        size_t pos = basename.find_last_of("/\\");
+        if (pos != std::string::npos) basename = basename.substr(pos + 1);
+
+        candidates.push_back(std::string("Asset/levels/") + basename);
+        candidates.push_back(std::string("Asset/levels/tutorial/") + basename);
+        candidates.push_back(std::string("Asset/levels/OH/") + basename);
+
+        // also try cmake-build-debug variants of Asset/levels
+        candidates.push_back(std::string("cmake-build-debug/Asset/levels/") + basename);
+
+        // search one level deep under Asset/levels for the basename
+        try {
+            namespace fs = std::filesystem;
+            fs::path levelsDir("Asset/levels");
+            if (fs::exists(levelsDir) && fs::is_directory(levelsDir)) {
+                for (const auto &entry : fs::directory_iterator(levelsDir)) {
+                    if (fs::is_directory(entry.path())) {
+                        fs::path p = entry.path() / basename;
+                        candidates.push_back(p.string());
+                    }
+                }
+            }
+        } catch (...) {
+            // ignore filesystem errors
+        }
+
+        std::string resolved;
+        for (const auto &c : candidates) {
+            try {
+                if (std::ifstream(c).good()) { resolved = c; break; }
+            } catch(...) {}
+        }
+
+        if (resolved.empty()) {
+            std::cerr << "Modele::loadLevelFromFile: could not find level file for '" << levelJsonPath << "' (tried candidates)" << std::endl;
+            for (const auto &c : candidates) std::cerr << "  tried: " << c << std::endl;
+            return false;
+        }
+
+        currentLevelPath = resolved;
+
+        // recreate room manager and load rooms
+        roomManager.reset();
+        roomManager = std::make_unique<RoomManager>(screenW, screenH);
+
+        if (!roomManager->loadRoomsFromJson(currentLevelPath) || !roomManager->getRooms().count(0)) {
+            std::cerr << "Modele::loadLevelFromFile: failed to load rooms from '" << currentLevelPath << "'" << std::endl;
+            return false;
+        }
+
+        // Move player to room 0
+        roomManager->changeRoom(0, "", joueur);
+
+        // If room 0 references an external map file, attempt to load it
+        auto& rooms = roomManager->getRooms();
+        auto it = rooms.find(0);
+        if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
+            if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                std::cerr << "Warning: failed to load map file '" << it->second.mapFile << "' for room 0" << std::endl;
+            }
+        } else {
+            if (mapManager) mapManager->clearMap();
+        }
+
+        // Reset enemies for new room
+        reloadEnemiesForCurrentRoom();
+
+        // Sync player sprite
+        syncPlayerSprite();
+
+        return true;
+    }
+
     const sf::Texture* Modele::getTileTexture(int id) const
     {
         if (!mapManager) return nullptr;

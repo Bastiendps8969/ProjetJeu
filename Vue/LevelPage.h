@@ -9,6 +9,7 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
+#include <functional>
 #include "../Modele/ChapterLoader.h"
 
 namespace Vue
@@ -26,9 +27,15 @@ namespace Vue
             int chapterIndex = -1;
             int levelIndex = -1;
             bool valid = false;
+            std::string levelData; // path to level JSON (rooms) if available
         };
 
         LevelPage() = default;
+        // Optional callback returning current player scores (used to determine level locks)
+        LevelPage(std::function<std::vector<int>()> getScoresCb);
+        
+        // Store optional callback
+        void setGetScoresCb(std::function<std::vector<int>()> cb);
 
         // Ouvre une fenêtre plein écran et renvoie la sélection (bloquant)
         Selection run();
@@ -49,6 +56,9 @@ namespace Vue
                                 const std::vector<Modele::ChapterInfo>& chapters,
                                 int chapterIdx, int levelIdx,
                                 const sf::Sprite& backgroundSprite, bool bgLoaded);
+
+        // Optional callback provided by caller to query current player scores
+        std::function<std::vector<int>()> getScoresCb;
     };
 }
 

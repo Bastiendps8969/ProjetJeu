@@ -332,6 +332,15 @@ void ControllerLevel::checkDoors()
                         }
 
                         if (!fenetre.isOpen()) break;
+
+                        // Mettre à jour le tableau des scores en mémoire (Modele)
+                        try {
+                            Modele::ScoreDetails details = this->getScoreDetails();
+                            int roomIdx = modele.getCurrentRoomIndex();
+                            modele.setPlayerScore(roomIdx, details.totalScore);
+                        } catch (...) {
+                            // ignore any unexpected errors during score update
+                        }
                     }
                     
                     exitRequestedFlag = true;

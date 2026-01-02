@@ -30,10 +30,9 @@ namespace Controleur
     // Affiche le menu d'accueil (importé de ProjetJeu)
     void Controleur::afficherMenuAccueil()
     {
-        // Lambda pour récupérer les scores du joueur
+        // Lambda pour récupérer les scores du joueur depuis le modèle
         auto getScores = [this]() -> std::vector<int> {
-            std::vector<int> scores(12, 0); // Placeholder: 12 niveaux avec score 0
-            return scores;
+            return this->modele.getPlayerScores();
         };
 
         // 1) afficher splash
@@ -84,27 +83,39 @@ namespace Controleur
         int selLevel = homePage.getSelectedLevel();
         if (selChapter >= 0 && selLevel >= 0)
         {
-            // Mapping simple chapter->rooms (adapter si tu ajoutes d'autres rooms)
-            int roomId = -1;
-            if (selChapter == 0)
-            {
-                // Chapitre "Opération Hades" : Tutoriel -> room 0, Lvl 1 -> room 1, Lvl 2 -> room 2
-                if (selLevel == 0) roomId = 0;
-                else if (selLevel == 1) roomId = 1;
-                else if (selLevel == 2) roomId = 2;
-                else roomId = 0; // fallback
-            }
-            // si tu ajoutes d'autres chapitres, gère ici leur mapping (selChapter == 1 ...)
-
-            if (roomId >= 0)
-            {
-                if (!modele.changeRoom(roomId, "")) // entryDirection vide => centrage par défaut
-                {
-                    std::cerr << "[Controleur] Échec du chargement du niveau (room " << roomId << ")\n";
+            // If LevelPage returned a levelData path via HomePage, load that level file into the model.
+            const std::string& lvlPath = homePage.getSelectedLevelData();
+            if (!lvlPath.empty()) {
+                if (!modele.loadLevelFromFile(lvlPath)) {
+                    std::cerr << "[Controleur] Échec du chargement du niveau depuis '" << lvlPath << "'\n";
+                } else {
+                    std::cout << "[Controleur] Niveau chargé depuis : " << lvlPath << "\n";
+                    // recreate level controller so it picks up the new model state
+                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                 }
-                else
+            }
+            else {
+                // Fallback to old simple mapping (kept for legacy levels defined inside the initial tutorial JSON)
+                int roomId = -1;
+                if (selChapter == 0)
                 {
-                    std::cout << "[Controleur] Niveau sélectionné chargé : room " << roomId << "\n";
+                    if (selLevel == 0) roomId = 0;
+                    else if (selLevel == 1) roomId = 1;
+                    else if (selLevel == 2) roomId = 2;
+                    else roomId = 0;
+                }
+
+                if (roomId >= 0)
+                {
+                    if (!modele.changeRoom(roomId, ""))
+                    {
+                        std::cerr << "[Controleur] Échec du chargement du niveau (room " << roomId << ")\n";
+                    }
+                    else
+                    {
+                        std::cout << "[Controleur] Niveau sélectionné chargé : room " << roomId << "\n";
+                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+                    }
                 }
             }
         }

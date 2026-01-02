@@ -394,13 +394,14 @@ namespace Vue
     // Ouvre le sélecteur LevelPage dans une fenêtre plein écran et stocke la sélection.
     void HomePage::openLevelPage(sf::RenderWindow& parent)
     {
-        LevelPage selector;
+        LevelPage selector(this->getScoresCb);
         LevelPage::Selection sel = selector.run(); // bloque jusqu'à la fermeture
 
         if (sel.valid)
         {
             selectedChapter = sel.chapterIndex;
             selectedLevel = sel.levelIndex;
+            selectedLevelData = sel.levelData;
 
             // Si l'utilisateur a choisi un niveau, fermer la page d'accueil pour démarrer le jeu.
             // Le contrôleur peut récupérer getSelectedChapter/getSelectedLevel()

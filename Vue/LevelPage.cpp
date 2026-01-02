@@ -10,6 +10,14 @@
 #include <unordered_map>
 #include <sstream>
 
+namespace {
+    // helper: safe access scores vector
+    int safeGetScore(const std::vector<int>& scores, size_t idx) {
+        if (idx < scores.size()) return scores[idx];
+        return 0;
+    }
+}
+
 namespace Vue
 {
     // Dessiner l'écran de sélection des chapitres
@@ -473,7 +481,24 @@ namespace Vue
         sf::RectangleShape startButton({buttonW, buttonH});
         startButton.setPosition(buttonX, buttonY);
         // Niveau déverrouillé si neededScore <= 0
-        bool startEnabled = (n > 0 && levels[levelIdx].neededScore <= 0);
+        // Determine if level is unlocked: either neededScore <= 0 OR player has required score
+        bool startEnabled = false;
+        if (n > 0) {
+            if (levels[levelIdx].neededScore <= 0) startEnabled = true;
+            else {
+                // Query player scores via optional callback stored in a static/global inside this file.
+                // We try to call Modele::ChapterLoader-like callback if provided via a global accessor.
+                // Fallback: if no callback, keep locked.
+                try {
+                    if (this->getScoresCb) {
+                        std::vector<int> sc = this->getScoresCb();
+                        int tutorialScore = safeGetScore(sc, 0);
+                        if (tutorialScore > levels[levelIdx].neededScore) startEnabled = true;
+                    }
+                } catch(...) {
+                }
+            }
+        }
         if (startEnabled)
         {
             startButton.setFillColor(sf::Color(230, 60, 60));
@@ -780,6 +805,12 @@ namespace Vue
                                 sel.chapterIndex = chapterIdx;
                                 sel.levelIndex = levelIdx;
                                 sel.valid = true;
+                                if (chapterIdx >= 0 && chapterIdx < static_cast<int>(chapters.size())) {
+                                    const auto &lv = chapters[chapterIdx].levels;
+                                    if (levelIdx >= 0 && levelIdx < static_cast<int>(lv.size())) {
+                                        sel.levelData = lv[levelIdx].levelData;
+                                    }
+                                }
                                 window.close();
                                 return sel;
                             }
@@ -813,6 +844,12 @@ namespace Vue
                             sel.chapterIndex = chapterIdx;
                             sel.levelIndex = levelIdx;
                             sel.valid = true;
+                            if (chapterIdx >= 0 && chapterIdx < static_cast<int>(chapters.size())) {
+                                const auto &lv = chapters[chapterIdx].levels;
+                                if (levelIdx >= 0 && levelIdx < static_cast<int>(lv.size())) {
+                                    sel.levelData = lv[levelIdx].levelData;
+                                }
+                            }
                             window.close();
                             return sel;
                         }
@@ -864,6 +901,12 @@ namespace Vue
                                             sel.chapterIndex = chapterIdx;
                                             sel.levelIndex = levelIdx;
                                             sel.valid = true;
+                                            if (chapterIdx >= 0 && chapterIdx < static_cast<int>(chapters.size())) {
+                                                const auto &lv = chapters[chapterIdx].levels;
+                                                if (levelIdx >= 0 && levelIdx < static_cast<int>(lv.size())) {
+                                                    sel.levelData = lv[levelIdx].levelData;
+                                                }
+                                            }
                                             window.close();
                                             return sel;
                                         }
@@ -894,5 +937,18 @@ namespace Vue
         }
 
         return LevelPage::Selection();
+    }
+}
+
+// Constructor + setter
+namespace Vue {
+    LevelPage::LevelPage(std::function<std::vector<int>()> cb)
+    {
+        getScoresCb = std::move(cb);
+    }
+
+    void LevelPage::setGetScoresCb(std::function<std::vector<int>()> cb)
+    {
+        getScoresCb = std::move(cb);
     }
 }
