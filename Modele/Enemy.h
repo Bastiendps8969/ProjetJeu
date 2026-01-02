@@ -1,181 +1,300 @@
+
 // Enemy.h
-// Définit la hiérarchie d'ennemis utilisée par le modèle :
-// - `Enemy` : classe de base (implémente Prototype)
-// - `GenericEnemy` : ennemi patrouilleur classique (cone de vision)
-// - `CameraEnemy` : caméra fixe avec cône de vision
-// - `LaserEnemy` : laser / rayon droit de détection
+// Enemy hierarchy used by the game.
 //
-// Chaque sous-classe implémente `clone()` via le pattern Prototype
-// afin de permettre l'instanciation par clonage de prototypes.
+// ===============================
+// HIGH-LEVEL DESIGN / RATIONALE
+// ===============================
+//
+// 1) Polymorphism (inheritance):
+//    - The game can store all enemies as Enemy pointers/references and call
+//      update(), detectPlayer(), updateAnimation() without knowing the concrete type.
+//
+// 2) Prototype pattern (clone()):
+//    - In C++, copying via a base type causes slicing (only the base part gets copied).
+//    - clone() gives a "virtual copy" returning the correct derived type.
+//    - This is especially useful for data-driven instantiation: keep prototypes and clone them.
+//
+// 3) Factory function createEnemyFromDefinition(...):
+//    - Converts external data (EnemyDefinition) into a fully configured Enemy object.
+//    - Centralizes scaling, asset loading, facing setup, detection params.
+//
+// 4) Ownership / memory:
+//    - unique_ptr expresses unique ownership (one owner; RAII; no delete).
+//
+// 5) SFML composition:
+//    - Texture and Sprite are stored by value in each enemy for simple lifetime rules.
+//      (Sprite references the texture => texture must outlive sprite.)
+//    - Trade-off: can duplicate textures across enemies (could be optimized with a cache later).
 
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <vector>
-#include <string>
-#include <cmath>
-#include <algorithm>
-#include <map>
-#include <memory>
-#include "Prototype.h"
+
+#include <SFML/Graphics.hpp>   // SFML types: Vector2f, Texture, Sprite, RectangleShape, etc.
+#include <vector>             // std::vector for patrol points
+#include <string>             // std::string for textureName / facing
+#include <cmath>              // std::sqrt, std::cos
+#include <algorithm>          // std::max, std::min
+#include <map>                // std::map for prototypes
+#include <memory>             // std::unique_ptr
+
+#include "Prototype.h"        // Base interface that requires clone()
 
 namespace Modele {
 
-// Classe de base `Enemy` : comporte les champs partagés (position,
-// direction, sprite, paramètres de vision/laser) et des méthodes
-// virtuelles pour `update`, `updateAnimation`, `detectPlayer`.
-// Elle dérive de `Prototype` et impose l'implémentation de
-// `clone()` retournant `std::unique_ptr<Prototype>`.
+// ------------------------------------------------------------
+// Base class: Enemy
+// ------------------------------------------------------------
 class Enemy : public Prototype {
 public:
-    sf::Vector2f position;
-    sf::Vector2f direction = {1.f, 0.f};
-    bool joueurDetecte = false;
-    std::string textureName;
-    sf::Texture texture;
-    sf::Sprite sprite;
-    // common type flags / vision settings
-    bool isCamera = false;
-    bool isLaser = false;
-    float visionRange = 300.f;
-    float visionAngle = 60.f;
-    float laserLength = 600.f;
+    // -----------------------
+    // Spatial state
+    // -----------------------
 
-    // Animation (shared)
-    int frameCount = 9;
-    int frameIndex = 0;
-    int row = 3;
-    float frameDuration = 0.08f;
-    float idleFrameDuration = 0.24f;
-    int idleFrameCount = 2;
-    bool isMoving = false;
-    int tileSize = 64;
-    sf::Clock animClock;
+    sf::Vector2f position;                 // World position of the enemy (typically pixels)
+
+    // Facing direction of the enemy.
+    // IMPORTANT: Many math tests assume this is normalized (unit length).
+    sf::Vector2f direction = {1.f, 0.f};   // Default facing right
+
+    // Whether the player is currently detected by this enemy.
+    bool joueurDetecte = false;
+
+    // -----------------------
+    // Rendering resources
+    // -----------------------
+
+    std::string textureName;               // Name/id of texture (used by factory to load file)
+
+    // Texture stored by value:
+    // - Guarantees lifetime is tied to enemy instance.
+    // - Sprite references this texture; storing by value avoids dangling references.
+    sf::Texture texture;
+
+    // Sprite stored by value. It will display a sub-rectangle (sprite-sheet) or full texture.
+    sf::Sprite sprite;
+
+    // -----------------------
+    // Type flags / detection parameters
+    // -----------------------
+
+    // Flags allow fast behavior switches without RTTI in hot paths.
+    bool isCamera = false;                 // Camera uses static image (no sprite-sheet animation)
+    bool isLaser  = false;                 // Laser uses beam detection rather than a cone
+
+    // Cone-of-vision parameters (used by GenericEnemy and CameraEnemy):
+    float visionRange = 300.f;             // Maximum detection distance
+    float visionAngle = 60.f;              // Total cone angle in degrees
+
+    // Laser parameter:
+    float laserLength = 600.f;             // Length of the detection beam in front of the enemy
+
+    // -----------------------
+    // Animation parameters (sprite-sheet)
+    // -----------------------
+
+    int frameCount = 9;                    // Total number of columns for movement+idle frames
+    int frameIndex = 0;                    // Current frame index inside the active subset
+    int row = 3;                           // Sprite-sheet row depending on direction (up/down/left/right)
+
+    float frameDuration     = 0.08f;       // Seconds per movement frame
+    float idleFrameDuration = 0.24f;       // Seconds per idle frame
+
+    int idleFrameCount = 2;                // Number of idle frames (subset of columns)
+
+    bool isMoving = false;                 // Set by update() logic; consumed by animation
+
+    int tileSize = 64;                     // Width/height of one sprite-sheet tile in pixels
+
+    sf::Clock animClock;                   // Measures elapsed time for time-based animation
 
     Enemy() = default;
     virtual ~Enemy() = default;
 
-    // clone (Prototype) : doit être implémenté par chaque sous-classe
-    // et retourner une copie encapsulée dans un `std::unique_ptr<Enemy>`.
+    // Prototype interface:
+    // - Must return a deep copy as the correct dynamic type.
+    // - unique_ptr expresses ownership transfer to caller.
     virtual std::unique_ptr<Enemy> clone() const = 0;
 
+    // Per-frame update (movement/AI). Default does nothing; derived types override.
     virtual void update() {}
+
+    // Update sprite animation by selecting the correct texture rectangle.
+    // Cameras are excluded because they are static textures (not sprite-sheets).
     virtual void updateAnimation()
     {
-        // Cameras use a single static texture; don't apply sprite-sheet animation.
+        // Cameras are static: no sprite-sheet animation logic should run.
         if (isCamera) return;
+
+        // If texture not loaded, skip (avoids invalid rect computations).
         if (texture.getSize().x == 0) return;
+
+        // Movement frames = total frames minus idle frames.
+        // Example: if frameCount=9 and idleFrameCount=2 => movementFramesCount=7
         int movementFramesCount = std::max(1, frameCount - idleFrameCount);
+
+        // Idle frames count (at least 1).
         int idleCols = std::max(1, idleFrameCount);
+
+        // Time since last frame change.
         float elapsed = animClock.getElapsedTime().asSeconds();
+
+        // Choose frame duration depending on state (moving vs idle).
         float duration = isMoving ? frameDuration : idleFrameDuration;
-        if (elapsed >= duration) {
+
+        // If enough time passed, advance frame index.
+        if (elapsed >= duration)
+        {
             if (isMoving)
+            {
+                // Loop over movement subset.
                 frameIndex = (frameIndex + 1) % movementFramesCount;
+            }
             else
+            {
+                // Loop over idle subset.
                 frameIndex = (frameIndex + 1) % idleCols;
+            }
+
+            // Restart timer after switching frame.
             animClock.restart();
         }
+
+        // Apply the computed sub-rectangle to the sprite.
         sprite.setTextureRect(computeTextureRect());
     }
 
-    // detectPlayer : logique de détection du joueur. Les sous-classes
-    // spécialisées (Generic/Camera/Laser) remplacent cette méthode.
+    // Player detection hook.
+    // Passed as const reference:
+    // - avoids copying SFML objects
+    // - guarantees we do not modify the player shape
     virtual void detectPlayer(const sf::RectangleShape& joueur) { (void)joueur; }
 
+    // Compute the sprite-sheet rectangle to display.
+    // Convention:
+    // - Movement frames live on row (row-1)
+    // - Idle frames live on row (row-1 + 4)
     sf::IntRect computeTextureRect() const
     {
-        int frameSize = tileSize;
-        int col = 0;
-        int rowIndex = std::max(0, row - 1);
+        int frameSize = tileSize;                  // One tile is tileSize x tileSize
+        int col = 0;                               // Column index in the sprite-sheet
+        int rowIndex = std::max(0, row - 1);       // Convert row (1-based) to 0-based safe index
+
+        // How many columns are for movement animation.
         int movementFramesCount = std::max(1, frameCount - idleFrameCount);
 
-        if (isMoving) {
+        if (isMoving)
+        {
+            // When moving, pick among the movement frames subset.
             col = frameIndex % movementFramesCount;
             rowIndex = std::max(0, row - 1);
-        } else {
+        }
+        else
+        {
+            // When idle, pick among the idle frames subset.
             int idleCols = std::max(1, idleFrameCount);
             col = frameIndex % idleCols;
+
+            // Idle animation rows are offset by +4 in this sprite-sheet layout.
             rowIndex = std::max(0, row - 1) + 4;
         }
+
+        // Convert (col,rowIndex) tile coordinates to pixel coordinates.
         int frameX = col * frameSize;
         int frameY = rowIndex * frameSize;
+
+        // Return rectangle in pixels for SFML to display.
         return sf::IntRect(frameX, frameY, frameSize, frameSize);
     }
 
+    // Normalize a vector:
+    // - We want unit vectors to make dot products and projections meaningful.
     static sf::Vector2f normalize(const sf::Vector2f& v)
     {
+        // Compute length (Euclidean norm).
         float len = std::sqrt(v.x * v.x + v.y * v.y);
-        if (len > 0.001f) return {v.x / len, v.y / len};
-        return {1.f, 0.f};
+
+        // If length is not ~0, return v/len.
+        if (len > 0.001f)
+            return { v.x / len, v.y / len };
+
+        // Fallback: return a valid direction instead of (0,0).
+        return { 1.f, 0.f };
     }
 };
 
-// GenericEnemy
-// Ennemi patrouilleur standard. Se déplace entre `patrolPoints` et
-// utilise le cône de vision (hérité : `visionRange` + `visionAngle`)
-// pour détecter le joueur.
+// ------------------------------------------------------------
+// GenericEnemy: patrolling enemy with cone-of-vision
+// ------------------------------------------------------------
 class GenericEnemy : public Enemy {
 public:
+    // Patrol route points stored inside the enemy (aggregation):
+    // each instance has its own route.
     std::vector<sf::Vector2f> patrolPoints;
-    int patrolIndex = 0;
-    float speed = 2.0f;
+
+    int patrolIndex = 0;            // Which point is currently targeted
+    float speed = 2.0f;             // Movement speed per update (units per frame)
 
     GenericEnemy() = default;
     GenericEnemy(const GenericEnemy& other) = default;
+
+    // Moves along patrol points and updates direction/animation row.
     void update() override;
 
-    // clone : renvoie une copie complète de cet objet.
+    // Prototype clone: deep copy of this GenericEnemy.
     std::unique_ptr<Enemy> clone() const override;
 
-    // detectPlayer : implémente la détection par cône pour l'ennemi
-    // patrouilleur en utilisant `visionRange` et `visionAngle`.
+    // Cone-of-vision detection.
     void detectPlayer(const sf::RectangleShape& joueur) override;
 };
 
-// Camera enemy (cone)
-// CameraEnemy
-// Représente une caméra fixe. Possède un champ de vision conique
-// (`visionRange`, `visionAngle`) et ne se déplace pas ; sa `direction`
-// est fixée selon `facing`.
+// ------------------------------------------------------------
+// CameraEnemy: stationary cone-of-vision
+// ------------------------------------------------------------
 class CameraEnemy : public Enemy {
 public:
+    // Facing is stored as a string because level data often uses strings (JSON, etc.).
+    // The factory converts it into a direction vector.
     std::string facing;
-    // Uses base `visionRange` and `visionAngle` from `Enemy` to avoid duplication.
 
     CameraEnemy() = default;
     CameraEnemy(const CameraEnemy& other) = default;
+
+    // Cone-of-vision detection (same math as GenericEnemy, but camera doesn't move).
     void detectPlayer(const sf::RectangleShape& joueur) override;
 
-    // clone : copie de la caméra
+    // Prototype clone
     std::unique_ptr<Enemy> clone() const override;
 };
 
-// Laser enemy (straight beam)
-// LaserEnemy
-// Représente un rayon / laser droit. La détection se fait si le joueur
-// se trouve dans une bande étroite le long de `direction` et à une
-// distance inférieure à `laserLength`.
+// ------------------------------------------------------------
+// LaserEnemy: stationary beam detection
+// ------------------------------------------------------------
 class LaserEnemy : public Enemy {
 public:
     std::string facing;
-    // Uses base `laserLength` from `Enemy` to avoid duplication.
 
     LaserEnemy() = default;
     LaserEnemy(const LaserEnemy& other) = default;
+
+    // Beam detection (projection + lateral distance).
     void detectPlayer(const sf::RectangleShape& joueur) override;
 
-    // clone : copie du laser
+    // Prototype clone
     std::unique_ptr<Enemy> clone() const override;
 };
 
-// Forward declare the room enemy descriptor to avoid include cycles
+// Forward declare to avoid include cycles in the header.
 struct EnemyDefinition;
 
-// Factory: crée un ennemi concret à partir d'une description `EnemyDefinition`
-// - `prototypes` : map de prototypes (keys: "generic","camera","laser")
-// - `scaleW`, `scaleH` : multiplicateurs pour adapter les positions/tailles
-std::unique_ptr<Enemy> createEnemyFromDefinition(const EnemyDefinition& ed,
-                                                const std::map<std::string, std::unique_ptr<Enemy>>& prototypes,
-                                                float scaleW, float scaleH);
+// Factory function: builds an Enemy instance from data definition.
+// prototypes passed by const reference:
+// - avoids copy (and unique_ptr is non-copyable)
+// - guarantees factory does not mutate prototypes
+std::unique_ptr<Enemy> createEnemyFromDefinition(
+    const EnemyDefinition& ed,
+    const std::map<std::string, std::unique_ptr<Enemy>>& prototypes,
+    float scaleW,
+    float scaleH
+);
 
-}
+} // namespace Modele
