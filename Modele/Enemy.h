@@ -14,6 +14,8 @@
 #include <string>
 #include <cmath>
 #include <algorithm>
+#include <map>
+#include <memory>
 #include "Prototype.h"
 
 namespace Modele {
@@ -120,58 +122,14 @@ public:
 
     GenericEnemy() = default;
     GenericEnemy(const GenericEnemy& other) = default;
-
-    void update() override
-    {
-        if (patrolPoints.empty()) return;
-        sf::Vector2f target = patrolPoints[patrolIndex];
-        sf::Vector2f toTarget = target - position;
-        float dist = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
-        isMoving = dist > 1.f;
-        if (dist < speed)
-        {
-            position = target;
-            patrolIndex = (patrolIndex + 1) % patrolPoints.size();
-            direction = normalize(patrolPoints[patrolIndex] - position);
-        }
-        else
-        {
-            direction = normalize(toTarget);
-            position += direction * speed;
-        }
-        float dx = direction.x, dy = direction.y;
-        if (std::abs(dx) > std::abs(dy)) {
-            row = (dx > 0) ? 4 : 2;
-        } else {
-            row = (dy < 0) ? 1 : 3;
-        }
-    }
+    void update() override;
 
     // clone : renvoie une copie complète de cet objet.
-    std::unique_ptr<Enemy> clone() const override { return std::make_unique<GenericEnemy>(*this); }
+    std::unique_ptr<Enemy> clone() const override;
 
     // detectPlayer : implémente la détection par cône pour l'ennemi
     // patrouilleur en utilisant `visionRange` et `visionAngle`.
-    void detectPlayer(const sf::RectangleShape& joueur) override
-    {
-        // Use base Enemy visionRange/visionAngle and current direction
-        sf::FloatRect joueurBounds = joueur.getGlobalBounds();
-        sf::Vector2f joueurCenter(joueurBounds.left + joueurBounds.width * 0.5f,
-                                  joueurBounds.top + joueurBounds.height * 0.5f);
-
-        float range = visionRange;
-        float angleDeg = visionAngle;
-        float pi = 3.14159265f;
-        float halfRad = (angleDeg * 0.5f) * pi / 180.f;
-        float cosHalfFov = std::cos(halfRad);
-
-        sf::Vector2f toPlayer = joueurCenter - position;
-        float dist = std::sqrt(toPlayer.x * toPlayer.x + toPlayer.y * toPlayer.y);
-        if (dist < 1.f) { joueurDetecte = true; return; }
-        sf::Vector2f toPlayerNorm = {toPlayer.x / dist, toPlayer.y / dist};
-        float dot = direction.x * toPlayerNorm.x + direction.y * toPlayerNorm.y;
-        joueurDetecte = (dist <= range && dot >= cosHalfFov);
-    }
+    void detectPlayer(const sf::RectangleShape& joueur) override;
 };
 
 // Camera enemy (cone)
@@ -186,28 +144,10 @@ public:
 
     CameraEnemy() = default;
     CameraEnemy(const CameraEnemy& other) = default;
-
-    void detectPlayer(const sf::RectangleShape& joueur) override
-    {
-        sf::FloatRect joueurBounds = joueur.getGlobalBounds();
-        sf::Vector2f joueurCenter(joueurBounds.left + joueurBounds.width * 0.5f,
-                                  joueurBounds.top + joueurBounds.height * 0.5f);
-        float range = visionRange;
-        float angleDeg = visionAngle;
-        float pi = 3.14159265f;
-        float halfRad = (angleDeg * 0.5f) * pi / 180.f;
-        float cosHalfFov = std::cos(halfRad);
-
-        sf::Vector2f toPlayer = joueurCenter - position;
-        float dist = std::sqrt(toPlayer.x * toPlayer.x + toPlayer.y * toPlayer.y);
-        if (dist < 1.f) { joueurDetecte = true; return; }
-        sf::Vector2f toPlayerNorm = {toPlayer.x / dist, toPlayer.y / dist};
-        float dot = direction.x * toPlayerNorm.x + direction.y * toPlayerNorm.y;
-        joueurDetecte = (dist <= range && dot >= cosHalfFov);
-    }
+    void detectPlayer(const sf::RectangleShape& joueur) override;
 
     // clone : copie de la caméra
-    std::unique_ptr<Enemy> clone() const override { return std::make_unique<CameraEnemy>(*this); }
+    std::unique_ptr<Enemy> clone() const override;
 };
 
 // Laser enemy (straight beam)
@@ -222,21 +162,20 @@ public:
 
     LaserEnemy() = default;
     LaserEnemy(const LaserEnemy& other) = default;
-
-    void detectPlayer(const sf::RectangleShape& joueur) override
-    {
-        sf::FloatRect joueurBounds = joueur.getGlobalBounds();
-        sf::Vector2f joueurCenter(joueurBounds.left + joueurBounds.width * 0.5f,
-                                  joueurBounds.top + joueurBounds.height * 0.5f);
-        sf::Vector2f toPlayer = joueurCenter - position;
-        float proj = toPlayer.x * direction.x + toPlayer.y * direction.y;
-        float dist = std::sqrt(toPlayer.x * toPlayer.x + toPlayer.y * toPlayer.y);
-        float side = toPlayer.x * (-direction.y) + toPlayer.y * direction.x;
-        joueurDetecte = (proj > 0 && proj < laserLength && std::abs(side) < 20.f);
-    }
+    void detectPlayer(const sf::RectangleShape& joueur) override;
 
     // clone : copie du laser
-    std::unique_ptr<Enemy> clone() const override { return std::make_unique<LaserEnemy>(*this); }
+    std::unique_ptr<Enemy> clone() const override;
 };
+
+// Forward declare the room enemy descriptor to avoid include cycles
+struct EnemyDefinition;
+
+// Factory: crée un ennemi concret à partir d'une description `EnemyDefinition`
+// - `prototypes` : map de prototypes (keys: "generic","camera","laser")
+// - `scaleW`, `scaleH` : multiplicateurs pour adapter les positions/tailles
+std::unique_ptr<Enemy> createEnemyFromDefinition(const EnemyDefinition& ed,
+                                                const std::map<std::string, std::unique_ptr<Enemy>>& prototypes,
+                                                float scaleW, float scaleH);
 
 }
