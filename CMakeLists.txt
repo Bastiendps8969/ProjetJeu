@@ -45,6 +45,7 @@ add_executable(TestCollision
         Vue/ConfirmationDialog.cpp
         Modele/MapManager.cpp
         Modele/ScoreCalculator.cpp
+        Modele/Enemy.cpp
 )
 
 # Inclusion des headers (optionnel si bien organisés)
