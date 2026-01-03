@@ -1,5 +1,43 @@
 {
   "dialogues": {
+    "start_level_OH1": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Agent Adams, we finally have a lead on the cell we've been tracking.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "What is the objective this time?",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Your mission is to infiltrate their hideout and extract sensitive data from their computers.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "We also believe they are storing compromising documents. Recover as many as you can.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Stay quiet, stay hidden. If they detect you, the mission is compromised.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "Understood. I am ready to move.",
+        "displayDuration": 2.0
+      }
+    ],
     "start_level": [
       {
         "characterName": "John Jones",
