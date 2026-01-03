@@ -17,6 +17,7 @@ private:
     std::string message;
     bool active = true;
     bool confirmed = false;
+    int selectedIndex = 0; // 0 = Yes, 1 = No
 
     sf::Text messageText;
     sf::RectangleShape yesButton;

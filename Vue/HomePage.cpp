@@ -180,10 +180,55 @@ namespace Vue
         }
         else if (event.type == sf::Event::KeyPressed)
         {
+            // If input has focus, keep editing text as before
             if (event.key.code == sf::Keyboard::BackSpace && !playerName.empty() && inputFocused)
             {
                 playerName.pop_back();
                 inputText.setString(playerName);
+            }
+            // Navigate menu with Up/Down and activate with Enter
+            else if (!inputFocused)
+            {
+                if (event.key.code == sf::Keyboard::Up)
+                {
+                    selectedIndex = (selectedIndex + 3) % 4; // wrap-around
+                }
+                else if (event.key.code == sf::Keyboard::Down)
+                {
+                    selectedIndex = (selectedIndex + 1) % 4;
+                }
+                else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
+                {
+                    // Activate the selected item
+                    if (selectedIndex == 0)
+                    {
+                        openLevelPage(fenetre);
+                        return;
+                    }
+                    else if (selectedIndex == 1)
+                    {
+                        openScoreWindow();
+                        return;
+                    }
+                    else if (selectedIndex == 2)
+                    {
+                        if (!creditsWindow)
+                        {
+                            creditsWindow = std::make_unique<CreditsWindow>();
+                        }
+                        else
+                        {
+                            creditsWindow->setActive(true);
+                        }
+                        return;
+                    }
+                    else if (selectedIndex == 3)
+                    {
+                        soundsOn = !soundsOn;
+                        soundsLabel.setString(soundsOn ? "SOUNDS : ON" : "SOUNDS : OFF");
+                        return;
+                    }
+                }
             }
             else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
             {
@@ -321,6 +366,18 @@ namespace Vue
             bool hoveredScore = scoreButton.getGlobalBounds().contains(mousePos);
             bool hoveredCredits = creditsButton.getGlobalBounds().contains(mousePos);
             bool hoveredSounds = soundsButton.getGlobalBounds().contains(mousePos);
+
+            // If mouse hovers over a button, sync the keyboard selection
+            if (hoveredPlay) selectedIndex = 0;
+            else if (hoveredScore) selectedIndex = 1;
+            else if (hoveredCredits) selectedIndex = 2;
+            else if (hoveredSounds) selectedIndex = 3;
+
+            // Combine mouse hover with keyboard selection for visual feedback
+            hoveredPlay = hoveredPlay || (selectedIndex == 0);
+            hoveredScore = hoveredScore || (selectedIndex == 1);
+            hoveredCredits = hoveredCredits || (selectedIndex == 2);
+            hoveredSounds = hoveredSounds || (selectedIndex == 3);
 
             // Dessiner les quatre boutons en utilisant la même fonction utilitaire stylée
             drawStyledButton(fenetre, playButton, playLabel, hoveredPlay);

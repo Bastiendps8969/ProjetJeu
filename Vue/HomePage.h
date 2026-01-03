@@ -79,6 +79,8 @@ namespace Vue
         // Lance le sélecteur de niveau (LevelPage) et enregistre la sélection
         void openLevelPage(sf::RenderWindow& parent);
 
+        // Selected index for keyboard navigation: 0=Play,1=Scores,2=Credits,3=Sounds
+        int selectedIndex = 0;
         // Indices sélectionnés après la fermeture du sélecteur (chapter, level)
         int selectedChapter = -1;
         int selectedLevel = -1;
