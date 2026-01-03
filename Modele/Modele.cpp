@@ -767,6 +767,8 @@ namespace Modele {
         // ensure we clear our session-level record as well so dialogues may
         // be shown again after a full reset.
         shownRoomDialogues.clear();
+        // Reset detection counter when restarting the level
+        detectionCount = 0;
         roomManager.reset();
         roomManager = std::make_unique<RoomManager>(screenW, screenH);
         if (!currentLevelPath.empty() && roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
