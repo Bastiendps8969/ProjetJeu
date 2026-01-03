@@ -1,8 +1,8 @@
+
 #pragma once
 //
 // LevelPage.h
 //
-
 #ifndef TESTCOLLISION_LEVELPAGE_H
 #define TESTCOLLISION_LEVELPAGE_H
 
@@ -15,14 +15,15 @@
 namespace Vue
 {
     /**
-     * LevelPage : écran de sélection des chapitres et des niveaux
-     * - run() ouvre une fenêtre plein écran et retourne la sélection (bloquant)
-     * - Gère l'affichage d'une liste de chapitres ainsi qu'un carrousel de niveaux
-     *   avec un panneau de prévisualisation sur la droite.
+     * LevelPage: chapter and level selection screen.
+     * - run() opens a fullscreen window and returns the user's selection (blocking / modal).
+     * - Displays a vertical chapter list, then a horizontal level carousel
+     *   with a right-side preview panel (title, description, needed score, image).
      */
     class LevelPage
     {
     public:
+        // Returned selection object for the caller (controller/menu).
         struct Selection {
             int chapterIndex = -1;
             int levelIndex = -1;
@@ -31,33 +32,36 @@ namespace Vue
         };
 
         LevelPage() = default;
-        // Optional callback returning current player scores (used to determine level locks)
+
+        // Optional callback returning current player scores (used to determine level locks).
         LevelPage(std::function<std::vector<int>()> getScoresCb);
-        
-        // Store optional callback
+
+        // Update/replace the optional callback.
         void setGetScoresCb(std::function<std::vector<int>()> cb);
 
-        // Ouvre une fenêtre plein écran et renvoie la sélection (bloquant)
+        // Opens a fullscreen window and returns the selection (blocking).
         Selection run();
 
     private:
-        // Fonctions utilitaires internes pour le rendu
+        // Internal rendering helpers.
+        // NOTE: drawFrame() is declared here but not defined in the provided .cpp (may be legacy).
         void drawFrame(sf::RenderWindow& window, const std::vector<Modele::ChapterInfo>& chapters,
                        int chapterIdx, int levelIdx, const sf::Sprite& backgroundSprite, bool bgLoaded);
 
-        // Dessine l'écran de sélection de chapitre (liste verticale)
+        // Draw chapter selection screen (vertical list).
         void drawChapterSelection(sf::RenderWindow& window,
                                   const std::vector<Modele::ChapterInfo>& chapters,
                                   int chapterIdx,
                                   const sf::Sprite& backgroundSprite, bool bgLoaded);
 
-        // Dessine l'écran de sélection de niveau (carrousel + panneau droit de prévisualisation)
+        // Draw level selection screen (carousel + right preview panel).
         void drawLevelSelection(sf::RenderWindow& window,
                                 const std::vector<Modele::ChapterInfo>& chapters,
                                 int chapterIdx, int levelIdx,
                                 const sf::Sprite& backgroundSprite, bool bgLoaded);
 
-        // Optional callback provided by caller to query current player scores
+        // Optional callback provided by caller to query current player scores.
+        // Used to decide whether a level is unlocked based on neededScore.
         std::function<std::vector<int>()> getScoresCb;
     };
 }

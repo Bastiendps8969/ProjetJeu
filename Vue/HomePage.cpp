@@ -1,101 +1,106 @@
-// HomePage.cpp - implémentation de la classe HomePage
-// Gère le rendu du menu principal et les interactions utilisateur.
-// Utilise une image d'arrière-plan "Cherub" si disponible, et un callback pour récupérer les scores.
+
+// HomePage.cpp - implementation of HomePage
+// Handles main menu rendering and user interactions.
+// Uses a "Cherub" background image if available, and a callback to retrieve scores.
 
 #include "HomePage.h"
 #include "CreditsWindow.h"
 #include "ScoreWindow.h"
 #include "LevelPage.h"
-#include <numeric> // accumulateur (std::accumulate)
+#include <numeric> // std::accumulate
 #include <cmath>
 #include <iostream>
 
 namespace Vue
 {
     /**
-     * Constructeur HomePage
-     * - Tente de charger une police système puis initialise tous les composants UI (titre, boutons, etc.)
-     * - Tente aussi de charger l'image d'arrière-plan depuis plusieurs chemins (fallback)
-     * @param getScores callback pour récupérer les scores (utilisé par ScoreWindow)
-     * @param backgroundPath chemin optionnel pour l'image de fond
+     * HomePage constructor
+     * - Attempts to load a system font and initializes UI components (title, buttons, etc.)
+     * - Attempts to load a background image from multiple fallback paths
+     * @param getScores callback to retrieve scores (used by ScoreWindow / LevelPage locks)
+     * @param backgroundPath optional background image path
      */
     HomePage::HomePage(std::function<std::vector<int>()> getScores, const std::string& backgroundPath)
         : getScoresCb(std::move(getScores))
     {
-        // Charger une police système (Arial) si possible
+        // Load a system font (Arial) if possible (Windows-specific path).
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontLoaded = true;
 
-            // Titre - "CHERUB: Hades Operation"
+            // Title - "CHERUB"
             titleText.setFont(font);
             titleText.setString("CHERUB");
             titleText.setCharacterSize(72);
-            titleText.setFillColor(sf::Color(255, 80, 80)); // rouge néon
+            titleText.setFillColor(sf::Color(255, 80, 80)); // neon red
             titleText.setStyle(sf::Text::Bold);
 
-            // Ombre du titre
+            // Title shadow for depth/contrast.
             titleShadow = titleText;
             titleShadow.setFillColor(sf::Color(0,0,0,160));
 
-            // Sous-titre - "Operation Hades"
+            // Subtitle (reuses inputText here as a "subtitle" label).
             inputText.setFont(font);
             inputText.setString("Operation Hades");
             inputText.setCharacterSize(28);
-            inputText.setFillColor(sf::Color(200, 100, 100)); // rouge clair
+            inputText.setFillColor(sf::Color(200, 100, 100)); // lighter red
             inputText.setStyle(sf::Text::Bold);
 
-            // Boîte de saisie (visuelle non utilisée ici, seulement pour intercepter clics)
+            // Input box (visual not really used here; size is set to 0).
+            // It mainly acts as a hit-test area for focusing input (currently impossible since size is 0).
             inputBox.setSize({0.f, 0.f});
 
-            // ========== STYLE BOUTONS ROUGE NÉON ==========
-
-            // Bouton PLAY - style correspondant à l'image
+            // ========== NEON RED BUTTON STYLE ==========
+            // PLAY button
             playButton.setSize({380.f, 65.f});
-            playButton.setFillColor(sf::Color(180, 20, 20)); // rouge foncé
-            playButton.setOutlineColor(sf::Color(255, 100, 100)); // contour rouge vif (lueur néon)
+            playButton.setFillColor(sf::Color(180, 20, 20));
+            playButton.setOutlineColor(sf::Color(255, 100, 100));
             playButton.setOutlineThickness(0.f);
+
             playLabel.setFont(font);
             playLabel.setString("PLAY");
             playLabel.setCharacterSize(32);
-            playLabel.setFillColor(sf::Color(255, 100, 100)); // texte rouge néon
+            playLabel.setFillColor(sf::Color(255, 100, 100));
             playLabel.setStyle(sf::Text::Bold);
 
-            // Bouton SCORES - style rouge néon
+            // SCORES button
             scoreButton.setSize({380.f, 65.f});
-            scoreButton.setFillColor(sf::Color(180, 20, 20)); // rouge foncé
-            scoreButton.setOutlineColor(sf::Color(255, 100, 100)); // contour rouge vif
+            scoreButton.setFillColor(sf::Color(180, 20, 20));
+            scoreButton.setOutlineColor(sf::Color(255, 100, 100));
             scoreButton.setOutlineThickness(0.f);
+
             scoreLabel.setFont(font);
             scoreLabel.setString("SCORES");
             scoreLabel.setCharacterSize(32);
-            scoreLabel.setFillColor(sf::Color(180, 80, 80)); // texte rouge légèrement plus foncé
+            scoreLabel.setFillColor(sf::Color(180, 80, 80));
             scoreLabel.setStyle(sf::Text::Bold);
 
-            // Bouton CREDITS - style rouge néon
+            // CREDITS button
             creditsButton.setSize({380.f, 65.f});
-            creditsButton.setFillColor(sf::Color(180, 20, 20)); // rouge foncé
-            creditsButton.setOutlineColor(sf::Color(255, 100, 100)); // contour rouge vif
+            creditsButton.setFillColor(sf::Color(180, 20, 20));
+            creditsButton.setOutlineColor(sf::Color(255, 100, 100));
             creditsButton.setOutlineThickness(0.f);
+
             creditsLabel.setFont(font);
             creditsLabel.setString("CREDITS");
             creditsLabel.setCharacterSize(32);
-            creditsLabel.setFillColor(sf::Color(180, 80, 80)); // texte rouge légèrement plus foncé
+            creditsLabel.setFillColor(sf::Color(180, 80, 80));
             creditsLabel.setStyle(sf::Text::Bold);
 
-            // Bouton SOUNDS - style rouge néon
+            // SOUNDS button
             soundsButton.setSize({380.f, 65.f});
-            soundsButton.setFillColor(sf::Color(180, 20, 20)); // rouge foncé
-            soundsButton.setOutlineColor(sf::Color(255, 100, 100)); // contour rouge vif
+            soundsButton.setFillColor(sf::Color(180, 20, 20));
+            soundsButton.setOutlineColor(sf::Color(255, 100, 100));
             soundsButton.setOutlineThickness(0.f);
+
             soundsLabel.setFont(font);
             soundsLabel.setCharacterSize(32);
-            soundsLabel.setFillColor(sf::Color(180, 80, 80)); // texte rouge légèrement plus foncé
+            soundsLabel.setFillColor(sf::Color(180, 80, 80));
             soundsLabel.setStyle(sf::Text::Bold);
             soundsLabel.setString(soundsOn ? "SOUNDS : ON" : "SOUNDS : OFF");
         }
 
-        // Tester plusieurs chemins probables pour l'image CHERUB
+        // Try multiple probable paths for the Cherub background image (fallback strategy).
         std::vector<std::string> tryPaths;
         if (!backgroundPath.empty())
             tryPaths.push_back(backgroundPath);
@@ -119,10 +124,10 @@ namespace Vue
         }
     }
 
-    // Utilitaire pour dessiner un bouton — style cohérent, sans ombre, avec brillance et lueur
+    // Utility to draw a stylized button consistently (hover outline/glow).
     static void drawStyledButton(sf::RenderWindow& window, sf::RectangleShape button, sf::Text label, bool hovered)
     {
-        // Base du bouton
+        // Base button
         sf::RectangleShape base = button;
         sf::Color baseColor = hovered ? sf::Color(230, 60, 60) : sf::Color(170, 30, 30);
         base.setFillColor(baseColor);
@@ -130,7 +135,7 @@ namespace Vue
         base.setOutlineThickness(hovered ? 4.f : 2.f);
         window.draw(base);
 
-        // Lueur au survol
+        // Hover glow
         if (hovered)
         {
             sf::RectangleShape glow = button;
@@ -140,7 +145,7 @@ namespace Vue
             window.draw(glow);
         }
 
-        // Texte centré dans le bouton
+        // Center the label inside the button.
         sf::FloatRect lb = label.getLocalBounds();
         label.setPosition(
             button.getPosition().x + (button.getSize().x - lb.width) / 2.f - lb.left,
@@ -152,6 +157,7 @@ namespace Vue
 
     void HomePage::centerLabel(sf::Text& label, const sf::RectangleShape& button)
     {
+        // Center label within a rectangle by using its local bounds (accounts for glyph offset).
         sf::FloatRect lb = label.getLocalBounds();
         label.setPosition(
             button.getPosition().x + (button.getSize().x - lb.width) / 2.f - lb.left,
@@ -163,13 +169,14 @@ namespace Vue
     {
         if (!active) return;
 
-        // Transmettre les événements à la fenêtre de crédits si elle est active
+        // Forward events to credits window if it is active (modal behavior).
         if (creditsWindow && creditsWindow->isActive())
         {
             creditsWindow->handleEvent(event);
             return;
         }
 
+        // Text input for player name (ASCII printable range) when input is focused.
         if (event.type == sf::Event::TextEntered)
         {
             if (event.text.unicode >= 32 && event.text.unicode < 127 && playerName.size() < 32 && inputFocused)
@@ -180,38 +187,41 @@ namespace Vue
         }
         else if (event.type == sf::Event::KeyPressed)
         {
+            // Backspace deletes last character when focused.
             if (event.key.code == sf::Keyboard::BackSpace && !playerName.empty() && inputFocused)
             {
                 playerName.pop_back();
                 inputText.setString(playerName);
             }
+            // Enter/Return closes HomePage (legacy behavior: "start game").
             else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
             {
-                active = false; // démarrer le jeu (comportement précédent lors de la touche Enter)
+                active = false;
             }
         }
         else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
         {
+            // Convert mouse pixel position to world coords (SFML view aware).
             sf::Vector2i mp = sf::Mouse::getPosition(fenetre);
             sf::Vector2f world = fenetre.mapPixelToCoords(mp);
 
+            // PLAY -> open level selector (LevelPage) instead of starting immediately.
             if (playButton.getGlobalBounds().contains(world))
             {
-                // Ouvrir le sélecteur de niveaux (au lieu de démarrer immédiatement)
                 openLevelPage(fenetre);
                 return;
             }
 
+            // SCORES -> open score window.
             if (scoreButton.getGlobalBounds().contains(world))
             {
-                // Ouvrir la fenêtre des scores
                 openScoreWindow();
                 return;
             }
 
+            // CREDITS -> open/create credits window.
             if (creditsButton.getGlobalBounds().contains(world))
             {
-                // Créer ou afficher la fenêtre de crédits
                 if (!creditsWindow)
                 {
                     creditsWindow = std::make_unique<CreditsWindow>();
@@ -223,6 +233,7 @@ namespace Vue
                 return;
             }
 
+            // SOUNDS -> toggle state and update label.
             if (soundsButton.getGlobalBounds().contains(world))
             {
                 soundsOn = !soundsOn;
@@ -230,6 +241,7 @@ namespace Vue
                 return;
             }
 
+            // Name input focus (note: inputBox size is currently 0x0).
             if (inputBox.getGlobalBounds().contains(world))
             {
                 inputFocused = true;
@@ -243,77 +255,75 @@ namespace Vue
 
     void HomePage::draw(sf::RenderWindow& fenetre)
     {
-        // Calculer la mise en page centrée selon la taille actuelle de la fenêtre
+        // Layout depends on current window size.
         sf::Vector2u win = fenetre.getSize();
         float centerX = static_cast<float>(win.x) * 0.5f;
 
-        // Effacer la fenêtre (background)
-        fenetre.clear(sf::Color(18,18,28)); // fond sombre
+        // Clear background.
+        fenetre.clear(sf::Color(18,18,28));
 
-        // Dessiner l'arrière-plan CHERUB (plein écran) s'il est chargé
+        // Draw Cherub background if loaded (scaled to cover, tinted for readability).
         if (cherubLoaded)
         {
             const sf::Texture& t = cherubTexture;
             float texW = static_cast<float>(t.getSize().x);
             float texH = static_cast<float>(t.getSize().y);
 
-            // Calculer l'échelle pour couvrir tout l'écran (en conservant le ratio)
+            // Scale to cover full screen (keeps aspect ratio).
             float scaleX = static_cast<float>(win.x) / texW;
             float scaleY = static_cast<float>(win.y) / texH;
-            float scale = std::max(scaleX, scaleY); // utiliser la plus grande échelle pour tout couvrir
+            float scale = std::max(scaleX, scaleY);
 
             cherubSprite.setScale(scale, scale);
-
-            // Positionner en haut à gauche
             cherubSprite.setOrigin(0.f, 0.f);
             cherubSprite.setPosition(0.f, 0.f);
 
-            // Superposition semi-transparente pour assombrir l'arrière-plan
+            // Semi-transparent overlay to make UI readable.
             sf::Color c = cherubSprite.getColor();
-            c.a = 180; // plus transparent pour que l'UI soit plus lisible
+            c.a = 180;
             cherubSprite.setColor(c);
 
             fenetre.draw(cherubSprite);
         }
 
-        // Positionner le TITRE à gauche (comme sur l'image) — légèrement plus bas
+        // Title placement (left side).
         float titleX = static_cast<float>(win.x) * 0.15f;
         float titleY = static_cast<float>(win.y) * 0.35f;
 
         titleText.setPosition(titleX, titleY);
         titleShadow.setPosition(titleX + 3.f, titleY + 3.f);
 
-        // Positionner le sous-titre sous le titre
+        // Subtitle placed below title.
         sf::FloatRect titleBounds = titleText.getLocalBounds();
         inputText.setPosition(titleX, titleY + titleBounds.height + 10.f);
 
-        // Positionner les boutons sur la partie droite de l'écran (pour correspondre à l'image)
-        float buttonX = centerX + 120.f; // côté droit du centre
+        // Buttons on the right side.
+        float buttonX = centerX + 120.f;
         float startY = static_cast<float>(win.y) * 0.25f;
         float buttonGap = 85.f;
 
-        // Bouton PLAY
+        // PLAY
         playButton.setPosition(buttonX, startY);
         centerLabel(playLabel, playButton);
         startY += buttonGap;
 
-        // Bouton SCORES
+        // SCORES
         scoreButton.setPosition(buttonX, startY);
         centerLabel(scoreLabel, scoreButton);
         startY += buttonGap;
 
-        // Bouton CREDITS
+        // CREDITS
         creditsButton.setPosition(buttonX, startY);
         centerLabel(creditsLabel, creditsButton);
         startY += buttonGap;
 
-        // Bouton SOUNDS
+        // SOUNDS
         soundsButton.setPosition(buttonX, startY);
         centerLabel(soundsLabel, soundsButton);
 
         if (fontLoaded)
         {
-            // Récupérer la position de la souris pour les effets de survol
+            // Hover effects using mouse position.
             sf::Vector2i mousePixel = sf::Mouse::getPosition(fenetre);
             sf::Vector2f mousePos = fenetre.mapPixelToCoords(mousePixel);
 
@@ -322,38 +332,19 @@ namespace Vue
             bool hoveredCredits = creditsButton.getGlobalBounds().contains(mousePos);
             bool hoveredSounds = soundsButton.getGlobalBounds().contains(mousePos);
 
-            // Dessiner les quatre boutons en utilisant la même fonction utilitaire stylée
+            // Draw buttons using shared styled function.
             drawStyledButton(fenetre, playButton, playLabel, hoveredPlay);
             drawStyledButton(fenetre, scoreButton, scoreLabel, hoveredScore);
             drawStyledButton(fenetre, creditsButton, creditsLabel, hoveredCredits);
             drawStyledButton(fenetre, soundsButton, soundsLabel, hoveredSounds);
 
-            // Dessiner le titre (avec son ombre)
+            // Draw title shadow + title, then subtitle.
             fenetre.draw(titleShadow);
             fenetre.draw(titleText);
-
-            // Dessiner le sous-titre
             fenetre.draw(inputText);
         }
 
-        // Superposition des crédits (overlay)
-        if (showCredits)
-        {
-            sf::RectangleShape overlay({(float)win.x * 0.6f, (float)win.y * 0.35f});
-            overlay.setFillColor(sf::Color(0,0,0,200));
-            overlay.setPosition(centerX - overlay.getSize().x/2.f, centerX*0.15f);
-            fenetre.draw(overlay);
-
-            sf::Text txt;
-            txt.setFont(font);
-            txt.setString("CREDITS\nDeveloper: ...\nGraphics: ...");
-            txt.setCharacterSize(18);
-            txt.setFillColor(sf::Color::White);
-            txt.setPosition(overlay.getPosition() + sf::Vector2f(20.f,20.f));
-            fenetre.draw(txt);
-        }
-
-        // Afficher la fenêtre de crédits si active
+        // Draw credits window overlay if active.
         if (creditsWindow && creditsWindow->isActive())
         {
             creditsWindow->draw(fenetre);
@@ -364,9 +355,10 @@ namespace Vue
 
     void HomePage::openScoreWindow()
     {
+        // Create the score screen using the injected callback.
         ScoreWindow scoreWindow(getScoresCb);
 
-        // Ouvre une fenêtre plein écran "Scores"
+        // Open a fullscreen "Scores" window (modal).
         sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Scores", sf::Style::Fullscreen);
 
         while (window.isOpen() && scoreWindow.isActive())
@@ -378,24 +370,25 @@ namespace Vue
                 if (event.type == sf::Event::Closed)
                     window.close();
             }
-
             scoreWindow.draw(window);
         }
     }
 
     void HomePage::openCreditsWindow()
     {
+        // Stub: credits are now handled as a modal overlay via CreditsWindow and handleEvent/draw.
         CreditsWindow creditsWindow;
-
-        // Afficher les crédits comme une modale sur la page d'accueil
-        // La fenêtre parent est maintenant la fenêtre du jeu passée à handleEvent
+        // Display credits as a modal on the home page.
+        // Parent window is the game window passed to handleEvent.
     }
 
-    // Ouvre le sélecteur LevelPage dans une fenêtre plein écran et stocke la sélection.
+    // Opens LevelPage selector in fullscreen and stores the selection.
     void HomePage::openLevelPage(sf::RenderWindow& parent)
     {
         LevelPage selector(this->getScoresCb);
-        LevelPage::Selection sel = selector.run(); // bloque jusqu'à la fermeture
+
+        // Blocks until LevelPage closes and returns a Selection.
+        LevelPage::Selection sel = selector.run();
 
         if (sel.valid)
         {
@@ -403,13 +396,12 @@ namespace Vue
             selectedLevel = sel.levelIndex;
             selectedLevelData = sel.levelData;
 
-            // Si l'utilisateur a choisi un niveau, fermer la page d'accueil pour démarrer le jeu.
-            // Le contrôleur peut récupérer getSelectedChapter/getSelectedLevel()
+            // If user selected a level, close the HomePage so gameplay can start.
             active = false;
         }
         else
         {
-            // L'utilisateur a annulé ou fermé la fenêtre ; on retourne simplement au menu d'accueil
+            // User canceled or closed the window -> return to home page (do nothing).
         }
     }
 } // namespace Vue

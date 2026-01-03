@@ -1,10 +1,18 @@
+
 #pragma once
+
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
 
 namespace Vue
 {
+    // DialogueData:
+    // Lightweight data container for a single dialogue line.
+    // - characterName: name displayed in the dialogue box
+    // - characterPortraitPath: path to portrait image (optional)
+    // - text: dialogue content
+    // - displayDuration: duration (seconds) intended for auto-advance (currently not used by shouldClose()).
     struct DialogueData
     {
         std::string characterName;
@@ -13,46 +21,87 @@ namespace Vue
         float displayDuration;
     };
 
+    // DialogueBox:
+    // UI widget that renders a dialogue overlay at the bottom of the screen.
+    // It shows:
+    // - a semi-transparent background panel
+    // - character portrait (or placeholder)
+    // - character name
+    // - dialogue text
+    // - a "[Click to continue]" hint
+    //
+    // The box is "modal-like": it remains open until the user clicks / presses Space.
     class DialogueBox
     {
     private:
+        // Whether the dialogue box is currently displayed.
         bool active = false;
+
+        // While true, we are waiting for user input to continue.
+        // Once it becomes false, shouldClose() returns true.
         bool waitingForClick = false;
+
+        // Timer restarted on each dialogue (could be used with displayDuration for auto-close).
         sf::Clock displayTimer;
 
+        // Font for all texts.
         sf::Font font;
         bool fontLoaded = false;
 
-        // Éléments visuels
+        // Visual elements (background panel, portrait, texts).
         sf::RectangleShape backgroundBox;
+
         sf::Texture portraitTexture;
         sf::Sprite portraitSprite;
         bool portraitLoaded = false;
+
+        // Debug-friendly placeholder when portrait is missing (magenta).
         sf::RectangleShape portraitPlaceholder;
+
+        // Fixed portrait drawing area size.
         sf::Vector2f portraitSize = sf::Vector2f(160.f, 160.f);
-        
+
+        // Text elements.
         sf::Text nameText;
         sf::Text dialogueText;
         sf::Text continueText;
 
-        // Données du dialogue actuel
+        // Current dialogue data being displayed.
         DialogueData currentDialogue;
 
+        // Initialize UI layout based on current window size.
         void initializeDialogueBox(const sf::Vector2u& windowSize);
+
+        // Declared but not implemented in the provided .cpp:
+        // likely intended for dynamic updates (wrapping, repositioning).
         void updateDialogueDisplay(const sf::Vector2u& windowSize);
 
     public:
         DialogueBox();
 
+        // Active state getter.
         bool isActive() const { return active; }
 
+        // Start displaying a new dialogue entry (copies data into internal state).
         void startDialogue(const DialogueData& dialogue, const sf::Vector2u& windowSize);
+
+        // End the dialogue immediately.
         void endDialogue() { active = false; }
 
+        // Indicates whether the dialogue box should close / advance to next entry.
+        // Current logic: closes only after user interaction (click/space).
         bool shouldClose() const;
+
+        // Expose whether we are waiting for the next click.
         bool isWaitingForClick() const { return waitingForClick; }
+
+        // Handle a click (or equivalent input) and mark as ready to close.
         void handleMouseClick() { waitingForClick = false; }
+
+        // Handle SFML events (mouse click / key press).
         void handleEvent(const sf::Event& event);
+
+        // Draw the dialogue box overlay.
         void draw(sf::RenderWindow& fenetre);
     };
 }

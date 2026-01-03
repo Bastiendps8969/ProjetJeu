@@ -1,11 +1,10 @@
+
 #pragma once
 //
 // Created by bertr on 25-11-25.
 //
-
 #ifndef TESTCOLLISION_HOMEPAGE_H
 #define TESTCOLLISION_HOMEPAGE_H
-
 
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -17,78 +16,92 @@
 namespace Vue
 {
     /**
-     * HomePage : menu principal du jeu
-     * - Affiche titre, boutons (Play, Scores, Credits, Sounds)
-     * - Permet la saisie du nom du joueur
-     * - Possède un callback pour récupérer les scores (affichage dans ScoreWindow)
+     * HomePage: main menu of the game.
+     * - Displays title + buttons (Play, Scores, Credits, Sounds)
+     * - Allows player name input (max 32 chars)
+     * - Receives a callback to retrieve scores (displayed in ScoreWindow)
      *
-     * Le constructeur accepte un callback pour obtenir les scores et un chemin optionnel
-     * pour l'image de fond.
+     * The constructor accepts a score callback and an optional background image path.
      */
     class HomePage
     {
     private:
-        bool active = true;            ///< Bool : la page est-elle active (affichée) ?
-        bool inputFocused = false;     ///< Focus d'entrée pour la saisie du nom du joueur
-        std::string playerName;        ///< Nom saisi du joueur (max 32 caractères)
+        // Modal state: when false, the menu loop can exit.
+        bool active = true; ///< Is the page active (displayed) ?
 
-        // Police et éléments graphiques
+        // Player name input state.
+        bool inputFocused = false; ///< Whether name input is focused
+        std::string playerName;    ///< Player name (max 32 chars)
+
+        // Font and UI elements.
         sf::Font font;
         bool fontLoaded = false;
+
+        // Title and shadow (for a "neon" style).
         sf::Text titleText;
         sf::Text titleShadow;
+
+        // Input box + text.
+        // Note: in the current implementation, inputBox is size (0,0) and mainly used for hit-testing.
         sf::RectangleShape inputBox;
         sf::Text inputText;
+
+        // Main Play button.
         sf::RectangleShape playButton;
         sf::Text playLabel;
 
-        // Boutons supplémentaires (Scores, Credits, Sounds)
+        // Additional buttons (Scores, Credits, Sounds).
         sf::RectangleShape scoreButton;
         sf::Text scoreLabel;
+
         sf::RectangleShape creditsButton;
         sf::Text creditsLabel;
+
         sf::RectangleShape soundsButton;
         sf::Text soundsLabel;
 
+        // Simple sounds toggle state.
         bool soundsOn = true;
+
+        // Legacy credits overlay flag (separate from CreditsWindow).
         bool showCredits = false;
 
-        // Fenêtre de crédits (modale)
+        // Credits window (modal overlay managed with RAII).
         std::unique_ptr<CreditsWindow> creditsWindow;
 
-        // Arrière-plan "Cherub" (semi-transparent si présent)
+        // Cherub background image (semi-transparent if present).
         sf::Texture cherubTexture;
         sf::Sprite cherubSprite;
         bool cherubLoaded = false;
 
-        // Horloge basique d'animation (utilisée si nécessaire)
+        // Basic animation clock (available if needed).
         sf::Clock animClock;
 
-        // Callback pour obtenir les scores actuels du joueur
+        // Callback to query current player scores (used by ScoreWindow and LevelPage locks).
         std::function<std::vector<int>()> getScoresCb;
 
-        // UTIL : centrer un texte à l'intérieur d'un bouton
+        // Utility: center a label inside a rectangle button.
         void centerLabel(sf::Text& label, const sf::RectangleShape& button);
 
-        // Ouvre une fenêtre popup pour afficher les scores
+        // Open a dedicated score window (ScoreWindow).
         void openScoreWindow();
 
-        // Ouvre l'écran des crédits
+        // Open credits screen (currently stubbed / handled via CreditsWindow pointer).
         void openCreditsWindow();
 
-        // Lance le sélecteur de niveau (LevelPage) et enregistre la sélection
+        // Launch LevelPage selector and store the chosen chapter/level indices.
         void openLevelPage(sf::RenderWindow& parent);
 
-        // Indices sélectionnés après la fermeture du sélecteur (chapter, level)
+        // Selected indices after closing LevelPage.
         int selectedChapter = -1;
         int selectedLevel = -1;
         std::string selectedLevelData;
 
     public:
         /**
-         * Constructeur
-         * @param getScores Callback (fonction) retournant un std::vector<int> représentant les scores
-         * @param backgroundPath Chemin optionnel vers l'image de fond (des chemins de secours sont testés dans le constructeur)
+         * Constructor
+         * @param getScores Callback returning a vector of scores
+         * @param backgroundPath Optional path to background image (fallback paths are tried)
          */
         HomePage(std::function<std::vector<int>()> getScores, const std::string& backgroundPath = "");
 
@@ -97,12 +110,12 @@ namespace Vue
 
         const std::string& getPlayerName() const { return playerName; }
 
-        // Après la fermeture du LevelPage, obtenir les indices choisis
+        // After closing LevelPage, get chosen indices and optional level JSON path.
         int getSelectedChapter() const { return selectedChapter; }
         int getSelectedLevel() const { return selectedLevel; }
         const std::string& getSelectedLevelData() const { return selectedLevelData; }
 
-        // Gestion des événements et rendu
+        // Input handling and rendering.
         void handleEvent(const sf::Event& event, sf::RenderWindow& fenetre);
         void draw(sf::RenderWindow& fenetre);
     };
