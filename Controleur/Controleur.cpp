@@ -105,6 +105,37 @@ namespace Controleur
                 else
                 {
                     std::cout << "[Controleur] Niveau sélectionné chargé : room " << roomId << "\n";
+                    // Lancer immédiatement le dialogue associé à la pièce de départ (le cas où on démarre depuis une pièce)
+                    {
+                        Vue::DialogueManager startupDialogueManager;
+                        std::string startDialog = modele.getCurrentRoomDialogueRef();
+                        if (!startDialog.empty() && !modele.isCurrentRoomDialogueShown() && startupDialogueManager.hasDialogueSequence(startDialog)) {
+                            modele.syncPlayerSprite();
+                            modele.mettreAJourObstacles();
+                            modele.updateEnemies();
+                            vue.dessiner(fenetre);
+                            startupDialogueManager.update(fenetre.getSize());
+                            startupDialogueManager.draw(fenetre);
+                            fenetre.display();
+
+                            startupDialogueManager.startDialogueSequence(startDialog);
+                            modele.markCurrentRoomDialogueShown();
+
+                            // Boucle d'attente simple pour le dialogue (bloquante jusqu'à fermeture)
+                            while (fenetre.isOpen() && startupDialogueManager.isDialogueActive()) {
+                                sf::Event e;
+                                while (fenetre.pollEvent(e)) {
+                                    if (e.type == sf::Event::Closed) fenetre.close();
+                                    startupDialogueManager.handleEvent(e);
+                                }
+                                fenetre.clear(sf::Color::Black);
+                                vue.dessiner(fenetre);
+                                startupDialogueManager.update(fenetre.getSize());
+                                startupDialogueManager.draw(fenetre);
+                                fenetre.display();
+                            }
+                        }
+                    }
                 }
             }
         }
