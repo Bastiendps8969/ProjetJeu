@@ -212,8 +212,7 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
             fenetre.draw(modele.getJoueur());
         }
 
-        // 4. (SUPPRIMER) Dessiner le champ de vision de l'obstacle (ennemi) lié à l'ancien système
-        // if (!obstacles.empty()) { ... }
+        // 4. (ancien système supprimé) Champ de vision d'obstacles géré par les ennemis
 
         // --- DESSIN DES ENNEMIS ET DE LEUR CONE DE VISION ---
         for (const auto& enemy : modele.getEnemies())

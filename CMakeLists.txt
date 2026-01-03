@@ -38,7 +38,6 @@ add_executable(TestCollision
         Controleur/ControllerLevel/ControllerLevelTutorial2.h
         Vue/SplashPage.cpp
         Modele/RoomManager.cpp
-        Modele/Agent.cpp
         Vue/PauseMenu.cpp
         Vue/PauseMenu.h
         Vue/CesarVue.cpp

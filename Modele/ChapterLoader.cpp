@@ -1,4 +1,6 @@
+
 #include "ChapterLoader.h"
+
 #include "../cmake-build-debug/json.hpp"
 #include <fstream>
 #include <iostream>
@@ -7,21 +9,42 @@ using json = nlohmann::json;
 
 namespace Modele
 {
-    static std::string safeGetString(const json& j, const std::string& key, const std::string& defaultValue = "") {
-        if (j.contains(key) && j[key].is_string()) {
+    // Safely read a string field from a JSON object.
+    // If the key is missing or not a string, return defaultValue.
+    static std::string safeGetString(const json& j,
+                                    const std::string& key,
+                                    const std::string& defaultValue = "")
+    {
+        if (j.contains(key) && j[key].is_string())
+        {
             return j[key].get<std::string>();
         }
         return defaultValue;
     }
 
-    static int safeGetInt(const json& j, const std::string& key, int defaultValue = 0) {
-        if (j.contains(key)) {
-            if (j[key].is_number_integer()) {
+    // Safely read an integer field from a JSON object.
+    // Accepts either:
+    // - a JSON integer
+    // - or a string that can be converted to int via std::stoi
+    // Otherwise returns defaultValue.
+    static int safeGetInt(const json& j,
+                          const std::string& key,
+                          int defaultValue = 0)
+    {
+        if (j.contains(key))
+        {
+            if (j[key].is_number_integer())
+            {
                 return j[key].get<int>();
-            } else if (j[key].is_string()) {
-                try {
+            }
+            else if (j[key].is_string())
+            {
+                try
+                {
                     return std::stoi(j[key].get<std::string>());
-                } catch (...) {
+                }
+                catch (...)
+                {
                     return defaultValue;
                 }
             }
@@ -32,31 +55,45 @@ namespace Modele
     std::vector<ChapterInfo> ChapterLoader::loadChapters(const std::string& chaptersJsonPath)
     {
         std::vector<ChapterInfo> chapters;
-        
+
+        // Open the chapters JSON file.
         std::ifstream ifs(chaptersJsonPath);
-        if (!ifs.is_open()) {
+        if (!ifs.is_open())
+        {
             std::cerr << "Error: Could not open " << chaptersJsonPath << std::endl;
             return chapters;
         }
 
-        try {
+        try
+        {
             json j;
             ifs >> j;
 
-            // Itère sur tous les chapitres (clés numériques 0, 1, 2, ...)
-            for (auto it = j.begin(); it != j.end(); ++it) {
+            // Iterate over all chapter entries.
+            // The file format appears to be an object with numeric string keys: "0", "1", "2", ...
+            for (auto it = j.begin(); it != j.end(); ++it)
+            {
                 const auto& obj = it.value();
-                
+
                 ChapterInfo chapter;
+
+                // Use the JSON key as chapter id.
                 chapter.id = it.key();
+
+                // Extract fields safely.
                 chapter.name = safeGetString(obj, "name");
                 chapter.description = safeGetString(obj, "description");
                 chapter.picture = safeGetString(obj, "picture");
+
+                // "levels" is expected to contain the path to the levels JSON file for this chapter.
                 chapter.levelsFile = safeGetString(obj, "levels");
-                
+
+                // Note: chapter.levels is intentionally left empty here (lazy loading).
                 chapters.push_back(std::move(chapter));
             }
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e)
+        {
             std::cerr << "Error parsing " << chaptersJsonPath << ": " << e.what() << std::endl;
         }
 
@@ -67,31 +104,46 @@ namespace Modele
     {
         std::vector<LevelInfo> levels;
 
+        // Open the levels JSON file.
         std::ifstream ifs(levelsJsonPath);
-        if (!ifs.is_open()) {
+        if (!ifs.is_open())
+        {
             std::cerr << "Error: Could not open " << levelsJsonPath << std::endl;
             return levels;
         }
 
-        try {
+        try
+        {
             json j;
             ifs >> j;
 
-            // Itère sur tous les niveaux
-            for (auto it = j.begin(); it != j.end(); ++it) {
+            // Iterate over all level entries.
+            // Similar format: object with numeric string keys.
+            for (auto it = j.begin(); it != j.end(); ++it)
+            {
                 const auto& obj = it.value();
-                
+
                 LevelInfo level;
+
+                // Use the JSON key as level id.
                 level.id = it.key();
+
+                // Extract fields safely.
                 level.name = safeGetString(obj, "name");
                 level.description = safeGetString(obj, "description");
                 level.picture = safeGetString(obj, "picture");
+
+                // neededScore is the unlock requirement.
                 level.neededScore = safeGetInt(obj, "neededScore");
+
+                // levelData points to the level's main data file (e.g., rooms JSON).
                 level.levelData = safeGetString(obj, "levelData");
-                
+
                 levels.push_back(std::move(level));
             }
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e)
+        {
             std::cerr << "Error parsing " << levelsJsonPath << ": " << e.what() << std::endl;
         }
 
@@ -100,12 +152,23 @@ namespace Modele
 
     ChapterInfo ChapterLoader::loadChapterWithLevels(const std::string& chaptersJsonPath, int chapterIndex)
     {
+        // Load chapter list first.
         auto chapters = loadChapters(chaptersJsonPath);
-        if (chapterIndex >= 0 && chapterIndex < static_cast<int>(chapters.size())) {
+
+        // Validate chapterIndex and load levels for the selected chapter.
+        if (chapterIndex >= 0 && chapterIndex < static_cast<int>(chapters.size()))
+        {
             ChapterInfo& chapter = chapters[chapterIndex];
+
+            // Load the levels for this chapter using the file path specified in chapters.json.
             chapter.levels = loadLevels(chapter.levelsFile);
+
+            // Return the fully populated chapter (with levels loaded).
             return chapter;
         }
+
+        // Invalid index => return empty/default chapter.
         return ChapterInfo{};
     }
-}
+
+} // namespace Modele
