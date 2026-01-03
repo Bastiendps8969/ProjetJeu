@@ -30,7 +30,7 @@ namespace Controleur
     // Affiche le menu d'accueil (importé de ProjetJeu)
     void Controleur::afficherMenuAccueil()
     {
-        // Lambda pour récupérer les scores du joueur depuis le modèle
+        // Lambda pour récupérer les scores du joueur
         auto getScores = [this]() -> std::vector<int> {
             return this->modele.getPlayerScores();
         };

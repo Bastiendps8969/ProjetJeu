@@ -42,6 +42,18 @@
         "characterPortraitPath": "Asset/portraits/john_jones.png",
         "text": "But your progress will only be registered if you accomplish all the objectives.",
         "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "And never forget your safety. If you're detected to much time by a cctv, we'll exfiltrate you.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "But if your find by the terrorist. May God help you...",
+        "displayDuration": 2.0
       }
     ],
     "objective_discovery": [
@@ -104,7 +116,7 @@
       {
         "characterName": "James Adams",
         "characterPortraitPath": "Asset/portraits/agent.png",
-        "text": "I think i've just found one objective.",
+        "text": "I think i've just found one of the objective.",
         "displayDuration": 3.0
       }
     ],
