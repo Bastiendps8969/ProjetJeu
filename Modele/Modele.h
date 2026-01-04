@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <set>
 
 #include "Objective.h"
 #include "ScoreCalculator.h"
@@ -83,6 +84,9 @@ namespace Modele
         bool objectiveContactDetectee = false;
         // Dialogue triggered flag (keeps state about whether a dialogue was triggered)
         bool dialogueTriggeredFlag = false;
+        // Tracks which room indices have had their room-level dialogue shown
+        // This set persists for the duration of the current level/session
+        std::set<int> shownRoomDialogues;
 
         // Player scores stored in-memory (no persistent DB)
         std::vector<int> playerScores = std::vector<int>(12, 0);
