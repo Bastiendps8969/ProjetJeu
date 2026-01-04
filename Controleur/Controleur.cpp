@@ -95,6 +95,16 @@ namespace Controleur
                     std::cout << "[Controleur] Niveau chargé depuis : " << lvlPath << "\n";
                     // Recreate level controller so it picks up the new model state.
                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+                    // Map selected chapter/level to a global mission index used for score slots.
+                    // Convention: 0 = tutorial, 1 = test, 2.. = main missions.
+                    int missionIndex = 0;
+                    if (selChapter == 0) {
+                        missionIndex = selLevel;
+                    } else {
+                        // Tutorial is separate (slot 0). Map first real mission to slot 1.
+                        missionIndex = 1 + selLevel;
+                    }
+                    modele.setCurrentMissionIndex(missionIndex);
                 }
             }
             else

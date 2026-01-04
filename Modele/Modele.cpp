@@ -23,7 +23,7 @@ namespace Modele {
 
     // Constructor: initializes all main subsystems and default game state.
     Modele::Modele()
-    : collisionDetectee(false), currentLevel(std::make_unique<Level>("Tutorial", "Test level"))
+    : collisionDetectee(false), currentLevel(std::make_unique<Level>("Tutorial", "Test level")), currentMissionIndex(0)
     {
         // Get desktop resolution (used to initialize RoomManager scaling, door placement, etc.)
         sf::VideoMode dm = sf::VideoMode::getDesktopMode();
@@ -563,6 +563,17 @@ namespace Modele {
 
         // Only store the best score achieved so far.
         if (score > playerScores[levelIndex]) playerScores[levelIndex] = score;
+    }
+
+    void Modele::setCurrentMissionIndex(int idx)
+    {
+        if (idx < 0) idx = 0;
+        currentMissionIndex = idx;
+    }
+
+    int Modele::getCurrentMissionIndex() const
+    {
+        return currentMissionIndex;
     }
 
     std::vector<int> Modele::getPlayerScores() const

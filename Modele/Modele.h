@@ -110,6 +110,9 @@ private:
 
     // Score memory (non persistent).
     std::vector<int> playerScores = std::vector<int>(12, 0);
+    // Currently loaded mission index (maps to playerScores slots).
+    // 0 = tutorial, 1 = test, 2.. = main missions.
+    int currentMissionIndex = 0;
 
 public:
     Modele();
@@ -208,6 +211,10 @@ public:
     // Scores.
     void setPlayerScore(int levelIndex, int score);
     std::vector<int> getPlayerScores() const;
+
+    // Mission index API: allow controller to tell the model which mission is active.
+    void setCurrentMissionIndex(int idx);
+    int getCurrentMissionIndex() const;
 };
 
 } // namespace Modele

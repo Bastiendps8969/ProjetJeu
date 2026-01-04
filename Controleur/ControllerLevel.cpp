@@ -382,12 +382,12 @@ void ControllerLevel::checkDoors()
 
                         if (!fenetre.isOpen()) break;
 
-                        // Update model's score table in memory.
+                        // Update model's score table in memory using mission index (not room index).
                         // try/catch used defensively to avoid crashing on unexpected errors.
                         try {
                             Modele::ScoreDetails details = this->getScoreDetails();
-                            int roomIdx = modele.getCurrentRoomIndex();
-                            modele.setPlayerScore(roomIdx, details.totalScore);
+                            int missionIdx = modele.getCurrentMissionIndex();
+                            modele.setPlayerScore(missionIdx, details.totalScore);
                         } catch (...) {
                             // ignore any unexpected errors during score update
                         }
