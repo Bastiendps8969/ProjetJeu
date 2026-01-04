@@ -7,6 +7,7 @@
 #include "SplashPage.h"
 #include "ChapterLoader.h"
 #include "CesarVue.h"
+#include "GameOverPage.h"
 #include "../Vue/PauseMenu.h"
 #include "../Vue/ConfirmationDialog.h"
 #include <cmath>
@@ -414,7 +415,12 @@ namespace Controleur
                 // Check if game over (lives = 0)
                 if (niveauController->isGameOver())
                 {
-                    gameOverRequested = true;
+                    // If a dialogue is currently active, defer showing the Game Over screen
+                    if (dialogueManager.isDialogueActive()) {
+                        gameOverPending = true;
+                    } else {
+                        gameOverRequested = true;
+                    }
                 }
 
 
@@ -432,12 +438,29 @@ namespace Controleur
             if ((gameOverPending || gameOverRequested) && !dialogueManager.isDialogueActive())
             {
                 gameOverPending = false;
-                gameOverRequested = false;
 
-                gameOverRequested = false;
-                processGameOver();
-                continue; // ⚠️ ON SORT DE LA FRAME
+                // Show the Game Over page and wait for the player to press Enter or Space
+                {
+                    Vue::GameOverPage gameOver;
+                    while (fenetre.isOpen() && gameOver.isActive()) {
+                        sf::Event ge;
+                        while (fenetre.pollEvent(ge)) {
+                            if (ge.type == sf::Event::Closed) { fenetre.close(); break; }
+                            gameOver.handleEvent(ge, fenetre);
+                        }
 
+                        fenetre.clear(sf::Color::Black);
+                        gameOver.draw(fenetre);
+                        fenetre.display();
+                    }
+
+                    if (!fenetre.isOpen()) break;
+
+                    // After user pressed input, return to main menu (reset level)
+                    gameOverRequested = false;
+                    processGameOver();
+                    continue; // ⚠️ exit frame early
+                }
             }
 
 

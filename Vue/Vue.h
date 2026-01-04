@@ -22,6 +22,9 @@ namespace Vue
         // Texte pour les vies
         sf::Text livesText;
 
+        // Game Over display is handled by `Vue::GameOverPage` (separate component).
+        // The view no longer owns Game Over textures or prompt text.
+
     public:
         // Constructeur
         Vue(Modele::Modele& modele);

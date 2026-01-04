@@ -3,6 +3,8 @@
 #include "Modele.h"
 #include <iostream>
 #include <string>
+#include <vector>
+#include <algorithm>
 
 namespace Vue {
 
@@ -36,6 +38,9 @@ Vue::Vue(Modele::Modele& modele)
             livesText.setFillColor(sf::Color::White);
             livesText.setStyle(sf::Text::Bold);
             livesText.setPosition(10.f, 70.f);
+
+            // NOTE: Game Over visuals are provided by the dedicated `GameOverPage`.
+            // We no longer load Game Over images or prompt text here in Vue.
         }
         else if (font.loadFromFile("arial.ttf"))
         {
@@ -303,6 +308,7 @@ void Vue::dessiner(sf::RenderWindow& fenetre)
             livesText.setString("Lives: " + std::to_string(modele.getLives()));
             fenetre.draw(livesText);
         }
+
     }
 
     // DÉFINITION : Gestion des événements (principalement pour le menu)
