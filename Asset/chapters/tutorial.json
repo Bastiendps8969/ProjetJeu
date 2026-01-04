@@ -1,9 +1,9 @@
 {
   "0": {
     "name": "Tutorial",
-    "description": "Learning the basis.",
-    "picture": "Asset/levels/tutorial.png",
+    "description": "**CONFIDENTIAL**\nJAMES ADAMS MISSION ORDER\nDuring this training mission, you will infiltrate an airport's air traffic control. Your objective is to identify a security vulnerability by gaining access to information scattered throughout the area.\n\nCherub's ethics committee unanimously approves this mission but draws the selected agent's attention to the following risks:\n(1) This mission has been classified as LOW RISK.\n(2) Security guards are authorized to use moderate force to neutralize potential intruders.\n(3) An emergency link between air traffic control and the police allows for rapid intervention in less than 5 minutes in the event of a report.",
+    "picture": "Asset/levels/tutorial/tutorial.png",
     "neededScore": 0,
-    "levelData": "Asset/levels/tutorial.json"
+    "levelData": "Asset/levels/tutorial/tutorial.json"
   }
 }
