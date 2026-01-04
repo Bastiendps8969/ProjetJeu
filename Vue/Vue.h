@@ -29,7 +29,7 @@ namespace Vue
         bool fontCharge = false;
 
         // Text displayed when the player is detected by enemies.
-        sf::Text joueurDetecteText;
+        sf::Text playerDetecteText;
 
         // Text displaying the remaining lives (updated each frame).
         sf::Text livesText;
@@ -48,7 +48,7 @@ namespace Vue
         // WHY sf::RenderWindow&:
         // - RenderWindow is not meant to be copied
         // - drawing must affect the real window instance
-        void dessiner(sf::RenderWindow& fenetre);
+        void draw(sf::RenderWindow& fenetre);
 
         // Event handling entry point for the view.
         // Currently unused (menus/dialogues are handled elsewhere).

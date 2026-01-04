@@ -31,12 +31,12 @@ namespace Vue {
             collisionText.setPosition(10.f, 10.f);
 
             // Player detected HUD text
-            joueurDetecteText.setFont(font);
-            joueurDetecteText.setString("Player detected !");
-            joueurDetecteText.setCharacterSize(22);
-            joueurDetecteText.setFillColor(sf::Color::Yellow);
-            joueurDetecteText.setStyle(sf::Text::Bold);
-            joueurDetecteText.setPosition(10.f, 40.f);
+            playerDetecteText.setFont(font);
+            playerDetecteText.setString("Player detected !");
+            playerDetecteText.setCharacterSize(22);
+            playerDetecteText.setFillColor(sf::Color::Yellow);
+            playerDetecteText.setStyle(sf::Text::Bold);
+            playerDetecteText.setPosition(10.f, 40.f);
 
             // Lives HUD text (string updated each frame)
             livesText.setFont(font);
@@ -64,7 +64,7 @@ namespace Vue {
     }
 
     // Main render function
-    void Vue::dessiner(sf::RenderWindow& fenetre)
+    void Vue::draw(sf::RenderWindow& fenetre)
     {
         // If no floor matrix, there is nothing to render for the map.
         //
@@ -392,9 +392,9 @@ namespace Vue {
             fenetre.draw(collisionText);
         }
 
-        if (fontCharge && modele.isJoueurDetecte())
+        if (fontCharge && modele.isPlayerDetecte())
         {
-            fenetre.draw(joueurDetecteText);
+            fenetre.draw(playerDetecteText);
         }
 
         // Lives display is updated each frame.

@@ -21,9 +21,7 @@ const float DOOR_MARGIN = 20.f;
 // Room loading is now handled by RoomManager.
 // Constructor: initializes all main subsystems and default game state.
 Modele::Modele()
-    : collisionDetectee(false),
-      currentLevel(std::make_unique<Level>("Tutorial", "Test level")),
-      currentMissionIndex(0)
+    : currentLevel(std::make_unique<Level>("Tutorial", "Test level"))
 {
     // WHY member initializer list:
     // - initializes pointers/flags directly (no default init + assignment)
@@ -240,7 +238,7 @@ void Modele::updateEnemies()
 }
 
 // Obstacle AI update (Agent-based obstacle AI was removed; currently no-op).
-void Modele::mettreAJourObstacles()
+void Modele::updateObstacles()
 {
     // Intentionally left empty: obstacle AI handled elsewhere or deprecated.
 }
@@ -489,14 +487,14 @@ void syncPlayerSpritePosition(Modele& m);
 // Collision flag accessors.
 void Modele::setCollisionDetectee(bool v) { collisionDetectee = v; }
 bool Modele::isCollisionDetectee() const { return collisionDetectee; }
-void Modele::setJoueurDetecte(bool v) { joueurDetecte = v; }
+void Modele::setPlayerDetecte(bool v) { PlayerDetecte = v; }
 
-bool Modele::isJoueurDetecte() const
+bool Modele::isPlayerDetecte() const
 {
     // Global detection is the aggregation of per-enemy detection:
-    // if any enemy has joueurDetecte == true, the player is considered detected.
+    // if any enemy has playerDetecte == true, the player is considered detected.
     for (const auto& e : enemies)
-        if (e->joueurDetecte) return true;
+        if (e->playerDetecte) return true;
     return false;
 }
 
@@ -512,7 +510,7 @@ bool Modele::changeRoom(int newRoomIndex, const std::string& entryDirection)
 
     // Reset collision/detection flags when entering a new room.
     setCollisionDetectee(false);
-    setJoueurDetecte(false);
+    setPlayerDetecte(false);
 
     if (ok) {
         // Load map only if it exists; otherwise clear map.
@@ -855,7 +853,7 @@ void Modele::reset()
 
     // Reset flags.
     collisionDetectee = false;
-    joueurDetecte = false;
+    PlayerDetecte = false;
     objectiveContactDetectee = false;
     dialogueTriggeredFlag = false;
 

@@ -20,11 +20,11 @@ Objective::Objective() {
     hitbox.setOutlineColor(sf::Color::Magenta);
     hitbox.setOutlineThickness(1.f);
 
-    // Ne pas charger de texture par défaut ici. Si le JSON ne fournit pas de
-    // texture pour cet objectif, on affichera simplement la hitbox de debug
-    // (contour magenta) au lieu d'un sprite par défaut non désiré.
-    // L'affectation d'une texture doit être faite explicitement via
-    // `setTexture()` lorsque le JSON en spécifie une.
+    // Do not load texture by default here. If the JSON does not provide any
+    // texture for this objective, we will simply display the debug hitbox
+    // (magenta outline) instead of an unwanted default sprite.
+    // The assignment of a texture must be done explicitly via
+    // `setTexture()` when the JSON specifies one.
 
     // WHY no default texture here (design intent):
     // - avoids unexpected visuals when configuration provides no texture
@@ -34,13 +34,13 @@ Objective::Objective() {
 Objective::Objective(std::string t, std::string d, sf::Texture tex,
                      float x, float y, float w, float h)
 {
-    // titre / description
+    // title / description
     title = t.empty() ? "Objective" : t;
     description = d.empty() ? "Objective's description" : d;
     accomplished = false;
     primary = true;
 
-    // Copier la texture dans l'attribut interne
+    // Copy the texture in the internal attribute
     this->texture = std::move(tex);
 
     // WHY std::move(tex):
@@ -50,7 +50,7 @@ Objective::Objective(std::string t, std::string d, sf::Texture tex,
     if (this->texture.getSize().x > 0 && this->texture.getSize().y > 0)
         sprite.setTexture(this->texture);
 
-    // hitbox selon arguments
+    // hitbox according to arguments
     hitbox = sf::RectangleShape();
     hitbox.setSize(sf::Vector2f(w, h));
     hitbox.setPosition(sf::Vector2f(x, y));
@@ -58,7 +58,7 @@ Objective::Objective(std::string t, std::string d, sf::Texture tex,
     hitbox.setOutlineColor(sf::Color::White);
     hitbox.setOutlineThickness(1.f);
 
-    // Ajuster la taille du sprite à la hitbox
+    // Adjust the sprite size to the hitbox
     if (this->texture.getSize().x > 0)
     {
         sprite.setScale(
@@ -67,7 +67,7 @@ Objective::Objective(std::string t, std::string d, sf::Texture tex,
         );
     }
 
-    // positionner le sprite sur la hitbox
+    // position the sprite on the hitbox
     sprite.setPosition(x, y);
 }
 
@@ -80,11 +80,11 @@ Objective::~Objective() {
 }
 
 // Move constructor
-// Lors d'un `move`, le contenu interne (dont la `sf::Texture`) peut être
-// déplacé. `sf::Sprite` contient seulement un pointeur vers la texture et
-// ne mettra pas automatiquement à jour ce pointeur si la texture est
-// déplacée/copied ailleurs. Pour garantir la validité du sprite après
-// déplacement, on réaffecte la texture au sprite via `sprite.setTexture(texture)`.
+// During a `move`, the internal content (of which the `sf::Texture>) can be
+// moved. `sf::Sprite` contains only a pointer to the texture and
+// will not automatically update this pointer if the texture is
+// moved/copied elsewhere. To ensure the validity of the sprite after
+// displacement, we reassign the texture to the sprite via `sprite.setTexture(texture)`.
 Objective::Objective(Objective&& other) noexcept
     : title(std::move(other.title)), description(std::move(other.description)),
       primary(other.primary), accomplished(other.accomplished),
@@ -128,9 +128,9 @@ Objective& Objective::operator=(Objective&& other) noexcept
 }
 
 // Copy constructor
-// Lors d'une copie, nous dupliquons la `sf::Texture` interne et devons
-// aussi réaffecter le sprite sur cette nouvelle texture afin d'éviter
-// que le sprite référence l'ancienne texture (ou un pointeur invalide).
+// During a copy, we duplicate the internal `sf::Texture` and must
+// also reassign the sprite to this new texture in order to avoid
+// that the sprite references the old texture (or an invalid pointer).
 Objective::Objective(const Objective& other)
     : title(other.title), description(other.description),
       primary(other.primary), accomplished(other.accomplished),
@@ -228,7 +228,7 @@ void Objective::setHitboxSize(float w, float h) {
     // - primitive types; cheap and clear
     hitbox.setSize(sf::Vector2f(w, h));
 
-    // Recalibrer le sprite si la taille change
+    // Recalibrate the sprite if the size changes
     if (texture.getSize().x > 0)
     {
         sprite.setScale(

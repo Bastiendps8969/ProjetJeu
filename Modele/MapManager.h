@@ -7,13 +7,13 @@
 
 namespace Modele {
 
-// MapManager: centralise la gestion des ressources liées à la carte (sols, murs)
-// - Chargement et stockage des textures de sol (floorTexture) et des tuiles
+// MapManager: centralizes the management of resources related to the map (floors, walls)
+// - Loading and storage of soil textures (floorTexture) and tiles
 // (tileTextures).
-// - Chargement et stockage des textures de murs (`wallTextures`).
-// - Stockage de la matrice de la carte (`floorMatrix`) et API pour y accéder.
-// Objectif: déléguer à cette classe toute la logique d'assets/tiles pour
-// que `Modele` n'ait plus à manipuler directement les textures ou les ids.
+// - Loading and storing wall textures (`wallTextures`).
+// - Storage of the card matrix (`floorMatrix`) and API to access it.
+// Objective: delegate to this class all the logic of assets/tiles for
+// that `Model` no longer has to directly manipulate textures or ids.
 class MapManager {
 public:
     MapManager();

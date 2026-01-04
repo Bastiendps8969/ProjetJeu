@@ -45,7 +45,7 @@ namespace Controleur
     // - splash screen
     // - main home page (chapter/level selection)
     // - load selected level into the model
-    void Controleur::afficherMenuAccueil()
+    void Controleur::displayMenuHome()
     {
         // Lambda to retrieve player scores from the model (used by HomePage UI).
         //
@@ -147,11 +147,11 @@ namespace Controleur
                 {
                     if (!modele.changeRoom(roomId, ""))
                     {
-                        std::cerr << "[Controleur] Échec du chargement du niveau (room " << roomId << ")\n";
+                        std::cerr << "[Controller] Failed to load level (room " << roomId << ")\n";
                     }
                     else
                     {
-                        std::cout << "[Controleur] Niveau sélectionné chargé : room " << roomId << "\n";
+                        std::cout << "[Controller] Selected level loaded : room " << roomId << "\n";
 
                         // Recreate level controller to ensure a consistent per-level state.
                         niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
@@ -167,7 +167,7 @@ namespace Controleur
     void Controleur::gererBoucle()
     {
         // Show main menu first.
-        afficherMenuAccueil();
+        displayMenuHome();
 
         // Ensure the level controller exists when entering gameplay.
         if (!niveauController) {
@@ -191,9 +191,9 @@ namespace Controleur
             if (!startDialog.empty() && !modele.isCurrentRoomDialogueShown() && dialogueManager.hasDialogueSequence(startDialog)) {
                 // Ensure visuals are updated for the new room before showing dialogue.
                 modele.syncPlayerSprite();
-                modele.mettreAJourObstacles();
+                modele.updateObstacles();
                 modele.updateEnemies();
-                vue.dessiner(fenetre);
+                vue.draw(fenetre);
 
                 dialogueManager.update(fenetre.getSize());
                 dialogueManager.draw(fenetre);
@@ -205,11 +205,11 @@ namespace Controleur
         }
 
         // Guards and state flags to avoid re-triggering actions every frame (60 FPS loop).
-        bool agentDialogueLaunched = false; // Ajout
-        bool cesrDialogueClosed = false;    // Track si dialogue César terminé pour ouvrir CesarVue
+        bool agentDialogueLaunched = false; // add
+        bool cesrDialogueClosed = false;    // Track if the César dialogue is finished to open CesarVue
         bool timeDialogueLaunched = false;  // guard to start time-up dialogue once
-        bool gameOverPending = false;       // attente si un dialogue est actif lors du game over
-        bool gameOverRequested = false;     // demande différée de retour au menu (exécuter quand aucun dialogue n'est actif)
+        bool gameOverPending = false;       // waiting if a dialogue is active during the game over
+        bool gameOverRequested = false;     // deferred request to return to the menu (execute when no dialog is active)
 
         // Lambda to centralize Game Over handling (reset + return to menu).
         //
@@ -223,7 +223,7 @@ namespace Controleur
             niveauController.reset();
 
             // Go back to main menu.
-            afficherMenuAccueil();
+            displayMenuHome();
 
             if (!niveauController) {
                 modele.reset();
@@ -284,7 +284,7 @@ namespace Controleur
 
                             // Draw current game frame behind the pause menu.
                             fenetre.clear(sf::Color::Black);
-                            vue.dessiner(fenetre);
+                            vue.draw(fenetre);
                             pause.draw(fenetre);
                             fenetre.display();
                         }
@@ -310,7 +310,7 @@ namespace Controleur
                                     confirm.handleEvent(ce, fenetre);
                                 }
                                 fenetre.clear(sf::Color::Black);
-                                vue.dessiner(fenetre);
+                                vue.draw(fenetre);
                                 confirm.draw(fenetre);
                                 fenetre.display();
                             }
@@ -323,7 +323,7 @@ namespace Controleur
                                 niveauController.reset();
 
                                 // Return to main menu and recreate controller afterwards.
-                                afficherMenuAccueil();
+                                displayMenuHome();
                                 if (!niveauController) {
                                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                                     timeDialogueLaunched = false;
@@ -348,7 +348,7 @@ namespace Controleur
                                     confirm.handleEvent(ce, fenetre);
                                 }
                                 fenetre.clear(sf::Color::Black);
-                                vue.dessiner(fenetre);
+                                vue.draw(fenetre);
                                 confirm.draw(fenetre);
                                 fenetre.display();
                             }
@@ -379,12 +379,12 @@ namespace Controleur
             niveauController->processCollisions(dialogueManager);
 
             // Launch "agent_detected" dialogue once when player is detected by an enemy.
-            if (modele.isJoueurDetecte() && !agentDialogueLaunched && !dialogueManager.isDialogueActive())
+            if (modele.isPlayerDetecte() && !agentDialogueLaunched && !dialogueManager.isDialogueActive())
             {
                 dialogueManager.startDialogueSequence("agent_detected");
                 agentDialogueLaunched = true;
             }
-            if (!modele.isJoueurDetecte())
+            if (!modele.isPlayerDetecte())
             {
                 agentDialogueLaunched = false;
             }
@@ -448,7 +448,7 @@ namespace Controleur
                 niveauController->handleInput();
                 niveauController->update();
 
-                modele.mettreAJourObstacles();
+                modele.updateObstacles();
                 modele.updateEnemies(); // update enemy logic + animations (from sav)
 
                 // Check doors and possibly change room.
@@ -469,9 +469,9 @@ namespace Controleur
                     {
                         // Update visuals once so the enemy/agent positions reflect the new room.
                         modele.syncPlayerSprite();
-                        modele.mettreAJourObstacles();
+                        modele.updateObstacles();
                         modele.updateEnemies();
-                        vue.dessiner(fenetre);
+                        vue.draw(fenetre);
 
                         dialogueManager.update(fenetre.getSize());
                         dialogueManager.draw(fenetre);
@@ -490,7 +490,7 @@ namespace Controleur
                 niveauController.reset();
 
                 // Go back to main menu and recreate a fresh controller afterwards.
-                afficherMenuAccueil();
+                displayMenuHome();
                 if (!niveauController) {
                     modele.reset();
                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
@@ -508,7 +508,7 @@ namespace Controleur
             }
 
             // Draw world (view) first.
-            vue.dessiner(fenetre);
+            vue.draw(fenetre);
 
             // Draw HUD timer from the level controller.
             if (niveauController) {
@@ -535,7 +535,7 @@ namespace Controleur
                 niveauController.reset();
 
                 // Show main menu and recreate a fresh controller afterwards
-                afficherMenuAccueil();
+                displayMenuHome();
                 if (!niveauController) {
                     modele.reset();
                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);

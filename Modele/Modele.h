@@ -92,7 +92,7 @@ private:
 
     // Global state flags/counters.
     bool collisionDetectee = false;
-    bool joueurDetecte = false;
+    bool PlayerDetecte = false;
     int detectionCount = 0;
 
     // Current level path used to reload/reset.
@@ -194,13 +194,13 @@ public:
     float getScreenH() const;
 
     // Obstacles update (currently empty/no-op in cpp).
-    void mettreAJourObstacles();
+    void updateObstacles();
 
     // Collision/detection flags.
     void setCollisionDetectee(bool v);
     bool isCollisionDetectee() const;
-    void setJoueurDetecte(bool v);
-    bool isJoueurDetecte() const;
+    void setPlayerDetecte(bool v);
+    bool isPlayerDetecte() const;
 
     // Runtime enemies + prototypes:
     // - enemies: actual instances in current room

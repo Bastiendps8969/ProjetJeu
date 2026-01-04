@@ -45,7 +45,7 @@ namespace Controleur
         std::unique_ptr<Vue::PauseMenu> pauseMenu;
 
         // --- NEW: Main menu / home screen display (splash + home page) ---
-        void afficherMenuAccueil();
+        void displayMenuHome();
 
     public:
         // Constructor: receives model/view by reference (aggregation).

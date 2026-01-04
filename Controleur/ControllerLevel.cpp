@@ -80,11 +80,11 @@ void ControllerLevel::update()
     sf::Vector2f deplacement = mouvement;
 
     // Normalize so diagonal movement isn't faster.
-    float longueur = std::sqrt(deplacement.x * deplacement.x + deplacement.y * deplacement.y);
-    if (longueur > 0.001f)
+    float length = std::sqrt(deplacement.x * deplacement.x + deplacement.y * deplacement.y);
+    if (length > 0.001f)
     {
-        deplacement.x = (deplacement.x / longueur) * VITESSE_JOUEUR;
-        deplacement.y = (deplacement.y / longueur) * VITESSE_JOUEUR;
+        deplacement.x = (deplacement.x / length) * VITESSE_JOUEUR;
+        deplacement.y = (deplacement.y / length) * VITESSE_JOUEUR;
     }
 
     bool collision = false;
@@ -395,7 +395,7 @@ void ControllerLevel::checkDoors()
                         confirm.handleEvent(ce, fenetre);
                     }
                     fenetre.clear(sf::Color::Black);
-                    vue.dessiner(fenetre);
+                    vue.draw(fenetre);
                     confirm.draw(fenetre);
                     fenetre.display();
                 }
@@ -519,7 +519,7 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
     // Player detection handling (life loss + detection counter).
     // Guarded so it triggers once per continuous detection event.
     // ------------------------------------------------------------
-    else if (modele.isJoueurDetecte())
+    else if (modele.isPlayerDetecte())
     {
         // Do not start the dialogue here (would be called every frame and restart it).
         // Just set the model flag; the top-level `Controleur` will start the dialogue
@@ -535,7 +535,7 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
             for (const auto& enemy : enemies)
             {
                 // enemy is a unique_ptr<Enemy>; check pointer validity and state
-                if (enemy && enemy->joueurDetecte)
+                if (enemy && enemy->playerDetecte)
                 {
                     // GenericEnemy is the "human" type.
                     // Detect by checking isCamera / isLaser flags.
@@ -554,7 +554,7 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
         }
 
         // Keep model's detected flag true while detection persists.
-        modele.setJoueurDetecte(true);
+        modele.setPlayerDetecte(true);
     }
     else
     {

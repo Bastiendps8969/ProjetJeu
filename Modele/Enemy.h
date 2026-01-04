@@ -55,7 +55,7 @@ namespace Modele
         sf::Vector2f direction = {1.f, 0.f}; // Default facing right
 
         // Whether the player is currently detected by this enemy.
-        bool joueurDetecte = false;
+        bool playerDetecte = false;
 
         // -------------------------
         // Rendering resources

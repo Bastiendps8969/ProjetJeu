@@ -136,7 +136,7 @@ namespace Modele
         // Edge case: if extremely close, auto-detect to avoid division by 0.
         if (dist < 1.f)
         {
-            joueurDetecte = true;
+            playerDetecte = true;
             return;
         }
 
@@ -153,7 +153,7 @@ namespace Modele
         // ----------------------------------------------------------
         // STEP 7: Final cone test = distance AND angle.
         // ----------------------------------------------------------
-        joueurDetecte = (dist <= range && dot >= cosHalfFov);
+        playerDetecte = (dist <= range && dot >= cosHalfFov);
 
         // WHY this math uses dot >= cosHalfFov:
         // - avoids expensive acos() (faster)
@@ -185,14 +185,14 @@ namespace Modele
 
         if (dist < 1.f)
         {
-            joueurDetecte = true;
+            playerDetecte = true;
             return;
         }
 
         sf::Vector2f toPlayerNorm = { toPlayer.x / dist, toPlayer.y / dist };
         float dot = direction.x * toPlayerNorm.x + direction.y * toPlayerNorm.y;
 
-        joueurDetecte = (dist <= range && dot >= cosHalfFov);
+        playerDetecte = (dist <= range && dot >= cosHalfFov);
 
         // WHY shared math with GenericEnemy:
         // - both use the same cone-of-vision model
@@ -238,7 +238,7 @@ namespace Modele
         // - player is in front of enemy (proj > 0)
         // - within laser length (proj < laserLength)
         // - within strip thickness (abs(side) < 20)
-        joueurDetecte = (proj > 0 && proj < laserLength && std::abs(side) < 20.f);
+        playerDetecte = (proj > 0 && proj < laserLength && std::abs(side) < 20.f);
 
         // WHY projection-based test:
         // - avoids computing angles; works well for "beam" detection
