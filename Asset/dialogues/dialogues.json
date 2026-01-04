@@ -1,0 +1,180 @@
+{
+  "dialogues": {
+    "start_level": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Here's the time for your first mission James.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "I'm feeling a bit nervous.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Remember what you've learned.",
+        "displayDuration": 2.0
+      },
+      {
+      "characterName": "John Jones",
+      "characterPortraitPath": "Asset/portraits/john_jones.png",
+      "text": "Use ZQSD to move on the map.",
+      "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "You can find all the objectives of that mission by using Esc.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "You are allowed to quit the mission anytime by using the orange door.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "But your progress will only be registered if you accomplish all the objectives.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "And never forget your safety. If you're detected to much time by a cctv, we'll exfiltrate you.",
+        "displayDuration": 2.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "But if you're find by the guardsman, you will probably be arrested.\nIt's not too problematic today, it's juste a training mission.\nBut pay attention when you're on a real one.",
+        "displayDuration": 2.0
+      }
+    ],
+    "objective_discovery": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Our information indicates that there should be an objective in that room, find it.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "Understood Boss.",
+        "displayDuration": 3.0
+      }
+    ],
+    "secondary_blocked": [
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "Wow, I don't know how to get that one John, there is a lot of protection here.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Don't worry, it's just a secondary objective, it isn't needed to accomplish our mission.",
+        "displayDuration": 3.0
+      }
+    ],
+    "north_room": [
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "There is some guy here.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "It's ok. There is an objective on the top left, you can try it if you want.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "There is also an important one in the next room. You have to go there.",
+        "displayDuration": 3.0
+      }
+    ],
+    "agent_detected": [
+      {
+        "characterName": "Guard",
+        "characterPortraitPath": "Asset/portraits/ennemy_1.png",
+        "text": "Hey! There is an intruder in the house",
+        "displayDuration": 3.0
+      }
+    ],
+    "primary_objective": [
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "I think i've just found one of the objective.",
+        "displayDuration": 3.0
+      }
+    ],
+    "accomplished_objective": [
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "I've already get the information linked to that objective.",
+        "displayDuration": 3.0
+      }
+    ],
+    "exit_level_confirmation": [
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Are you sure you want to quit the mission? Your progression will be lost.",
+        "displayDuration": 3.0
+      }
+    ],
+    "time_up": [
+      {
+        "characterName" : "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "It seems you've run out of time.\nFor your security you will be evacuated.",
+        "displayDuration": 3.0
+      }
+    ],
+    "caesar_objective": [
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "I think i've just found an objective. It's a computer but it's locked.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Yeah, we suspected the ennemy to use that kind of system. It uses Caesar encryption.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Remember what you learned during your class. You start with your message, and shift all the letters by a certain number.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "John Jones",
+        "characterPortraitPath": "Asset/portraits/john_jones.png",
+        "text": "Find that value and the output of that transformation to decrypt the original code.",
+        "displayDuration": 3.0
+      },
+      {
+        "characterName": "James Adams",
+        "characterPortraitPath": "Asset/portraits/agent.png",
+        "text": "There is a post-it with the information on it. I'll try to use that.",
+        "displayDuration": 3.0
+      }
+    ]
+  }
+}
