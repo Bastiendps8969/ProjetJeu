@@ -1,9 +1,0 @@
-{
-  "0": {
-    "name": "Tutorial",
-    "description": "Learning the basis.",
-    "picture": "Asset/levels/tutorial.png",
-    "neededScore": 0,
-    "levelData": "Asset/levels/tutorial.json"
-  }
-}
