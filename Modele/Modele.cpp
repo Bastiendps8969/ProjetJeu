@@ -401,7 +401,7 @@ namespace Modele {
                 playerClock.restart();
             }
         }
-        else
+        else // idle
         {
             // Idle animation cadence.
             if (idleCols <= 0)
@@ -514,14 +514,21 @@ namespace Modele {
 
     bool Modele::isCurrentRoomDialogueShown() const
     {
+        // Consider dialogue shown if either the RoomManager marks it shown
+        // or if we have recorded the room index in `shownRoomDialogues`.
         if (!roomManager) return false;
-        return roomManager->isCurrentRoomDialogueShown();
+        int idx = roomManager->getCurrentRoomIndex();
+        if (roomManager->isCurrentRoomDialogueShown()) return true;
+        if (shownRoomDialogues.find(idx) != shownRoomDialogues.end()) return true;
+        return false;
     }
 
     void Modele::markCurrentRoomDialogueShown()
     {
         if (!roomManager) return;
         roomManager->markCurrentRoomDialogueShown();
+        int idx = roomManager->getCurrentRoomIndex();
+        shownRoomDialogues.insert(idx);
     }
 
     // Objective contact accessors (pointer-based so original objective can be modified).
@@ -802,6 +809,12 @@ namespace Modele {
         float screenW = getScreenW();
         float screenH = getScreenH();
 
+        // Clearing the RoomManager will also reset per-room dialogue flags;
+        // ensure we clear our session-level record as well so dialogues may
+        // be shown again after a full reset.
+        shownRoomDialogues.clear();
+        // Reset detection counter when restarting the level
+        detectionCount = 0;
         roomManager.reset();
         roomManager = std::make_unique<RoomManager>(screenW, screenH);
 

@@ -1,4 +1,3 @@
-
 #include "Vue.h"
 #include <cmath>
 #include "Modele.h"
@@ -18,17 +17,17 @@ namespace Vue {
             fontCharge = true;
             std::cout << "[DEBUG] Police chargée : C:\\Windows\\Fonts\\arial.ttf" << std::endl;
 
-            // Collision HUD text
-            collisionText.setFont(font);
-            collisionText.setString("Collision detectee !");
-            collisionText.setCharacterSize(24);
-            collisionText.setFillColor(sf::Color::Red);
-            collisionText.setStyle(sf::Text::Bold);
-            collisionText.setPosition(10.f, 10.f);
+        // Collision HUD text
+        collisionText.setFont(font);
+        collisionText.setString("Collision detected !");
+        collisionText.setCharacterSize(24);
+        collisionText.setFillColor(sf::Color::Red);
+        collisionText.setStyle(sf::Text::Bold);
+        collisionText.setPosition(10.f, 10.f);
 
             // Player detected HUD text
             joueurDetecteText.setFont(font);
-            joueurDetecteText.setString("Joueur detecte !");
+            joueurDetecteText.setString("Player detected !");
             joueurDetecteText.setCharacterSize(22);
             joueurDetecteText.setFillColor(sf::Color::Yellow);
             joueurDetecteText.setStyle(sf::Text::Bold);
@@ -46,11 +45,11 @@ namespace Vue {
         else if (font.loadFromFile("arial.ttf"))
         {
             fontCharge = true;
-            std::cout << "[DEBUG] Police chargée : arial.ttf (local)" << std::endl;
+            std::cout << "[DEBUG] Font loaded : arial.ttf (local)" << std::endl;
         }
         else
         {
-            std::cerr << "[DEBUG] Erreur: Impossible de charger la police (arial.ttf)." << std::endl;
+            std::cerr << "[DEBUG] Error : Failed to load font (arial.ttf)." << std::endl;
         }
     }
 
@@ -222,7 +221,7 @@ namespace Vue {
         }
 
         for (const auto& objective : currentObjectives) {
-            // Debug note (in French in original): logs were added to diagnose why the sprite
+            // Debug note : logs were added to diagnose why the sprite
             // did not show its texture. If texture is invalid, fallback to drawing hitbox.
 
             sf::Vector2f hp = objective.getHitboxPosition();

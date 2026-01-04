@@ -1,10 +1,8 @@
-
 #pragma once
-//
-// Created by bertr on 25-11-25.
-//
+
 #ifndef TESTCOLLISION_HOMEPAGE_H
 #define TESTCOLLISION_HOMEPAGE_H
+
 
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -26,14 +24,11 @@ namespace Vue
     class HomePage
     {
     private:
-        // Modal state: when false, the menu loop can exit.
-        bool active = true; ///< Is the page active (displayed) ?
+        bool active = true;            ///< Bool : la page est-elle active (affichée) ?
+        bool inputFocused = false;     ///< Focus d'entrée pour la saisie du nom du joueur
+        std::string playerName;        ///< Nom saisi du joueur (max 32 caractères)
 
-        // Player name input state.
-        bool inputFocused = false; ///< Whether name input is focused
-        std::string playerName;    ///< Player name (max 32 chars)
-
-        // Font and UI elements.
+        // Font and graphic elements
         sf::Font font;
         bool fontLoaded = false;
 
@@ -57,16 +52,9 @@ namespace Vue
         sf::RectangleShape creditsButton;
         sf::Text creditsLabel;
 
-        sf::RectangleShape soundsButton;
-        sf::Text soundsLabel;
-
-        // Simple sounds toggle state.
-        bool soundsOn = true;
-
-        // Legacy credits overlay flag (separate from CreditsWindow).
         bool showCredits = false;
 
-        // Credits window (modal overlay managed with RAII).
+        // Legacy credits overlay flag (separate from CreditsWindow).
         std::unique_ptr<CreditsWindow> creditsWindow;
 
         // Cherub background image (semi-transparent if present).
@@ -93,6 +81,9 @@ namespace Vue
         void openLevelPage(sf::RenderWindow& parent);
 
         // Selected indices after closing LevelPage.
+        // Selected index for keyboard navigation: 0=Play,1=Scores,2=Credits
+        int selectedIndex = 0;
+        // Indices sélectionnés après la fermeture du sélecteur (chapter, level)
         int selectedChapter = -1;
         int selectedLevel = -1;
         std::string selectedLevelData;

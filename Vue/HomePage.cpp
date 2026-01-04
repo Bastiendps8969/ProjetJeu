@@ -53,54 +53,44 @@ namespace Vue
             // ========== NEON RED BUTTON STYLE ==========
             // PLAY button
             playButton.setSize({380.f, 65.f});
-            playButton.setFillColor(sf::Color(180, 20, 20));
-            playButton.setOutlineColor(sf::Color(255, 100, 100));
+            playButton.setFillColor(sf::Color(180, 20, 20)); // deep red
+            playButton.setOutlineColor(sf::Color(255, 100, 100)); // bright red outline (neon glow)
             playButton.setOutlineThickness(0.f);
 
             playLabel.setFont(font);
             playLabel.setString("PLAY");
             playLabel.setCharacterSize(32);
-            playLabel.setFillColor(sf::Color(255, 100, 100));
+            playLabel.setFillColor(sf::Color(255, 100, 100)); // neon red text
             playLabel.setStyle(sf::Text::Bold);
 
-            // SCORES button
+            // SCORES button - neon red style
             scoreButton.setSize({380.f, 65.f});
-            scoreButton.setFillColor(sf::Color(180, 20, 20));
-            scoreButton.setOutlineColor(sf::Color(255, 100, 100));
+            scoreButton.setFillColor(sf::Color(180, 20, 20)); // deep red
+            scoreButton.setOutlineColor(sf::Color(255, 100, 100)); // bright red outline
             scoreButton.setOutlineThickness(0.f);
 
             scoreLabel.setFont(font);
             scoreLabel.setString("SCORES");
             scoreLabel.setCharacterSize(32);
-            scoreLabel.setFillColor(sf::Color(180, 80, 80));
+            scoreLabel.setFillColor(sf::Color(180, 80, 80)); // slightly darker red text
             scoreLabel.setStyle(sf::Text::Bold);
 
-            // CREDITS button
+            // CREDITS button - neon red style
             creditsButton.setSize({380.f, 65.f});
-            creditsButton.setFillColor(sf::Color(180, 20, 20));
-            creditsButton.setOutlineColor(sf::Color(255, 100, 100));
+            creditsButton.setFillColor(sf::Color(180, 20, 20)); // deep red
+            creditsButton.setOutlineColor(sf::Color(255, 100, 100)); // bright red outline
             creditsButton.setOutlineThickness(0.f);
 
             creditsLabel.setFont(font);
             creditsLabel.setString("CREDITS");
             creditsLabel.setCharacterSize(32);
-            creditsLabel.setFillColor(sf::Color(180, 80, 80));
+            creditsLabel.setFillColor(sf::Color(180, 80, 80)); // slightly darker red text
             creditsLabel.setStyle(sf::Text::Bold);
 
-            // SOUNDS button
-            soundsButton.setSize({380.f, 65.f});
-            soundsButton.setFillColor(sf::Color(180, 20, 20));
-            soundsButton.setOutlineColor(sf::Color(255, 100, 100));
-            soundsButton.setOutlineThickness(0.f);
 
-            soundsLabel.setFont(font);
-            soundsLabel.setCharacterSize(32);
-            soundsLabel.setFillColor(sf::Color(180, 80, 80));
-            soundsLabel.setStyle(sf::Text::Bold);
-            soundsLabel.setString(soundsOn ? "SOUNDS : ON" : "SOUNDS : OFF");
         }
 
-        // Try multiple probable paths for the Cherub background image (fallback strategy).
+        // Try multiple probable paths for the Cherub background image.
         std::vector<std::string> tryPaths;
         if (!backgroundPath.empty())
             tryPaths.push_back(backgroundPath);
@@ -190,13 +180,55 @@ namespace Vue
             // Backspace deletes last character when focused.
             if (event.key.code == sf::Keyboard::BackSpace && !playerName.empty() && inputFocused)
             {
+                // Edit name when input is focused
                 playerName.pop_back();
                 inputText.setString(playerName);
             }
             // Enter/Return closes HomePage (legacy behavior: "start game").
             else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
             {
-                active = false;
+                // If the name input is focused, Enter starts the game (legacy behavior)
+                if (inputFocused)
+                {
+                    active = false; // start the game
+                    return;
+                }
+
+                // Otherwise, activate the currently selected menu item
+                if (selectedIndex == 0)
+                {
+                    openLevelPage(fenetre);
+                    return;
+                }
+                else if (selectedIndex == 1)
+                {
+                    openScoreWindow();
+                    return;
+                }
+                else if (selectedIndex == 2)
+                {
+                    if (!creditsWindow)
+                    {
+                        creditsWindow = std::make_unique<CreditsWindow>();
+                    }
+                    else
+                    {
+                        creditsWindow->setActive(true);
+                    }
+                    return;
+                }
+            }
+            else if (!inputFocused)
+            {
+                // Navigate menu with Up/Down (wrap around three entries)
+                if (event.key.code == sf::Keyboard::Up)
+                {
+                    selectedIndex = (selectedIndex + 2) % 3; // wrap-around for 3 items
+                }
+                else if (event.key.code == sf::Keyboard::Down)
+                {
+                    selectedIndex = (selectedIndex + 1) % 3;
+                }
             }
         }
         else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
@@ -208,6 +240,7 @@ namespace Vue
             // PLAY -> open level selector (LevelPage) instead of starting immediately.
             if (playButton.getGlobalBounds().contains(world))
             {
+                // Open the level selector (instead of starting immediately)
                 openLevelPage(fenetre);
                 return;
             }
@@ -215,6 +248,7 @@ namespace Vue
             // SCORES -> open score window.
             if (scoreButton.getGlobalBounds().contains(world))
             {
+                // Open the scores window
                 openScoreWindow();
                 return;
             }
@@ -222,6 +256,7 @@ namespace Vue
             // CREDITS -> open/create credits window.
             if (creditsButton.getGlobalBounds().contains(world))
             {
+                // Create or display the credits window
                 if (!creditsWindow)
                 {
                     creditsWindow = std::make_unique<CreditsWindow>();
@@ -233,15 +268,8 @@ namespace Vue
                 return;
             }
 
-            // SOUNDS -> toggle state and update label.
-            if (soundsButton.getGlobalBounds().contains(world))
-            {
-                soundsOn = !soundsOn;
-                soundsLabel.setString(soundsOn ? "Sounds : On" : "Sounds : Off");
-                return;
-            }
 
-            // Name input focus (note: inputBox size is currently 0x0).
+            // Name input focus.
             if (inputBox.getGlobalBounds().contains(world))
             {
                 inputFocused = true;
@@ -275,18 +303,20 @@ namespace Vue
             float scale = std::max(scaleX, scaleY);
 
             cherubSprite.setScale(scale, scale);
+
+            // Position at the top left
             cherubSprite.setOrigin(0.f, 0.f);
             cherubSprite.setPosition(0.f, 0.f);
 
             // Semi-transparent overlay to make UI readable.
             sf::Color c = cherubSprite.getColor();
-            c.a = 180;
+            c.a = 180; // more transparent so that the UI is more readable
             cherubSprite.setColor(c);
 
             fenetre.draw(cherubSprite);
         }
 
-        // Title placement (left side).
+        // Position the TITLE on the left (as in the image) — slightly lower
         float titleX = static_cast<float>(win.x) * 0.15f;
         float titleY = static_cast<float>(win.y) * 0.35f;
 
@@ -297,8 +327,8 @@ namespace Vue
         sf::FloatRect titleBounds = titleText.getLocalBounds();
         inputText.setPosition(titleX, titleY + titleBounds.height + 10.f);
 
-        // Buttons on the right side.
-        float buttonX = centerX + 120.f;
+        // Position the buttons on the right side of the screen (to match the image)
+        float buttonX = centerX + 120.f; // right side of the center
         float startY = static_cast<float>(win.y) * 0.25f;
         float buttonGap = 85.f;
 
@@ -317,9 +347,7 @@ namespace Vue
         centerLabel(creditsLabel, creditsButton);
         startY += buttonGap;
 
-        // SOUNDS
-        soundsButton.setPosition(buttonX, startY);
-        centerLabel(soundsLabel, soundsButton);
+
 
         if (fontLoaded)
         {
@@ -330,13 +358,21 @@ namespace Vue
             bool hoveredPlay = playButton.getGlobalBounds().contains(mousePos);
             bool hoveredScore = scoreButton.getGlobalBounds().contains(mousePos);
             bool hoveredCredits = creditsButton.getGlobalBounds().contains(mousePos);
-            bool hoveredSounds = soundsButton.getGlobalBounds().contains(mousePos);
 
-            // Draw buttons using shared styled function.
+            // If mouse hovers over a button, sync the keyboard selection
+            if (hoveredPlay) selectedIndex = 0;
+            else if (hoveredScore) selectedIndex = 1;
+            else if (hoveredCredits) selectedIndex = 2;
+
+            // Combine mouse hover with keyboard selection for visual feedback
+            hoveredPlay = hoveredPlay || (selectedIndex == 0);
+            hoveredScore = hoveredScore || (selectedIndex == 1);
+            hoveredCredits = hoveredCredits || (selectedIndex == 2);
+
+            // Draw the three buttons using the same stylish utility function
             drawStyledButton(fenetre, playButton, playLabel, hoveredPlay);
             drawStyledButton(fenetre, scoreButton, scoreLabel, hoveredScore);
             drawStyledButton(fenetre, creditsButton, creditsLabel, hoveredCredits);
-            drawStyledButton(fenetre, soundsButton, soundsLabel, hoveredSounds);
 
             // Draw title shadow + title, then subtitle.
             fenetre.draw(titleShadow);
@@ -344,7 +380,24 @@ namespace Vue
             fenetre.draw(inputText);
         }
 
-        // Draw credits window overlay if active.
+        // Overlay of credits
+        if (showCredits)
+        {
+            sf::RectangleShape overlay({(float)win.x * 0.6f, (float)win.y * 0.35f});
+            overlay.setFillColor(sf::Color(0,0,0,200));
+            overlay.setPosition(centerX - overlay.getSize().x/2.f, centerX*0.15f);
+            fenetre.draw(overlay);
+
+            sf::Text txt;
+            txt.setFont(font);
+            txt.setString("CREDITS\nDeveloper: ...\nGraphics: ...");
+            txt.setCharacterSize(18);
+            txt.setFillColor(sf::Color::White);
+            txt.setPosition(overlay.getPosition() + sf::Vector2f(20.f,20.f));
+            fenetre.draw(txt);
+        }
+
+        // Afficher la fenêtre de crédits si active
         if (creditsWindow && creditsWindow->isActive())
         {
             creditsWindow->draw(fenetre);

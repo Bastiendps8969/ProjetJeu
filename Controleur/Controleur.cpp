@@ -1,4 +1,3 @@
-
 #include "Controleur.h"
 #include <SFML/Window.hpp>
 #include "Modele.h"
@@ -12,6 +11,7 @@
 #include "../Vue/ConfirmationDialog.h"
 #include <cmath>
 #include <iostream>
+
 #include "ControllerLevel.h"
 #include "../Vue/PauseMenu.h"
 
@@ -215,6 +215,7 @@ namespace Controleur
                 if ((evenement.type == sf::Event::KeyPressed)
                     && (evenement.key.code == sf::Keyboard::Escape))
                 {
+                    // Show pause menu and require confirmation for destructive actions.
                     bool abortOuter = false;
 
                     while (fenetre.isOpen()) {
@@ -223,11 +224,9 @@ namespace Controleur
                         pause.setActive(true);
 
                         // Pause loop
-                        while (fenetre.isOpen() && pause.isActive())
-                        {
+                        while (fenetre.isOpen() && pause.isActive()) {
                             sf::Event pe;
-                            while (fenetre.pollEvent(pe))
-                            {
+                            while (fenetre.pollEvent(pe)) {
                                 if (pe.type == sf::Event::Closed) fenetre.close();
                                 pause.handleEvent(pe, fenetre);
                             }
@@ -249,19 +248,21 @@ namespace Controleur
                         if (sel == Vue::PauseMenu::Option::ExitLevel) {
                             // Confirm exit level (destructive: progress lost).
                             Vue::ConfirmationDialog confirm("Exit level? All your progress will be lost.");
-                            while (fenetre.isOpen() && confirm.isActive())
-                            {
+
+                            // confirmation loop
+                            while (fenetre.isOpen() && confirm.isActive()) {
                                 sf::Event ce;
-                                while (fenetre.pollEvent(ce))
-                                {
+                                while (fenetre.pollEvent(ce)) {
                                     if (ce.type == sf::Event::Closed) fenetre.close();
                                     confirm.handleEvent(ce, fenetre);
                                 }
+
                                 fenetre.clear(sf::Color::Black);
                                 vue.dessiner(fenetre);
                                 confirm.draw(fenetre);
                                 fenetre.display();
                             }
+
                             if (!fenetre.isOpen()) { abortOuter = true; break; }
 
                             if (confirm.isConfirmed()) {
@@ -272,8 +273,8 @@ namespace Controleur
                                 // Return to main menu and recreate controller afterwards.
                                 afficherMenuAccueil();
                                 if (!niveauController) {
-                                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                                    timeDialogueLaunched = false;
+                                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+                                        timeDialogueLaunched = false;
                                 }
                                 break; // exit pause handling
                             } else {
@@ -285,19 +286,20 @@ namespace Controleur
                         if (sel == Vue::PauseMenu::Option::ExitGame) {
                             // Confirm exit game (destructive).
                             Vue::ConfirmationDialog confirm("Exit game? All your progress will be lost.");
-                            while (fenetre.isOpen() && confirm.isActive())
-                            {
+
+                            while (fenetre.isOpen() && confirm.isActive()) {
                                 sf::Event ce;
-                                while (fenetre.pollEvent(ce))
-                                {
+                                while (fenetre.pollEvent(ce)) {
                                     if (ce.type == sf::Event::Closed) fenetre.close();
                                     confirm.handleEvent(ce, fenetre);
                                 }
+
                                 fenetre.clear(sf::Color::Black);
                                 vue.dessiner(fenetre);
                                 confirm.draw(fenetre);
                                 fenetre.display();
                             }
+
                             if (!fenetre.isOpen()) { abortOuter = true; break; }
 
                             if (confirm.isConfirmed()) {
@@ -458,22 +460,24 @@ namespace Controleur
             {
                 gameOverPending = false;
                 gameOverRequested = false;
-                gameOverRequested = false; // duplicated assignment kept as-is
                 processGameOver();
-                continue; // ⚠️ leave this frame immediately
+                continue; //  leave this frame immediately
             }
 
             // If the time-up dialogue finished, return to main menu.
             if (timeDialogueLaunched && !dialogueManager.isDialogueActive()) {
+                // Destroy current level and reset model
                 modele.reset();
                 niveauController.reset();
 
+                // Show main menu and recreate a fresh controller afterwards
                 afficherMenuAccueil();
                 if (!niveauController) {
                     modele.reset();
                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                 }
                 timeDialogueLaunched = false;
+                // skip rendering the rest of this frame
                 continue;
             }
 
@@ -494,4 +498,4 @@ namespace Controleur
     // NOTE: door-checking, input handling and update now live in ControllerLevel.
     // The old free-standing implementations were removed during the merge
     // to avoid duplicate definitions (ControllerLevel handles level logic).
-} // FIN du namespace Controleur
+}

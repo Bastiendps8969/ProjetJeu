@@ -241,6 +241,11 @@ namespace Vue
             {
                 active = false;
             }
+            else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
+            {
+                // Allow closing via Enter as well as Escape
+                active = false;
+            }
             else if (event.key.code == sf::Keyboard::Up)
             {
                 scrollOffset = std::max(0.f, scrollOffset - scrollSpeed);

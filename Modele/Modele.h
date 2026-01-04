@@ -34,6 +34,7 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <set>
 
 #include "Objective.h"
 #include "ScoreCalculator.h"
@@ -92,12 +93,20 @@ private:
     // Current level path used to reload/reset.
     std::string currentLevelPath;
 
+
     // Objective contact (pointer references an object owned by Room/Modele containers).
     // Rationale: pointer allows modifying the original objective (no copy).
-    Objective* objectiveContact = nullptr;
-    bool objectiveContactDetectee = false;
+        const float DOOR_SIZE = 120.f;
+        const float DOOR_THICKNESS = 100.f;
 
-    bool dialogueTriggeredFlag = false;
+        //  Collision with objective
+        Objective* objectiveContact = nullptr;
+        bool objectiveContactDetectee = false;
+        // Dialogue triggered flag (keeps state about whether a dialogue was triggered)
+        bool dialogueTriggeredFlag = false;
+        // Tracks which room indices have had their room-level dialogue shown
+        // This set persists for the duration of the current level/session
+        std::set<int> shownRoomDialogues;
 
     // Score memory (non persistent).
     std::vector<int> playerScores = std::vector<int>(12, 0);

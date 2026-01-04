@@ -1,7 +1,5 @@
-
 // Simple modal confirmation dialog with Yes/No buttons
 #pragma once
-
 #include <SFML/Graphics.hpp>
 #include <string>
 
@@ -37,7 +35,7 @@ namespace Vue {
         // Modal state and result.
         bool active = true;
         bool confirmed = false;
-
+        int selectedIndex = 0; // 0 = Yes, 1 = No
         // UI elements: message text and two buttons + their labels.
         sf::Text messageText;
 

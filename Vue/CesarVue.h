@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include <SFML/Graphics/Font.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Text.hpp>
+#include <SFML/Graphics.hpp>
 #include <SFML/Window/Event.hpp>
+#include <vector>
 
 #include "Objective.h"
 
@@ -18,8 +17,20 @@ private:
     sf::Font font;
     sf::Text text;
 
+    // Background PC image (from Asset/cesar/pc_cesar.png)
+    sf::Texture bgTexture;
+    sf::Sprite bgSprite;
+    bool bgLoaded = false;
+
     sf::RectangleShape inputBox;
     sf::Text inputText;
+
+    // The altered code shown under the title
+    sf::Text alteredCodeText;
+
+    // Brute-force helper UI
+    bool showBruteResults = false;
+    std::vector<sf::Text> bruteLines;
     
     sf::RectangleShape exitButton;
     sf::Text exitButtonText;
