@@ -1,3 +1,4 @@
+
 #include "ControllerLevel.h"
 #include <cmath>
 #include <iostream>
@@ -15,18 +16,24 @@ namespace Controleur {
 ControllerLevel::ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::RenderWindow& fenetre)
     : modele(modele), vue(vue), fenetre(fenetre), mouvement(0.f, 0.f)
 {
-    // Start level timer
+    // Start (or restart) the level timer at construction.
     levelTimerClock.restart();
-    // Load HUD font
+
+    // Load HUD font.
+    // NOTE: This hardcoded path is Windows-specific.
     hudFontLoaded = hudFont.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
     if (hudFontLoaded) {
         uiText.setFont(hudFont);
         uiText.setCharacterSize(28);
         uiText.setFillColor(sf::Color::White);
     }
+
+    // WHY store references in constructor initializer list:
+    // - references must be bound at construction time
+    // - avoids copying large objects (Modele/Vue/RenderWindow)
 }
 
-// --- Ajouts pour la fenêtre Cesar ---
+// --- Cesar window support ---
 bool ControllerLevel::shouldOpenCesarWindow() const {
     return openCesarWindow;
 }
@@ -36,14 +43,22 @@ Objective* ControllerLevel::getCesarObjective() const {
 }
 
 void ControllerLevel::resetCesarWindowFlag() {
+    // One-shot consumption: reset flag and pointer after the upper layer used them.
+    //
+    // WHY reset pointer to nullptr:
+    // - avoids holding a stale non-owning pointer
+    // - makes "no pending Cesar objective" explicit
     openCesarWindow = false;
     cesarObjective = nullptr;
 }
 
 void ControllerLevel::handleInput()
 {
+    // Build a raw direction vector from keyboard state.
+    // (Not normalized yet; normalization is done in update().)
     mouvement = sf::Vector2f(0.f, 0.f);
 
+    // ZQSD mapping (French keyboard habits).
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
         mouvement.y -= 1.0f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
@@ -52,38 +67,52 @@ void ControllerLevel::handleInput()
         mouvement.x -= 1.0f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
         mouvement.x += 1.0f;
+
+    // WHY store movement intent as a vector:
+    // - separates input collection from physics/collision resolution (done in update)
 }
 
 void ControllerLevel::update()
 {
     const float VITESSE_JOUEUR = 5.0f;
+
+    // Convert input direction to displacement.
     sf::Vector2f deplacement = mouvement;
 
-    float longueur = std::sqrt(deplacement.x * deplacement.x + deplacement.y * deplacement.y);
-
-    if (longueur > 0.001f)
+    // Normalize so diagonal movement isn't faster.
+    float length = std::sqrt(deplacement.x * deplacement.x + deplacement.y * deplacement.y);
+    if (length > 0.001f)
     {
-        deplacement.x = (deplacement.x / longueur) * VITESSE_JOUEUR;
-        deplacement.y = (deplacement.y / longueur) * VITESSE_JOUEUR;
+        deplacement.x = (deplacement.x / length) * VITESSE_JOUEUR;
+        deplacement.y = (deplacement.y / length) * VITESSE_JOUEUR;
     }
 
     bool collision = false;
 
+    // Cache frequently used values for clarity and to avoid repeated calls.
     float playerW = modele.getJoueur().getSize().x;
     float playerH = modele.getJoueur().getSize().y;
-
     float screenW = modele.getScreenW();
     float screenH = modele.getScreenH();
 
-    // Déplacer sur X
+    // ------------------------------------------------------------
+    // 1) Move on X axis and resolve collisions with obstacles (AABB).
+    // Axis-separated collision resolution is simple and stable.
+    // ------------------------------------------------------------
     modele.getJoueur().move(deplacement.x, 0.f);
+
     sf::FloatRect joueurBounds = modele.getJoueur().getGlobalBounds();
 
     for (const auto& obsPtr : modele.getObstacleShapes())
     {
+        // WHY obsPtr is a const reference to a unique_ptr:
+        // - obstacles are owned by the model/room (unique_ptr)
+        // - controller only reads bounds; does not take ownership
         if (modele.getJoueur().getGlobalBounds().intersects(obsPtr->getGlobalBounds()))
         {
             sf::FloatRect obstacleBounds = obsPtr->getGlobalBounds();
+
+            // Push player out of the obstacle depending on direction of travel.
             if (deplacement.x > 0)
                 modele.getJoueur().setPosition(obstacleBounds.left - playerW, modele.getJoueur().getPosition().y);
             else
@@ -94,7 +123,7 @@ void ControllerLevel::update()
         }
     }
 
-    // Limites X
+    // Clamp to screen bounds on X.
     joueurBounds = modele.getJoueur().getGlobalBounds();
     if (joueurBounds.left < 0) {
         modele.getJoueur().setPosition(0.f, modele.getJoueur().getPosition().y);
@@ -104,8 +133,11 @@ void ControllerLevel::update()
         collision = true;
     }
 
-    // Déplacer sur Y
+    // ------------------------------------------------------------
+    // 2) Move on Y axis and resolve collisions with obstacles (AABB).
+    // ------------------------------------------------------------
     modele.getJoueur().move(0.f, deplacement.y);
+
     joueurBounds = modele.getJoueur().getGlobalBounds();
 
     for (const auto& obsPtr : modele.getObstacleShapes())
@@ -113,6 +145,8 @@ void ControllerLevel::update()
         if (modele.getJoueur().getGlobalBounds().intersects(obsPtr->getGlobalBounds()))
         {
             sf::FloatRect obstacleBounds = obsPtr->getGlobalBounds();
+
+            // Push player out of the obstacle depending on direction of travel.
             if (deplacement.y > 0)
                 modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, obstacleBounds.top - playerH);
             else
@@ -123,13 +157,29 @@ void ControllerLevel::update()
         }
     }
 
-    // Collision avec objectifs
+    // ------------------------------------------------------------
+    // 3) Collision with objectives:
+    // If player touches objective hitbox, we mark contact in the model
+    // so another stage (processCollisions) can handle dialogues & rewards.
+    // ------------------------------------------------------------
     for (auto& objectiveRef : modele.getCurrentRoomObjectives()) {
-        if (modele.getJoueur().getGlobalBounds().intersects(objectiveRef.getHitbox().getGlobalBounds())) {
+        // WHY objectiveRef is a reference:
+        // - objectives are stored inside the model (vector<Objective>)
+        // - we need to keep a link to the actual Objective so we can pass its address (&objectiveRef)
+        if (modele.getJoueur().getGlobalBounds().intersects(objectiveRef.getHitbox().getGlobalBounds()))
+        {
+            // NOTE: These moves look unusual: they move the player again using deplacement,
+            // likely intended to adjust resolution ordering; not changed here.
             modele.getJoueur().move(deplacement.x, 0.f);
             modele.getJoueur().move(deplacement.y, 0.f);
 
             const sf::FloatRect objectiveBounds = objectiveRef.getHitbox().getGlobalBounds();
+
+            // Store contact state in the model (objective pointer used because it's optional and mutable).
+            //
+            // WHY store Objective* in the model:
+            // - allows processCollisions() to modify the same Objective object (no copies)
+            // - pointer communicates optional presence (nullptr when none)
             modele.setObjectiveContactDetectee(true);
             modele.setObjectiveContact(&objectiveRef);
 
@@ -140,23 +190,23 @@ void ControllerLevel::update()
             std::cout << "deplacement x :" << deplacement.x << std::endl;
             std::cout << "deplacement y :" << deplacement.y << std::endl;
 
-            //  From the left
+            // Basic push-out resolution depending on movement direction.
+            // From the left
             if (deplacement.x > 0) {
                 modele.getJoueur().setPosition(objectiveBounds.left - playerW, modele.getJoueur().getPosition().y);
                 std::cout << "1" << std::endl;
             }
-            //  From the right
+            // From the right
             else if (deplacement.x < 0) {
                 modele.getJoueur().setPosition(objectiveBounds.left + objectiveBounds.width, modele.getJoueur().getPosition().y);
                 std::cout << "2" << std::endl;
             }
-
-            //  From the top
+            // From the top
             if (deplacement.y > 0) {
                 modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, objectiveBounds.top - playerH);
                 std::cout << "3" << std::endl;
             }
-            //  From the bottom
+            // From the bottom
             else if (deplacement.y < 0) {
                 modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, objectiveBounds.top + objectiveBounds.height);
                 std::cout << "4" << std::endl;
@@ -167,7 +217,7 @@ void ControllerLevel::update()
         }
     }
 
-    // Limites Y
+    // Clamp to screen bounds on Y.
     joueurBounds = modele.getJoueur().getGlobalBounds();
     if (joueurBounds.top < 0) {
         modele.getJoueur().setPosition(modele.getJoueur().getPosition().x, 0.f);
@@ -177,12 +227,16 @@ void ControllerLevel::update()
         collision = true;
     }
 
+    // If we are NOT colliding with an objective, we store the collision flag.
+    // (Objective contact has its own dedicated flag in the model.)
     if (!modele.getObjectiveContactDetectee()) {
         modele.setCollisionDetectee(collision);
     }
 
+    // Determine if the player is moving (used for animation and direction).
     bool isMoving = (std::abs(deplacement.x) > 0.001f || std::abs(deplacement.y) > 0.001f);
 
+    // Update facing direction based on dominant axis of movement.
     if (isMoving)
     {
         if (std::abs(deplacement.x) > std::abs(deplacement.y))
@@ -197,74 +251,107 @@ void ControllerLevel::update()
         }
     }
 
+    // Delegate animation updates to the model.
     modele.updatePlayerAnimation(isMoving);
     modele.syncPlayerSprite();
+
+    // WHY controller delegates animation to the model:
+    // - keeps responsibilities separated (controller: input/collisions; model: animation state)
 }
 
 int ControllerLevel::getRemainingSeconds() const
 {
+    // Compute elapsed time while accounting for pauses:
+    // elapsed = (clock time) - (total paused time).
     double elapsedSec;
     double current = levelTimerClock.getElapsedTime().asSeconds();
+
     if (timerPaused) {
-        // elapsed is up to pause start
+        // If paused, elapsed is measured up to the moment we paused.
         elapsedSec = pauseStartSeconds - pausedAccumulated;
     } else {
         elapsedSec = current - pausedAccumulated;
     }
+
     int rem = static_cast<int>(levelTimerStartSeconds - static_cast<int>(std::floor(elapsedSec)));
     return rem > 0 ? rem : 0;
 }
 
 void ControllerLevel::resetLevelTimer()
 {
+    // Reset timer and pause bookkeeping.
     levelTimerClock.restart();
     timerPaused = false;
     pauseStartSeconds = 0.0;
     pausedAccumulated = 0.0;
+
+    // WHY reset bookkeeping:
+    // - ensures pause does not affect the next level run
 }
 
 void ControllerLevel::drawUI(sf::RenderWindow& fenetre)
 {
+    // Draw timer HUD at top-right.
     if (!hudFontLoaded) return;
+
     std::ostringstream string;
-    //  Timer
+
+    // Timer display (seconds remaining).
     string << getRemainingSeconds() << "s";
     uiText.setString(string.str());
 
-    // position top-right with margin
+    // Position top-right with margin.
     sf::FloatRect tb = uiText.getLocalBounds();
     float x = fenetre.getSize().x - tb.width - 20.f;
     float y = 20.f;
     uiText.setPosition(x - tb.left, y - tb.top);
+
     fenetre.draw(uiText);
+
+    // WHY fenetre passed by reference:
+    // - RenderWindow is non-trivial; copying is not intended
+    // - drawing must affect the actual window
 }
 
 void ControllerLevel::setTimerPaused(bool p)
 {
+    // Ignore if state doesn't change.
     if (p == timerPaused) return;
+
     double current = levelTimerClock.getElapsedTime().asSeconds();
+
     if (p) {
-        // pausing now
+        // Pausing now: remember when the pause started.
         pauseStartSeconds = current;
         timerPaused = true;
     } else {
-        // resuming: accumulate pause duration
+        // Resuming: accumulate pause duration so elapsed time excludes it.
         pausedAccumulated += (current - pauseStartSeconds);
         pauseStartSeconds = 0.0;
         timerPaused = false;
     }
+
+    // WHY bool parameter by value:
+    // - trivial type, simplest and fastest
 }
 
 Modele::ScoreDetails ControllerLevel::getScoreDetails() const
 {
+    // Score computation is delegated to ScoreCalculator (separation of concerns).
     const std::vector<Objective>& objectives = modele.getAllLevelObjectives();
     int remainingSeconds = getRemainingSeconds();
+
+    // WHY objectives passed by const reference to ScoreCalculator:
+    // - avoids copying the objective list
+    // - controller only needs read-only scoring data
     return Modele::ScoreCalculator::calculateScore(objectives, remainingSeconds, modele.getDetectionCount());
 }
 
 bool ControllerLevel::areAllPrimaryObjectivesCompleted() const
 {
+    // Delegation to ScoreCalculator (keeps controller thin).
     const std::vector<Objective>& objectives = modele.getAllLevelObjectives();
+
     return Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(objectives);
 }
 
@@ -274,9 +361,12 @@ void ControllerLevel::checkDoors()
     const float playerW = modele.getJoueur().getSize().x;
     const float playerH = modele.getJoueur().getSize().y;
 
+    // Iterate doors of the current room and handle first intersection.
     for (const auto& door : modele.getCurrentRoomDoors())
     {
         sf::FloatRect doorBounds;
+
+        // Door may have a visual shape; otherwise use the raw bounds.
         if (door.visualShape)
             doorBounds = door.visualShape->getGlobalBounds();
         else
@@ -284,26 +374,28 @@ void ControllerLevel::checkDoors()
 
         if (joueurBounds.intersects(doorBounds))
         {
+            // Compute opposite entry direction when changing rooms.
             std::string opposite;
-            if (door.direction == "up")    opposite = "down";
+            if (door.direction == "up") opposite = "down";
             else if (door.direction == "down") opposite = "up";
             else if (door.direction == "left") opposite = "right";
             else if (door.direction == "right") opposite = "left";
             else opposite = door.direction;
 
+            // targetRoomIndex < 0 is used as a sentinel meaning "exit level".
             if (door.targetRoomIndex < 0)
             {
-                // Ask confirmation to quit the level
+                // Ask confirmation to quit the level (modal UI loop).
                 Vue::ConfirmationDialog confirm("Exit level?\nYour progress will be save if you've completed\nall the primary objectives.");
+
                 while (fenetre.isOpen() && confirm.isActive()) {
                     sf::Event ce;
                     while (fenetre.pollEvent(ce)) {
                         if (ce.type == sf::Event::Closed) fenetre.close();
                         confirm.handleEvent(ce, fenetre);
                     }
-
                     fenetre.clear(sf::Color::Black);
-                    vue.dessiner(fenetre);
+                    vue.draw(fenetre);
                     confirm.draw(fenetre);
                     fenetre.display();
                 }
@@ -311,12 +403,18 @@ void ControllerLevel::checkDoors()
                 if (!fenetre.isOpen()) break;
 
                 if (confirm.isConfirmed()) {
-                    // Check if all primary objectives are completed
-                    if (areAllPrimaryObjectivesCompleted() && Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getAllLevelObjectives()))
+
+                    // If confirmed, we optionally show the score window (only if primary objectives are done).
+                    if (areAllPrimaryObjectivesCompleted() &&
+                        Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getAllLevelObjectives()))
                     {
-                        // Show score screen
+                        // Show score screen (modal). Lambda provides dynamic score computation.
+                        //
+                        // WHY lambda capturing [this]:
+                        // - ScoreWindow can request score details at draw time (fresh values)
+                        // - avoids storing duplicated score state inside the UI layer
                         Vue::ScoreWindow scoreWindow([this]() -> Modele::ScoreDetails {
-                            return this->getScoreDetails();
+                           return this->getScoreDetails();
                         });
 
                         while (fenetre.isOpen() && scoreWindow.isActive())
@@ -327,31 +425,31 @@ void ControllerLevel::checkDoors()
                                 if (se.type == sf::Event::Closed) fenetre.close();
                                 scoreWindow.handleEvent(se);
                             }
-
                             scoreWindow.draw(fenetre);
                         }
 
                         if (!fenetre.isOpen()) break;
 
-                        // Mettre à jour le tableau des scores en mémoire (Modele)
+                        // Update model's score table in memory using mission index (not room index).
+                        // try/catch used defensively to avoid crashing on unexpected errors.
                         try {
                             Modele::ScoreDetails details = this->getScoreDetails();
-                            int roomIdx = modele.getCurrentRoomIndex();
-                            modele.setPlayerScore(roomIdx, details.totalScore);
+                            int missionIdx = modele.getCurrentMissionIndex();
+                            modele.setPlayerScore(missionIdx, details.totalScore);
                         } catch (...) {
                             // ignore any unexpected errors during score update
                         }
                     }
-                    
+
+                    // Signal to outer game loop that the level should exit.
                     exitRequestedFlag = true;
-                    
                 } else {
-                    // canceled -> do not exit level
+                    // Canceled -> do not exit level.
+                    // Nudge player away from the door to avoid immediate re-trigger.
                     int x = modele.getJoueur().getPosition().x;
                     int newY = modele.getJoueur().getPosition().y - 5;
                     modele.getJoueur().setPosition(x, newY);
                 }
-
             }
             else if (modele.changeRoom(door.targetRoomIndex, opposite))
             {
@@ -363,6 +461,7 @@ void ControllerLevel::checkDoors()
                 std::cout << "Echec du changement de piece vers ID " << door.targetRoomIndex << ".\n";
             }
 
+            // Handle only one door per frame.
             break;
         }
     }
@@ -370,85 +469,120 @@ void ControllerLevel::checkDoors()
 
 void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
 {
+    // ------------------------------------------------------------
+    // Objective collision handling (dialogues + accomplishment).
+    // The model sets a flag + pointer; controller resolves consequences here.
+    // ------------------------------------------------------------
     if (modele.getObjectiveContactDetectee()) {
+
         Objective* contactObj = modele.getObjectiveContact();
+
+        // WHY pointer check:
+        // - Objective contact is optional (nullptr means "no objective")
+        // - avoids dereferencing invalid pointer
         if (!contactObj) return;
+
         std::cout << "[ControllerLevel] Objective contact detected: " << contactObj->getTitle() << std::endl;
         std::cout << "[ControllerLevel] isCesar() = " << contactObj->isCesar() << std::endl;
         std::cout << "[ControllerLevel] Opening dialog: " << contactObj->getDialogueRef() << std::endl;
 
         if (contactObj->isAccomplished()) {
+            // If already done, play a generic "accomplished" message.
             dialogueManager.startDialogueSequence("accomplished_objective");
         } else {
+            // Otherwise, play objective-specific dialogue.
             dialogueManager.startDialogueSequence(contactObj->getDialogueRef());
 
-            // Si c'est un objectif César, signaler à Controleur d'ouvrir la fenêtre après dialogue
+            // If it's a "Cesar" objective, we do not mark it accomplished here.
+            // Instead we raise a flag so the upper controller can open a special window
+            // after the dialogue ends.
             if (contactObj->isCesar()) {
                 std::cout << "[ControllerLevel] Detected Cesar objective: " << contactObj->getTitle() << std::endl;
+
+                // WHY store Objective* for Cesar:
+                // - upper UI needs to read code/changeValue from the same Objective instance
+                // - pointer is non-owning: Objective stays stored in the model/room
                 cesarObjective = contactObj;
-                openCesarWindow = true;  // Flag pour Controleur (sera consommé après fin dialogue)
+                openCesarWindow = true; // Flag for upper controller (consumed after dialogue)
             }
-            else {
+            else
+            {
+                // Standard objective: mark as accomplished immediately.
                 contactObj->setAccomplished(true);
             }
         }
 
+        // Consume contact detection flag (one-shot).
         modele.setObjectiveContactDetectee(false);
     }
-    else if (modele.isJoueurDetecte())
+    // ------------------------------------------------------------
+    // Player detection handling (life loss + detection counter).
+    // Guarded so it triggers once per continuous detection event.
+    // ------------------------------------------------------------
+    else if (modele.isPlayerDetecte())
     {
         // Do not start the dialogue here (would be called every frame and restart it).
         // Just set the model flag; the top-level `Controleur` will start the dialogue
         // once using its `agentDialogueLaunched` guard.
-        
-        // Apply life loss only once per detection (not every frame)
-        if (!playerWasDetectedLastFrame) {
-            // Détermine le type d'ennemi qui a détecté le joueur et applique le coût de vie approprié
+        // Apply life loss only once per detection (not every frame).
+        if (!playerWasDetectedLastFrame)
+        {
+            // Determine the enemy type that detected the player to apply proper life cost.
             bool isHuman = false;
-            
-            // Vérifier les ennemis pour déterminer le type
+
+            // Inspect enemies and find the one currently detecting the player.
             const auto& enemies = modele.getEnemies();
-            for (const auto& enemy : enemies) {
-                if (enemy && enemy->joueurDetecte) {
-                    // GenericEnemy est le type "human"
-                    // Vérifier le type en utilisant les flags isCamera et isLaser
+            for (const auto& enemy : enemies)
+            {
+                // enemy is a unique_ptr<Enemy>; check pointer validity and state
+                if (enemy && enemy->playerDetecte)
+                {
+                    // GenericEnemy is the "human" type.
+                    // Detect by checking isCamera / isLaser flags.
                     isHuman = !enemy->isCamera && !enemy->isLaser;
                     break;
                 }
             }
-            
+
             loseLivesByDetection(isHuman);
-            // Count this detection for scoring
+
+            // Count this detection for scoring.
             modele.incrementDetectionCount();
+
+            // Mark that we already applied the cost for the current detection streak.
             playerWasDetectedLastFrame = true;
         }
-        
-        modele.setJoueurDetecte(true);
+
+        // Keep model's detected flag true while detection persists.
+        modele.setPlayerDetecte(true);
     }
     else
     {
-        // Reset the detection flag when player is no longer detected
+        // Reset guard when player is no longer detected.
         playerWasDetectedLastFrame = false;
     }
 }
 
 int ControllerLevel::getLives() const
 {
+    // Controller delegates life state to the model.
     return modele.getLives();
 }
 
 void ControllerLevel::loseLivesByDetection(bool isHuman)
 {
-    // Perd 3 vies si humain, 1 sinon (caméra ou laser)
+    // Lose 3 lives if human, 1 otherwise (camera or laser).
     int livesLost = isHuman ? 3 : 1;
     modele.loseLives(livesLost);
-    std::cout << "[ControllerLevel] Lives lost: " << livesLost << ". Remaining lives: " << modele.getLives() << std::endl;
+
+    std::cout << "[ControllerLevel] Lives lost: " << livesLost
+              << ". Remaining lives: " << modele.getLives() << std::endl;
 }
 
 bool ControllerLevel::isGameOver() const
 {
+    // Controller delegates game-over logic to the model.
     return modele.isGameOver();
 }
 
 } // namespace Controleur
-

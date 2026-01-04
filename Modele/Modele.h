@@ -1,195 +1,288 @@
-#pragma once
 
+// Modele.h
+//
+// Central "Model" class of the game.
+// It aggregates core game state and systems:
+// - player hitbox (RectangleShape) + visual sprite/animation
+// - RoomManager (rooms/doors/enemy definitions/objectives)
+// - MapManager (tile/floor matrix + textures)
+// - Level (lives/game over)
+// - runtime enemies + enemy prototypes (Prototype + Factory pattern)
+//
+// DESIGN / RATIONALE
+// - This class acts as an orchestrator: it owns the main subsystems through unique_ptr
+// (RoomManager, MapManager, Level) to express clear ownership and lifetime.
+// - Enemies are stored as std::unique_ptr<Enemy> to keep polymorphism + RAII.
+// - Enemy instantiation is data-driven: RoomManager loads EnemyDefinition from JSON,
+// then Modele converts definitions to runtime objects via createEnemyFromDefinition().
+//
+// OWNERSHIP
+// - unique_ptr expresses exclusive ownership (single owner, automatic destruction).
+// - Functions returning const references avoid copies and prevent external mutation.
+//
+// NOTE ABOUT PLAYER REPRESENTATION
+// - Player uses a RectangleShape as collision/hitbox and a Sprite as visual.
+// This decoupling is common: collisions use simple shapes; visuals can be scaled/cropped.
+//
+// NOTE ABOUT ANIMATION
+// - The player sprite uses a sprite-sheet with movement frames + idle frames,
+// and a separate idle row region (playerRow + 4).
+
+#pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <map>
 #include <string>
 #include <memory>
 #include <set>
-
 #include "Objective.h"
 #include "ScoreCalculator.h"
 #include "Level.h"
 #include "../cmake-build-debug/json.hpp"
-#include "Agent.h"
 #include "Enemy.h"
 #include "RoomManager.h"
 #include "MapManager.h"
-namespace Modele
-{
-    // Door, Room and ObstacleDefinition are provided by RoomManager.h
 
-    class Modele
-    {
-    private:
-        // Joueur
-        sf::RectangleShape joueur;
-        // Spritesheet du joueur
-        sf::Texture playerTexture;
-        sf::Sprite playerSprite;
-        int playerFrameCount = 9;      // nombre de frames par ligne (total = frames déplacement + frames idle)
-        int playerFrameIndex = 0;      // frame courante
-        int playerRow = 3;            // 1=up,2=left,3=down,4=right (par défaut bas)
-        float playerFrameDuration = 0.08f; // durée par frame en secondes
-        // Durée par frame quand le joueur est au repos (idle) -> plus lente
-        float playerIdleFrameDuration = 0.24f; // ex: 3x plus lent que playerFrameDuration
-        sf::Clock playerClock;
-        int playerTileSize = 64;      // taille d'une frame dans la spritesheet
+namespace Modele {
 
-        // Nombre de frames "idle" (au repos) qui suivent les frames de déplacement dans chaque ligne
-        int idleFrameCount = 2;
-        // Indique si le joueur est actuellement en mouvement ou en idle (utilisé pour choisir la row des idle)
-        bool playerIsMoving = false;
-        
-        // Contrôles pour zoom texture et taille d'affichage du sprite (séparés X/Y)
-        float playerTextureZoom = 1.20f;         // >1 => "zoom" sur la texture (recadrage)
-        // Réduire ici la taille du sprite affiché (plus petit que le rectangle joueur)
-        float playerSpriteDisplayScaleX = 1.0f; // ex. 0.60 => sprite largeur = 60% de la largeur du rectangle joueur
-        float playerSpriteDisplayScaleY = 1.0f; // ex. 0.55 => sprite hauteur = 55% de la hauteur du rectangle joueur
+class Modele {
+private:
+    // -------------------------
+    // Player: collision vs visual
+    // -------------------------
+    sf::RectangleShape joueur; // collision/hitbox representation
 
-        // Calcule la textureRect actuelle (en tenant compte du zoom et du frame index)
-        sf::IntRect computePlayerTextureRect() const;
-        // Setters pour ajuster à la volée
-        void setPlayerTextureZoom(float z) { playerTextureZoom = std::max(0.1f, z); }
-        void setPlayerSpriteDisplayScale(float sx, float sy) { playerSpriteDisplayScaleX = sx; playerSpriteDisplayScaleY = sy; }
+    // Sprite-sheet resources for player visuals
+    sf::Texture playerTexture;
+    sf::Sprite playerSprite;
 
-        // Gestion de la carte / tuiles externalisée
-        std::unique_ptr<MapManager> mapManager;
+    // Animation state (movement + idle)
+    int playerFrameCount = 9;
+    int playerFrameIndex = 0;
+    int playerRow = 3; // 1=up,2=left,3=down,4=right (default: down)
+    float playerFrameDuration = 0.08f;
+    float playerIdleFrameDuration = 0.24f;
+    sf::Clock playerClock;
+    int playerTileSize = 64;
 
-        // Textures pour murs (delegué à MapManager)
+    // Number of idle frames appended after movement frames in each row.
+    int idleFrameCount = 2;
 
-        // --- Membres d'IA et de collision (pour le premier obstacle) ---
-        bool collisionDetectee = false;
-        bool joueurDetecte = false;
-        std::unique_ptr<Agent> agent;
+    // Whether the player is currently moving (drives which rows are used).
+    bool playerIsMoving = false;
 
-        // Nombre de fois où le joueur a été détecté durant la partie
-        int detectionCount = 0;
+    // Crop/zoom settings for texture rect and display scaling.
+    float playerTextureZoom = 1.20f;
+    float playerSpriteDisplayScaleX = 1.0f;
+    float playerSpriteDisplayScaleY = 1.0f;
 
-        // --- Membres de la carte/pièce ---
-        std::unique_ptr<RoomManager> roomManager;
+    // Compute current sprite-sheet rectangle (includes zoom/crop logic).
+    // WHY const method:
+    // - pure computation from internal state
+    // - does not modify the model; safe to call from rendering code
+    sf::IntRect computePlayerTextureRect() const;
 
-    // --- Membres du système de vies ---
+    // Subsystems owned by the model (unique ownership).
+    // WHY unique_ptr:
+    // - expresses a single owner (Modele) for these subsystems
+    // - automatic destruction when Modele resets / is destroyed (RAII)
+    std::unique_ptr<MapManager> mapManager;
+    std::unique_ptr<RoomManager> roomManager;
     std::unique_ptr<Level> currentLevel;
-    // Chemin du niveau actuellement chargé (utilisé pour reload/reset)
+
+    // Global state flags/counters.
+    bool collisionDetectee = false;
+    bool PlayerDetecte = false;
+    int detectionCount = 0;
+
+    // Current level path used to reload/reset.
     std::string currentLevelPath;
 
+    // Objective contact (pointer references an object owned by Room/Modele containers).
+    // Rationale: pointer allows modifying the original objective (no copy).
+    //
+    // WHY raw pointer here:
+    // - we want a "non-owning" link to an Objective stored in a room's vector
+    // - allows in-place modification (accomplished/dialogue flags) without copying
+    // - nullptr expresses "no current contact"
+    const float DOOR_SIZE = 120.f;
+    const float DOOR_THICKNESS = 100.f;
 
-        // Constantes de porte
-        const float DOOR_SIZE = 120.f;
-        const float DOOR_THICKNESS = 100.f;
+    // Collision with objective
+    Objective* objectiveContact = nullptr;
+    bool objectiveContactDetectee = false;
 
-        //  Collision with objective
-        Objective* objectiveContact = nullptr;
-        bool objectiveContactDetectee = false;
-        // Dialogue triggered flag (keeps state about whether a dialogue was triggered)
-        bool dialogueTriggeredFlag = false;
-        // Tracks which room indices have had their room-level dialogue shown
-        // This set persists for the duration of the current level/session
-        std::set<int> shownRoomDialogues;
+    // Dialogue triggered flag (keeps state about whether a dialogue was triggered)
+    bool dialogueTriggeredFlag = false;
 
-        // Player scores stored in-memory (no persistent DB)
-        std::vector<int> playerScores = std::vector<int>(12, 0);
+    // Tracks which room indices have had their room-level dialogue shown
+    // This set persists for the duration of the current level/session
+    std::set<int> shownRoomDialogues;
 
-    public:
-        // Constructeur
-        Modele();
+    // Score memory (non persistent).
+    std::vector<int> playerScores = std::vector<int>(12, 0);
 
-        // Destructeur (géré par unique_ptr)
-        ~Modele() = default;
+    // Currently loaded mission index (maps to playerScores slots).
+    // 0 = tutorial, 1 = test, 2.. = main missions.
+    int currentMissionIndex = 0;
 
-        // Réinitialise l'état du modèle (joueur, ennemis, objectifs, etc.)
-        void reset();
+public:
+    Modele();
+    ~Modele() = default;
 
-        // Getters
-        sf::RectangleShape& getJoueur() { return joueur; }
-        const std::vector<std::vector<int>>& getFloorMatrix() const;
-        const sf::Texture& getFloorTexture() const;
-        // Setters / tile API
-        void setFloorMatrix(const std::vector<std::vector<int>>& m);
-        // Charge une texture et l'associe à un ID de tuile. Retourne true si ok.
-        bool setTileTexture(int id, const std::string& path);
-        // Retourne un pointeur vers la texture associée à l'id (nullptr si absente)
-        const sf::Texture* getTileTexture(int id) const;
-        int getTileSize() const;
-        const std::vector<sf::Texture>& getWallTextures() const;
+    void reset();
 
-        // Retourne les obstacles physiques (qui bloquent)
-        const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
-        const std::vector<Door>& getCurrentRoomDoors() const;
-        std::string getCurrentRoomName() const;
-        std::vector<Objective>& getCurrentRoomObjectives();
-        std::vector<Objective> getAllLevelObjectives() const;
-        int getCurrentRoomIndex() const;
-        std::string getCurrentRoomDialogueRef() const;
-        bool isCurrentRoomDialogueShown() const;
-        void markCurrentRoomDialogueShown();
+    // Player access:
+    // Returns non-const reference because other systems (controller) may move the hitbox.
+    //
+    // WHY return non-const reference:
+    // - controller needs to change player position/size directly
+    // - avoids copying SFML shapes (which could be expensive and would desync state)
+    sf::RectangleShape& getJoueur() { return joueur; }
 
-        // NOUVEAU: Getters pour les dimensions de l'écran (déléguent au RoomManager)
-        float getScreenW() const;
-        float getScreenH() const;
+    // Map queries delegate to MapManager.
+    //
+    // WHY const reference returns:
+    // - avoids copying large matrices/vectors
+    // - enforces read-only access from outside
+    const std::vector<std::vector<int>>& getFloorMatrix() const;
+    const sf::Texture& getFloorTexture() const;
 
-        // Méthode pour mettre à jour la position de l'obstacle (logique d'IA)
-        void mettreAJourObstacles(); // déclaration
+    // WHY const reference parameter:
+    // - avoids copying the matrix when setting it
+    void setFloorMatrix(const std::vector<std::vector<int>>& m);
 
-        // Accesseurs pour l'indicateur de collision (implémentées dans CPP)
-        void setCollisionDetectee(bool v);
-        bool isCollisionDetectee() const;
+    // WHY const std::string&:
+    // - avoid copying a potentially long path string
+    bool setTileTexture(int id, const std::string& path);
 
-        // Accesseurs pour détection joueur (champ de vision)
-        void setJoueurDetecte(bool v);
-        bool isJoueurDetecte() const;
+    // WHY return pointer (const sf::Texture*):
+    // - texture may be absent for an id, so nullptr is a clear "not found" signal
+    // - avoids copying sf::Texture
+    const sf::Texture* getTileTexture(int id) const;
 
-        // Ennemis et prototypes
-        std::vector<std::unique_ptr<Enemy>> enemies;
-        std::map<std::string, std::unique_ptr<Enemy>> enemyPrototypes;
-        const std::vector<std::unique_ptr<Enemy>>& getEnemies() const;
-        void reloadEnemiesForCurrentRoom();
-        void updateEnemies();
+    int getTileSize() const;
+    const std::vector<sf::Texture>& getWallTextures() const;
 
-        // Vérifie si le dialogue a été déclenché
-        bool hasDialogueTriggered() const;
-        // Définit l'état du déclenchement du dialogue
-        void setDialogueTriggered(bool v);
-        // Réinitialise l'état du déclenchement du dialogue
-        void resetDialogueTriggered();
+    // Obstacles/doors from current room.
+    //
+    // WHY const reference returns:
+    // - obstacles are stored as unique_ptr; returning by value is not possible (move-only)
+    // - returning const ref avoids copies and prevents external mutation/ownership transfer
+    const std::vector<std::unique_ptr<sf::Shape>>& getObstacleShapes() const;
 
-    // Life system
+    const std::vector<Door>& getCurrentRoomDoors() const;
+    std::string getCurrentRoomName() const;
+
+    // Objectives are returned by non-const reference to allow modification (accomplished flags).
+    //
+    // WHY non-const reference:
+    // - gameplay systems need to mark objectives accomplished in-place
+    // - avoids copying Objective objects (which include SFML resources)
+    std::vector<Objective>& getCurrentRoomObjectives();
+
+    // WHY return by value here:
+    // - builds a flattened snapshot across rooms (caller gets its own independent list)
+    std::vector<Objective> getAllLevelObjectives() const;
+
+    int getCurrentRoomIndex() const;
+    std::string getCurrentRoomDialogueRef() const;
+    bool isCurrentRoomDialogueShown() const;
+    void markCurrentRoomDialogueShown();
+
+    float getScreenW() const;
+    float getScreenH() const;
+
+    // Obstacles update (currently empty/no-op in cpp).
+    void updateObstacles();
+
+    // Collision/detection flags.
+    void setCollisionDetectee(bool v);
+    bool isCollisionDetectee() const;
+    void setPlayerDetecte(bool v);
+    bool isPlayerDetecte() const;
+
+    // Runtime enemies + prototypes:
+    // - enemies: actual instances in current room
+    // - enemyPrototypes: templates used to create enemies by cloning (Prototype pattern)
+    //
+    // WHY vector<unique_ptr<Enemy>>:
+    // - polymorphism: store different enemy derived types through Enemy base pointer
+    // - RAII: automatic destruction, no manual delete
+    std::vector<std::unique_ptr<Enemy>> enemies;
+
+    // WHY map<string, unique_ptr<Enemy>> for prototypes:
+    // - prototypes are looked up by type string ("generic", "camera", "laser")
+    // - unique ownership of each prototype instance by the model
+    std::map<std::string, std::unique_ptr<Enemy>> enemyPrototypes;
+
+    const std::vector<std::unique_ptr<Enemy>>& getEnemies() const;
+    void reloadEnemiesForCurrentRoom();
+    void updateEnemies();
+
+    // Dialogue state.
+    bool hasDialogueTriggered() const;
+    void setDialogueTriggered(bool v);
+    void resetDialogueTriggered();
+
+    // Life system.
     int getLives() const;
     void loseLives(int amount);
     bool isGameOver() const;
-    // Detection count API
+
+    // Detection counter (how many times player got detected).
     int getDetectionCount() const;
     void incrementDetectionCount();
     void resetDetectionCount();
 
-        // Exposer centre et direction avant d'un obstacle (index par défaut 0)
-        sf::Vector2f getObstacleCenter(size_t idx = 0) const; // <--- Corrigé
-        sf::Vector2f getObstacleForward(size_t idx = 0) const; // <--- Corrigé
+    // Obstacle center/forward (forward currently defaulted in cpp).
+    sf::Vector2f getObstacleCenter(size_t idx = 0) const;
+    sf::Vector2f getObstacleForward(size_t idx = 0) const;
 
-        // Changement de pièce
-        bool changeRoom(int newRoomIndex, const std::string& entryDirection);
+    // Change room and respawn player based on entry.
+    //
+    // WHY const std::string&:
+    // - avoids copying entry direction string
+    bool changeRoom(int newRoomIndex, const std::string& entryDirection);
 
-        // Player animation API
-        void setPlayerDirection(int row); // 1..4
-        void updatePlayerAnimation(bool moving); // avancer l'animation si moving
-        const sf::Sprite& getPlayerSprite() const { return playerSprite; }
+    // Player animation interface.
+    void setPlayerDirection(int row);
 
-        // Synchronise l'échelle/position du sprite joueur avec le RectangleShape (taille & position)
-        void syncPlayerSprite();
+    // WHY bool by value:
+    // - trivial type; simplest and fastest
+    void updatePlayerAnimation(bool moving);
 
-        // Load a level (rooms JSON) and initialize RoomManager accordingly
-        bool loadLevelFromFile(const std::string& levelJsonPath);
-        //  Objective collision (use pointers so original objects can be modified)
-        void setObjectiveContact(Objective* obj);
-        void setObjectiveContactDetectee(const bool b);
-        Objective* getObjectiveContact() const;
-        bool getObjectiveContactDetectee() const;
+    const sf::Sprite& getPlayerSprite() const { return playerSprite; }
 
-        // Player scores (local, in-memory)
-        void setPlayerScore(int levelIndex, int score);
-        std::vector<int> getPlayerScores() const;
+    void syncPlayerSprite();
 
+    // Level load from JSON (rebuilds RoomManager and reloads enemies).
+    //
+    // WHY const std::string&:
+    // - avoid copying path string
+    bool loadLevelFromFile(const std::string& levelJsonPath);
 
-    };
-}
+    // Objective contact pointers.
+    //
+    // WHY Objective* parameter:
+    // - non-owning pointer to an Objective stored elsewhere (room vector)
+    // - allows modifying the original objective without copying
+    void setObjectiveContact(Objective* obj);
+
+    void setObjectiveContactDetectee(const bool b);
+    Objective* getObjectiveContact() const;
+    bool getObjectiveContactDetectee() const;
+
+    // Scores.
+    void setPlayerScore(int levelIndex, int score);
+
+    // WHY return by value:
+    // - returns a snapshot copy of the current scores array/vector
+    std::vector<int> getPlayerScores() const;
+
+    // Mission index API: allow controller to tell the model which mission is active.
+    void setCurrentMissionIndex(int idx);
+    int getCurrentMissionIndex() const;
+};
+
+} // namespace Modele

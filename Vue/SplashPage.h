@@ -1,43 +1,66 @@
+
 #pragma once
 #include <SFML/Graphics.hpp>
 
 namespace Vue
 {
     /**
-     * SplashPage : écran d'introduction / écran titre.
-     * - Affiche un arrière-plan (si disponible) et un texte "START GAME".
-     * - Gère un léger clignotement du texte et répond aux entrées (Enter/Space/clic/ESC).
+     * SplashPage: intro / title screen.
+     * - Displays a background image (if available) and a "START GAME" label.
+     * - Applies a subtle blinking effect to the label.
+     * - Reacts to input (Enter/Space/click/ESC) to either proceed or quit.
      */
     class SplashPage
     {
     private:
-        bool active = true; ///< Le splash est-il actif (tant que true, l'écran s'affiche) ?
+        // Whether the splash is still active.
+        // While true, the caller typically keeps displaying this screen.
+        bool active = true; ///< Is the splash screen active (visible while true)?
 
-        // Ressources d'affichage
-        sf::Texture backgroundTexture; ///< Texture pour l'arrière-plan (Cherub)
-        sf::Sprite backgroundSprite;   ///< Sprite associé à texture
-        bool backgroundLoaded = false; ///< Indique si l'arrière-plan a été chargé avec succès
+        // Rendering resources for the background image.
+        sf::Texture backgroundTexture; ///< Background texture (Cherub image)
+        sf::Sprite backgroundSprite;   ///< Sprite that uses the background texture
+        bool backgroundLoaded = false; ///< True if background texture was successfully loaded
 
-        // Police et texte de démarrage
+        // Font and "Start" text.
         sf::Font font;
         sf::Text startText;
 
-        // Horloge utilisée pour l'effet de clignotement du texte
+        // Clock used to drive the blinking animation for the "START GAME" text.
         sf::Clock blinkClock;
 
-        // Chemins par défaut testés pour la recherche de l'image d'arrière-plan
+        // List of default candidate paths to locate the background image.
+        // Implemented as a helper that returns a vector of possible file locations.
         std::vector<std::string> defaultPaths();
 
+        // WHY SFML resources are stored by value (composition):
+        // - RAII: resources are released automatically when SplashPage is destroyed
+        // - clear lifetime: texture must outlive sprite; keeping both as members ensures that
+        // - avoids manual memory management (no new/delete)
+
     public:
+        // Constructor initializes font, text styling, and tries to load a background image.
         SplashPage();
 
-        // Indique si l'écran splash est toujours actif
+        // Returns whether the splash screen is still active.
         bool isActive() const { return active; }
 
-        // Gestion des événements pour le splash (entrée clavier/clic/fermeture)
+        // Handles input events:
+        // - Enter/Return/Space or left click -> deactivate splash (continue)
+        // - Escape or window close -> close the window
+        //
+        // WHY parameters are references:
+        // - event is const ref: read-only and avoids copying event data
+        // - fenetre is non-const ref: we need to call fenetre.close() on the real window instance
         void handleEvent(const sf::Event& event, sf::RenderWindow& fenetre);
 
-        // Dessine l'écran splash
+        // Draws the splash screen:
+        // - background scaled to cover the window (if loaded)
+        // - blinking "START GAME" label near the bottom
+        //
+        // WHY sf::RenderWindow&:
+        // - RenderWindow is not meant to be copied
+        // - drawing must affect the actual window provided by the caller
         void draw(sf::RenderWindow& fenetre);
     };
 }

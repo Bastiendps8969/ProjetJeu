@@ -1,5 +1,5 @@
+
 #include "Modele.h"
-#include "Agent.h"
 #include "Enemy.h"
 #include "RoomManager.h"
 #include "Level.h"
@@ -9,674 +9,808 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
-
 #include "Objective.h"
 
-// Alias de namespace pour nlohmann/json
+// Namespace alias for nlohmann/json
 using json = nlohmann::json;
 
 namespace Modele {
 
-    const float DOOR_MARGIN = 20.f;
+const float DOOR_MARGIN = 20.f;
 
-    // Room loading is handled by RoomManager now.
+// Room loading is now handled by RoomManager.
+// Constructor: initializes all main subsystems and default game state.
+Modele::Modele()
+    : currentLevel(std::make_unique<Level>("Tutorial", "Test level"))
+{
+    // WHY member initializer list:
+    // - initializes pointers/flags directly (no default init + assignment)
+    // - expresses ownership creation (make_unique) clearly and safely
 
+    // Get desktop resolution (used to initialize RoomManager scaling, door placement, etc.)
+    sf::VideoMode dm = sf::VideoMode::getDesktopMode();
+    float screenW = static_cast<float>(dm.width);
+    float screenH = static_cast<float>(dm.height);
 
-    // Constructeur : toutes les variables membres sont maintenant initialisées
-    Modele::Modele()
-    : collisionDetectee(false), currentLevel(std::make_unique<Level>("Tutorial", "Test level"))
-    {
-        // Détermine la résolution du bureau
-        sf::VideoMode dm = sf::VideoMode::getDesktopMode();
-        float screenW = static_cast<float>(dm.width);
-        float screenH = static_cast<float>(dm.height);
+    // RoomManager owns room data (doors, obstacles, enemy definitions, objectives) and handles JSON loading.
+    //
+    // WHY unique_ptr + make_unique:
+    // - Modele is the single owner of RoomManager
+    // - no manual delete; safe on exceptions (RAII)
+    roomManager = std::make_unique<RoomManager>(screenW, screenH);
 
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
-        // map manager for tile/floor handling
-        mapManager = std::make_unique<MapManager>();
+    // MapManager handles floor/tile matrix and tile/wall textures.
+    //
+    // WHY unique_ptr:
+    // - Modele owns MapManager lifetime; can reset/recreate when changing level
+    mapManager = std::make_unique<MapManager>();
 
-        // Initialize enemy prototypes (Prototype pattern)
-        enemyPrototypes.clear();
-        enemyPrototypes["generic"] = std::make_unique<GenericEnemy>();
-        enemyPrototypes["camera"] = std::make_unique<CameraEnemy>();
-        enemyPrototypes["laser"] = std::make_unique<LaserEnemy>();
+    // Initialize enemy prototypes (Prototype design pattern).
+    // These prototypes are cloned later to create runtime enemies from EnemyDefinition data.
+    enemyPrototypes.clear();
 
-        float boxSize = std::max(8.f, std::min(screenW, screenH) * 0.08f);
+    // WHY prototypes stored as unique_ptr in a map:
+    // - map key = enemy type string, easy lookup ("generic", "camera", "laser")
+    // - unique_ptr expresses single ownership of each prototype instance
+    enemyPrototypes["generic"] = std::make_unique<GenericEnemy>();
+    enemyPrototypes["camera"]  = std::make_unique<CameraEnemy>();
+    enemyPrototypes["laser"]   = std::make_unique<LaserEnemy>();
 
-        // Création du rectangle joueur
-        float playerCollisionW = boxSize * playerSpriteDisplayScaleX;
-        float playerCollisionH = boxSize * playerSpriteDisplayScaleY;
-        const float HITBOX_REDUCTION_FACTOR = 0.8f;
-        joueur.setSize(sf::Vector2f(46,130
-        ));
-        joueur.setFillColor(sf::Color::Blue);
+    // Compute an approximate player "box size" based on screen size (minimum 8 pixels).
+    float boxSize = std::max(8.f, std::min(screenW, screenH) * 0.08f);
 
+    // Variables kept from older hitbox scaling logic (currently unused in this constructor).
+    float playerCollisionW = boxSize * playerSpriteDisplayScaleX;
+    float playerCollisionH = boxSize * playerSpriteDisplayScaleY;
+    const float HITBOX_REDUCTION_FACTOR = 0.8f;
 
-        // --- Chargement de la spritesheet du joueur ---
-        const std::vector<std::string> tryPlayerPaths = {
-            "cmake-build-debug/Asset/Human/james_adams_textures.png",
-            "Asset/Human/james_adams_textures.png",
-            "Human/james_adams_textures.png",
-            "james_adams_textures.png"
-        };
-        bool playerLoaded = false;
-        for (const auto& p : tryPlayerPaths) {
-            if (playerTexture.loadFromFile(p)) {
-                playerLoaded = true;
-                // assign the texture to the sprite immediately
-                playerSprite.setTexture(playerTexture);
-                playerSprite.setTextureRect(computePlayerTextureRect());
-                break;
-            }
-        }
-        if (!playerLoaded) {
-            // (debug supprimé)
-        } else {
+    // Player hitbox (collision shape). Visual sprite is handled separately.
+    joueur.setSize(sf::Vector2f(46, 130));
+    joueur.setFillColor(sf::Color::Blue);
+
+    // --- Load player sprite-sheet ---
+    // Try multiple paths to support different working directories (IDE/build output).
+    const std::vector<std::string> tryPlayerPaths = {
+        "cmake-build-debug/Asset/Human/james_adams_textures.png",
+        "Asset/Human/james_adams_textures.png",
+        "Human/james_adams_textures.png",
+        "james_adams_textures.png"
+    };
+
+    bool playerLoaded = false;
+    for (const auto& p : tryPlayerPaths) {
+        // WHY const auto&:
+        // - avoids copying path strings in the loop
+        if (playerTexture.loadFromFile(p)) {
+            playerLoaded = true;
+            // Bind texture to sprite immediately and set initial frame.
             playerSprite.setTexture(playerTexture);
-            // Initialiser le sprite sur la frame 0 de la row par défaut (playerRow)
-            playerFrameIndex = 0;
-            playerClock.restart();
-            // Définit la zone initiale (en tenant compte du zoom)
             playerSprite.setTextureRect(computePlayerTextureRect());
-            // Origine initiale au centre du recadrage (sera mise à jour dans syncPlayerSprite)
-            // note: origin en px du recadrage sera défini dans syncPlayerSprite()
-            playerSprite.setOrigin(0.f, 0.f);
-
-            // position temporaire centrée sur le rectangle joueur
-            sf::Vector2f ppos = joueur.getPosition();
-            playerSprite.setPosition(ppos.x + joueur.getSize().x/2.f, ppos.y + joueur.getSize().y/2.f);
-
-            // Mettre à l'échelle le sprite pour remplir la taille du RectangleShape joueur
-            syncPlayerSprite();
-        }
-
-        // Default asset search paths for floors and walls
-        const std::vector<std::string> tryFloorPaths = {
-            "cmake-build-debug/Asset/Floor/floor_01.png",
-            "Asset/Floor/floor_01.png",
-            "floor_01.png"
-        };
-        const std::vector<std::string> tryFloor02Paths = {
-            "cmake-build-debug/Asset/Floor/floor_02.png",
-            "Asset/Floor/floor_02.png",
-            "floor_02.png"
-        };
-        const std::vector<std::string> tryWallPaths = {
-            "cmake-build-debug/Asset/Wall/Wall1_2.png",
-            "cmake-build-debug/Asset/Wall/Wall1_3.png",
-            "cmake-build-debug/Asset/Wall/Wall1_4.png",
-            "cmake-build-debug/Asset/Wall/Wall1_8.png"
-        };
-
-        if (mapManager) mapManager->loadDefaults(tryFloorPaths, tryFloor02Paths, tryWallPaths);
-
-        // Wall/floor tile codes moved to MapManager (use Modele::MapManager::TILE_...)
-
-        // floor tile registrations (floor_01 -> 22, floor_02 -> 21) are handled
-        // by MapManager::loadDefaults called above.
-        // NOTE: Par défaut, nous n'assignons plus de codes de murs (11..18)
-        // automatiquement à la matrice de sol. Les murs doivent être
-        // explicitement définis par les données de niveau (JSON) ou par
-        // une logique dédiée. On laisse donc `floorMatrix` tel quel.
-
-        // Chargement des pièces via RoomManager
-        currentLevelPath = "Asset/levels/tutorial/tutorial.json";
-        if (roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0))
-        {
-            roomManager->changeRoom(0, "", joueur);
-            // positionner le joueur au centre de l'écran
-            joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
-            // sync sprite position/scale with the rectangle
-            syncPlayerSprite();
-
-            // If the room references an external map file, load it into the MapManager
-            auto& rooms = roomManager->getRooms();
-            auto it = rooms.find(0);
-            if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
-                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
-                    std::cerr << "Warning: failed to load map file '" << it->second.mapFile << "' for room 0" << std::endl;
-                }
-            }
-
-            reloadEnemiesForCurrentRoom();
-        }
-        else
-        {
-            std::cerr << "Échec du chargement de la carte. Pièce 0 non valide." << std::endl;
-            roomManager->changeRoom(-1, "", joueur);
-            joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f, roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
-            // sync sprite position if texture is loaded
-            syncPlayerSprite();
-        }
-
-        // Initialisation des points de patrouille (si non chargés par JSON)
-        std::vector<sf::Vector2f> patrouillePoints = {
-            sf::Vector2f(screenW * 0.125f, screenH * 0.1666667f),
-            sf::Vector2f(screenW * 0.75f,  screenH * 0.1666667f),
-            sf::Vector2f(screenW * 0.75f,  screenH * 0.6666667f),
-            sf::Vector2f(screenW * 0.125f, screenH * 0.6666667f)
-        };
-        // Supprimer la référence à obstacleShapes (inutile maintenant)
-        // agent = std::make_unique<Agent>(&roomManager->getRooms()[roomManager->getCurrentRoomIndex()].obstacleShapes, patrouillePoints);
-        agent = nullptr;
-    }
-
-
-    void Modele::reloadEnemiesForCurrentRoom()
-    {
-        enemies.clear();
-        float refW = 2560.f; // résolution de référence (modifiez selon votre design JSON)
-        float refH = 1440.f;
-        float scaleW = getScreenW() / refW;
-        float scaleH = getScreenH() / refH;
-
-        for (const auto& ed : roomManager->getCurrentRoomEnemies()) {
-            auto e = createEnemyFromDefinition(ed, enemyPrototypes, scaleW, scaleH);
-            if (e) enemies.push_back(std::move(e));
+            break;
         }
     }
 
-    void Modele::updateEnemies()
+    if (!playerLoaded) {
+        // Player texture failed to load (debug logging removed).
+    } else {
+        playerSprite.setTexture(playerTexture);
+
+        // Initialize animation state (frame 0, default row).
+        playerFrameIndex = 0;
+        playerClock.restart();
+
+        // Initialize texture rect using the current zoom/crop logic.
+        playerSprite.setTextureRect(computePlayerTextureRect());
+
+        // Sprite origin will be updated properly in syncPlayerSprite() based on crop size.
+        playerSprite.setOrigin(0.f, 0.f);
+
+        // Temporary positioning centered on the hitbox (final alignment done in syncPlayerSprite()).
+        sf::Vector2f ppos = joueur.getPosition();
+        playerSprite.setPosition(ppos.x + joueur.getSize().x / 2.f,
+                                 ppos.y + joueur.getSize().y / 2.f);
+
+        // Synchronize sprite position/scale/origin with the hitbox.
+        syncPlayerSprite();
+    }
+
+    // Default asset search paths for floors and walls (robust to build/run directories).
+    const std::vector<std::string> tryFloorPaths = {
+        "cmake-build-debug/Asset/Floor/floor_01.png",
+        "Asset/Floor/floor_01.png",
+        "floor_01.png"
+    };
+    const std::vector<std::string> tryFloor02Paths = {
+        "cmake-build-debug/Asset/Floor/floor_02.png",
+        "Asset/Floor/floor_02.png",
+        "floor_02.png"
+    };
+    const std::vector<std::string> tryWallPaths = {
+        "cmake-build-debug/Asset/Wall/Wall1_2.png",
+        "cmake-build-debug/Asset/Wall/Wall1_3.png",
+        "cmake-build-debug/Asset/Wall/Wall1_4.png",
+        "cmake-build-debug/Asset/Wall/Wall1_8.png"
+    };
+
+    if (mapManager) {
+        mapManager->loadDefaults(tryFloorPaths, tryFloor02Paths, tryWallPaths);
+    }
+
+    // Wall/floor tile codes have been moved to MapManager.
+    // Floor tile registrations (e.g., floor_01 -> 22, floor_02 -> 21) are handled in MapManager::loadDefaults().
+    //
+    // NOTE:
+    // By default we do not automatically assign wall tile codes (11..18) into the floor matrix.
+    // Walls should be defined explicitly by level data (JSON) or dedicated logic.
+
+    // Load rooms using RoomManager.
+    currentLevelPath = "Asset/levels/tutorial/tutorial.json";
+
+    if (roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0))
     {
-        for (auto& e : enemies) {
-            e->update();
-            e->updateAnimation(); // Ajout : animation frame
-            e->detectPlayer(joueur);
-        }
-    }
-
-    // Mise à jour de la logique d'IA des obstacles (Corrigé pour utiliser la nouvelle structure)
-    void Modele::mettreAJourObstacles()
-    {
-        if (agent)
-            agent->mettreAJour(joueur);
-    }
-
-    const std::vector<std::unique_ptr<sf::Shape>>& Modele::getObstacleShapes() const
-    {
-        static const std::vector<std::unique_ptr<sf::Shape>> empty;
-        if (!roomManager) return empty;
-        auto& rooms = roomManager->getRooms();
-        int idx = roomManager->getCurrentRoomIndex();
-        auto it = rooms.find(idx);
-        if (it != rooms.end()) return it->second.obstacleShapes;
-        return empty;
-    }
-
-    const std::vector<Door>& Modele::getCurrentRoomDoors() const
-    {
-        return roomManager->getCurrentRoomDoors();
-    }
-
-    std::string Modele::getCurrentRoomName() const
-    {
-        return roomManager->getCurrentRoomName();
-    }
-
-    std::vector<Objective>& Modele::getCurrentRoomObjectives()
-    {
-        static std::vector<Objective> empty;
-        if (!roomManager) return empty;
-        auto& rooms = roomManager->getRooms();
-        int idx = roomManager->getCurrentRoomIndex();
-        auto it = rooms.find(idx);
-        if (it != rooms.end()) return it->second.objectives;
-        return empty;
-    }
-
-    std::vector<Objective> Modele::getAllLevelObjectives() const
-    {
-        std::vector<Objective> allObjectives;
-        if (!roomManager) return allObjectives;
-        
-        auto& rooms = roomManager->getRooms();
-        for (auto& [idx, room] : rooms) {
-            for (auto& obj : room.objectives) {
-                allObjectives.push_back(obj);
-            }
-        }
-        return allObjectives;
-    }
-
-    const std::vector<std::unique_ptr<Enemy>>& Modele::getEnemies() const
-    {
-        return enemies;
-    }
-
-    sf::Vector2f Modele::getObstacleCenter(size_t idx) const
-    {
-        return agent ? agent->getObstacleCenter(idx) : sf::Vector2f();
-    }
-
-    sf::Vector2f Modele::getObstacleForward(size_t idx) const
-    {
-        return agent ? agent->getObstacleForward(idx) : sf::Vector2f();
-    }
-
-    float Modele::getScreenW() const { return roomManager ? roomManager->getScreenW() : 0.f; }
-    float Modele::getScreenH() const { return roomManager ? roomManager->getScreenH() : 0.f; }
-
-    // Calcule la textureRect (recadrée au centre) pour la frame courante selon playerTextureZoom.
-    // NOTE: les frames de déplacement sont sur les rows 1..4 ; les frames "idle" (2 frames)
-    // sont sur les rows 5..8 (i.e. playerRow + 4), colonnes 0..idleFrameCount-1.
-    sf::IntRect Modele::computePlayerTextureRect() const
-    {
-        int frameSize = playerTileSize;
-        int cropSize = static_cast<int>(std::round(frameSize / playerTextureZoom));
-        if (cropSize < 1) cropSize = 1;
-
-        int movementFramesCount = std::max(1, playerFrameCount - idleFrameCount);
-        int col = 0;
-        int rowIndex = std::max(0, playerRow - 1);
-
-        if (playerIsMoving)
-        {
-            // colonne issue des frames de déplacement (0 .. movementFramesCount-1)
-            col = playerFrameIndex % movementFramesCount;
-            rowIndex = std::max(0, playerRow - 1); // 0..3
-        }
-        else
-        {
-            // idle -> utiliser la ligne idle (playerRow + 4 -> 4..7) et les colonnes 0..idleFrameCount-1
-            int idleCols = std::max(1, idleFrameCount);
-            col = playerFrameIndex % idleCols;
-            rowIndex = std::max(0, playerRow - 1) + 4;
-        }
-
-        int frameX = col * frameSize;
-        int frameY = rowIndex * frameSize;
-
-        int offsetX = frameX + (frameSize - cropSize) / 2;
-        int offsetY = frameY + (frameSize - cropSize) / 2;
-        return sf::IntRect(offsetX, offsetY, cropSize, cropSize);
-    }
-
-    void Modele::setPlayerDirection(int row)
-    {
-        if (row < 1) row = 1;
-        if (row > 4) row = 4;
-        if (playerRow != row) {
-            playerRow = row;
-            playerFrameIndex = 0;
-            playerClock.restart();
-            if (playerTexture.getSize().x > 0)
-                playerSprite.setTextureRect(computePlayerTextureRect());
-        }
-    }
-
-    void Modele::updatePlayerAnimation(bool moving)
-    {
-        if (playerTexture.getSize().x == 0) return; // pas de texture
-
-        int movementFramesCount = std::max(1, playerFrameCount - idleFrameCount);
-        int idleCols = std::max(1, idleFrameCount);
-
-        // choisir la durée selon l'état (moving vs idle)
-        float frameDuration = moving ? playerFrameDuration : playerIdleFrameDuration;
-        float elapsed = playerClock.getElapsedTime().asSeconds();
-
-        // Si changement d'état, réinitialiser l'index de frame
-        if (moving != playerIsMoving)
-        {
-            playerIsMoving = moving;
-            playerFrameIndex = 0;
-            playerSprite.setTextureRect(computePlayerTextureRect());
-            playerClock.restart();
-            // continuer pour permettre incrément immédiat si elapsed >= duration
-        }
-
-        if (playerIsMoving)
-        {
-            if (elapsed >= playerFrameDuration)
-            {
-                playerFrameIndex = (playerFrameIndex + 1) % movementFramesCount;
-                playerSprite.setTextureRect(computePlayerTextureRect());
-                playerClock.restart();
-            }
-        }
-        else // idle
-        {
-            if (idleCols <= 0)
-            {
-                playerFrameIndex = 0;
-                playerSprite.setTextureRect(computePlayerTextureRect());
-                playerClock.restart();
-                return;
-            }
-
-            if (elapsed >= playerIdleFrameDuration)
-            {
-                playerFrameIndex = (playerFrameIndex + 1) % idleCols;
-                playerSprite.setTextureRect(computePlayerTextureRect());
-                playerClock.restart();
-            }
-        }
-    }
-
-    // Synchronise l'échelle et position du sprite du joueur pour remplir la taille du RectangleShape joueur
-    void Modele::syncPlayerSprite()
-    {
-        if (playerTexture.getSize().x == 0) return;
-        // Taille du rectangle joueur (la Hitbox réduite)
-        sf::Vector2f size = joueur.getSize();
-        // Taille du recadrage courant (crop)
-        sf::IntRect rect = computePlayerTextureRect();
-        int cropSize = rect.width; // square crop
-
-        // NE PAS adapter l'échelle du sprite à la taille du rectangle joueur
-        // Laisser l'image à l'échelle 1:1 (elle peut donc dépasser du rectangle)
-        playerSprite.setScale(2.5f, 2.5f);
-
-        // Origine au centre du recadrage (en coordonnées texture avant scale)
-        playerSprite.setOrigin(static_cast<float>(cropSize) * 0.5f, static_cast<float>(cropSize) * 0.5f);
-
-        // Positionner le sprite centré sur le RectangleShape (la Hitbox)
-        sf::Vector2f pos = joueur.getPosition();
-        playerSprite.setPosition(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f);
-    }
-
-    // Helper: sync playerSprite position to rectangle joueur (call this if joueur moved)
-    // We'll update sprite position from Controleur after movement.
-    void syncPlayerSpritePosition(Modele& m); // forward decl (no-op here)
-
-    // Accesseurs pour collisionDetectee
-    void Modele::setCollisionDetectee(bool v) { collisionDetectee = v; }
-    bool Modele::isCollisionDetectee() const { return collisionDetectee; }
-    void Modele::setJoueurDetecte(bool v) { joueurDetecte = v; }
-    bool Modele::isJoueurDetecte() const
-    {
-        // Retourne vrai si au moins un ennemi détecte le joueur
-        // Chaque ennemi calcule sa propre détection (ex: cône, laser). Ici nous
-        // agrégons ces résultats : si un ennemi a son flag `joueurDetecte` à true,
-        // le joueur est considéré comme détecté globalement.
-        // Note : `joueurDetecte` est mis à jour par `Enemy::detectPlayer()` appelé
-        // dans `Modele::updateEnemies()` ; la granularité de détection (frame-based)
-        // implique que la réactivité dépend du taux de mise à jour.
-        for (const auto& e : enemies)
-            if (e->joueurDetecte) return true;
-        return false;
-    }
-
-    bool Modele::changeRoom(int newRoomIndex, const std::string& entryDirection)
-    {
-        bool ok = roomManager->changeRoom(newRoomIndex, entryDirection, joueur);
-        setCollisionDetectee(false);
-        setJoueurDetecte(false);
-        if (ok) {
-            // Charger la map uniquement si elle existe
-            auto& rooms = roomManager->getRooms();
-            auto it = rooms.find(newRoomIndex);
-            if (it != rooms.end() && !it->second.mapFile.empty()) {
-                if (!mapManager->loadMapFromFile(it->second.mapFile)) {
-                    std::cerr << "Warning: failed to load map file '"
-                              << it->second.mapFile << "' for room "
-                              << newRoomIndex << std::endl;
-                }
-            } else {
-                // Aucune mapFile -> on efface la carte
-                mapManager->clearMap();
-            }
-
-            reloadEnemiesForCurrentRoom();
-        }
-        return ok;
-
-    }
-
-    int Modele::getCurrentRoomIndex() const
-    {
-        if (!roomManager) return -1;
-        return roomManager->getCurrentRoomIndex();
-    }
-
-    std::string Modele::getCurrentRoomDialogueRef() const
-    {
-        if (!roomManager) return std::string();
-        return roomManager->getCurrentRoomDialogueRef();
-    }
-
-    bool Modele::isCurrentRoomDialogueShown() const
-    {
-        // Consider dialogue shown if either the RoomManager marks it shown
-        // or if we have recorded the room index in `shownRoomDialogues`.
-        if (!roomManager) return false;
-        int idx = roomManager->getCurrentRoomIndex();
-        if (roomManager->isCurrentRoomDialogueShown()) return true;
-        if (shownRoomDialogues.find(idx) != shownRoomDialogues.end()) return true;
-        return false;
-    }
-
-    void Modele::markCurrentRoomDialogueShown()
-    {
-        if (!roomManager) return;
-        roomManager->markCurrentRoomDialogueShown();
-        int idx = roomManager->getCurrentRoomIndex();
-        shownRoomDialogues.insert(idx);
-    }
-
-    // Objective contact accessors (pointer based so original objective can be modified)
-    void Modele::setObjectiveContact(Objective* obj) {
-        objectiveContact = obj;
-        if (objectiveContact) {
-            std::cout << "[Modele] setObjectiveContact -> " << objectiveContact->getTitle()
-                      << " cesar=" << objectiveContact->isCesar()
-                      << " code=" << objectiveContact->getCode() << std::endl;
-        }
-    }
-
-    void Modele::setObjectiveContactDetectee(const bool b) {
-        objectiveContactDetectee = b;
-    }
-
-    Objective* Modele::getObjectiveContact() const {
-        return objectiveContact;
-    }
-
-    bool Modele::getObjectiveContactDetectee() const {
-        return objectiveContactDetectee;
-    }
-
-    bool Modele::hasDialogueTriggered() const {
-        return dialogueTriggeredFlag;
-    }
-
-    void Modele::setDialogueTriggered(bool v) {
-        dialogueTriggeredFlag = v;
-    }
-
-    void Modele::resetDialogueTriggered() {
-        dialogueTriggeredFlag = false;
-    }
-
-    bool Modele::setTileTexture(int id, const std::string& path)
-    {
-        if (!mapManager) return false;
-        return mapManager->setTileTexture(id, path);
-    }
-
-    // Player score API (in-memory)
-    void Modele::setPlayerScore(int levelIndex, int score)
-    {
-        if (levelIndex < 0 || levelIndex >= static_cast<int>(playerScores.size())) return;
-        // Only update if new score is better
-        if (score > playerScores[levelIndex]) playerScores[levelIndex] = score;
-    }
-
-    std::vector<int> Modele::getPlayerScores() const
-    {
-        return playerScores;
-    }
-
-    bool Modele::loadLevelFromFile(const std::string& levelJsonPath)
-    {
-        if (levelJsonPath.empty()) return false;
-
-        float screenW = getScreenW();
-        float screenH = getScreenH();
-
-        // Try several candidate paths to be robust to different asset layouts
-        std::vector<std::string> candidates;
-        candidates.push_back(levelJsonPath);
-        candidates.push_back(std::string("cmake-build-debug/") + levelJsonPath);
-        candidates.push_back(std::string("./") + levelJsonPath);
-
-        // basename (file name only)
-        std::string basename = levelJsonPath;
-        size_t pos = basename.find_last_of("/\\");
-        if (pos != std::string::npos) basename = basename.substr(pos + 1);
-
-        candidates.push_back(std::string("Asset/levels/") + basename);
-        candidates.push_back(std::string("Asset/levels/tutorial/") + basename);
-        candidates.push_back(std::string("Asset/levels/OH/") + basename);
-
-        // also try cmake-build-debug variants of Asset/levels
-        candidates.push_back(std::string("cmake-build-debug/Asset/levels/") + basename);
-
-        // search one level deep under Asset/levels for the basename
-        try {
-            namespace fs = std::filesystem;
-            fs::path levelsDir("Asset/levels");
-            if (fs::exists(levelsDir) && fs::is_directory(levelsDir)) {
-                for (const auto &entry : fs::directory_iterator(levelsDir)) {
-                    if (fs::is_directory(entry.path())) {
-                        fs::path p = entry.path() / basename;
-                        candidates.push_back(p.string());
-                    }
-                }
-            }
-        } catch (...) {
-            // ignore filesystem errors
-        }
-
-        std::string resolved;
-        for (const auto &c : candidates) {
-            try {
-                if (std::ifstream(c).good()) { resolved = c; break; }
-            } catch(...) {}
-        }
-
-        if (resolved.empty()) {
-            std::cerr << "Modele::loadLevelFromFile: could not find level file for '" << levelJsonPath << "' (tried candidates)" << std::endl;
-            for (const auto &c : candidates) std::cerr << "  tried: " << c << std::endl;
-            return false;
-        }
-
-        currentLevelPath = resolved;
-
-        // recreate room manager and load rooms
-        roomManager.reset();
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
-
-        if (!roomManager->loadRoomsFromJson(currentLevelPath) || !roomManager->getRooms().count(0)) {
-            std::cerr << "Modele::loadLevelFromFile: failed to load rooms from '" << currentLevelPath << "'" << std::endl;
-            return false;
-        }
-
-        // Move player to room 0
+        // Switch to room 0; RoomManager may reposition the player depending on entry direction.
         roomManager->changeRoom(0, "", joueur);
 
-        // If room 0 references an external map file, attempt to load it
-        auto& rooms = roomManager->getRooms();
-        auto it = rooms.find(0);
-        if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
-            if (!mapManager->loadMapFromFile(it->second.mapFile)) {
-                std::cerr << "Warning: failed to load map file '" << it->second.mapFile << "' for room 0" << std::endl;
-            }
-        } else {
-            if (mapManager) mapManager->clearMap();
-        }
+        // Default spawn: place the player at screen center.
+        joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f,
+                           roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
 
-        // Reset enemies for new room
-        reloadEnemiesForCurrentRoom();
-
-        // Sync player sprite
+        // Keep sprite aligned with hitbox.
         syncPlayerSprite();
 
-        return true;
+        // If room 0 references an external map file, load it into MapManager.
+        auto& rooms = roomManager->getRooms();
+        auto it = rooms.find(0);
+
+        if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
+            if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                std::cerr << "Warning: failed to load map file '"
+                          << it->second.mapFile << "' for room 0" << std::endl;
+            }
+        }
+
+        // Instantiate runtime enemies for current room (definitions -> instances).
+        reloadEnemiesForCurrentRoom();
+    }
+    else
+    {
+        // Fallback if level/room loading failed.
+        std::cerr << "Échec du chargement de la carte. Pièce 0 non valide." << std::endl;
+        roomManager->changeRoom(-1, "", joueur);
+
+        joueur.setPosition(roomManager->getScreenW() * 0.5f - boxSize * 0.5f,
+                           roomManager->getScreenH() * 0.5f - boxSize * 0.5f);
+
+        // Align sprite with hitbox (if texture loaded).
+        syncPlayerSprite();
     }
 
-    const sf::Texture* Modele::getTileTexture(int id) const
-    {
-        if (!mapManager) return nullptr;
-        return mapManager->getTileTexture(id);
-    }
+    // Example patrol points (kept locally; obstacle Agent system is currently deprecated).
+    std::vector<sf::Vector2f> patrouillePoints = {
+        sf::Vector2f(screenW * 0.125f, screenH * 0.1666667f),
+        sf::Vector2f(screenW * 0.75f,  screenH * 0.1666667f),
+        sf::Vector2f(screenW * 0.75f,  screenH * 0.6666667f),
+        sf::Vector2f(screenW * 0.125f, screenH * 0.6666667f)
+    };
 
-    const std::vector<std::vector<int>>& Modele::getFloorMatrix() const
-    {
-        static const std::vector<std::vector<int>> empty;
-        if (!mapManager) return empty;
-        return mapManager->getFloorMatrix();
-    }
+    // Obstacle-related AI/Agent removed; patrol points kept local for potential future use.
+}
 
-    const sf::Texture& Modele::getFloorTexture() const
-    {
-        static sf::Texture dummy;
-        if (!mapManager) return dummy;
-        return mapManager->getFloorTexture();
-    }
+void Modele::reloadEnemiesForCurrentRoom()
+{
+    // Rebuild the runtime enemy list based on EnemyDefinition descriptors of the current room.
+    enemies.clear();
 
-    void Modele::setFloorMatrix(const std::vector<std::vector<int>>& m)
-    {
-        if (mapManager) mapManager->setFloorMatrix(m);
-    }
+    // Reference resolution used when authoring JSON coordinates.
+    float refW = 2560.f;
+    float refH = 1440.f;
 
-    int Modele::getLives() const
-    {
-        return currentLevel ? currentLevel->getLives() : 0;
-    }
+    // Convert reference coordinates into current screen coordinates.
+    float scaleW = getScreenW() / refW;
+    float scaleH = getScreenH() / refH;
 
-    void Modele::loseLives(int amount)
-    {
-        if (currentLevel) {
-            currentLevel->loseLives(amount);
+    // Create each enemy instance via the factory (Prototype cloning + configuration).
+    for (const auto& ed : roomManager->getCurrentRoomEnemies()) {
+        // WHY pass enemyPrototypes by reference (in factory signature):
+        // - avoid copying a map of unique_ptr (not copyable)
+        // - allows lookup by enemy type and cloning the correct prototype
+        auto e = createEnemyFromDefinition(ed, enemyPrototypes, scaleW, scaleH);
+
+        // WHY std::move(e):
+        // - unique_ptr is move-only; move transfers ownership into the enemies vector
+        if (e) enemies.push_back(std::move(e));
+    }
+}
+
+void Modele::updateEnemies()
+{
+    // Update all enemies per frame:
+    // - update() for AI/movement
+    // - updateAnimation() for sprite-sheet
+    // - detectPlayer() to update per-enemy detection state
+    for (auto& e : enemies) {
+        // WHY pass joueur by reference in detectPlayer signature (Enemy side):
+        // - enemy needs to read current player hitbox state without copying the shape
+        e->update();
+        e->updateAnimation();
+        e->detectPlayer(joueur);
+    }
+}
+
+// Obstacle AI update (Agent-based obstacle AI was removed; currently no-op).
+void Modele::updateObstacles()
+{
+    // Intentionally left empty: obstacle AI handled elsewhere or deprecated.
+}
+
+const std::vector<std::unique_ptr<sf::Shape>>& Modele::getObstacleShapes() const
+{
+    // Return obstacle shapes for current room (or an empty static vector if unavailable).
+    static const std::vector<std::unique_ptr<sf::Shape>> empty;
+
+    // WHY return const reference:
+    // - vector contains unique_ptr (move-only), cannot be copied
+    // - avoids transferring ownership; caller only reads shapes
+    if (!roomManager) return empty;
+
+    auto& rooms = roomManager->getRooms();
+    int idx = roomManager->getCurrentRoomIndex();
+    auto it = rooms.find(idx);
+
+    if (it != rooms.end()) return it->second.obstacleShapes;
+    return empty;
+}
+
+const std::vector<Door>& Modele::getCurrentRoomDoors() const
+{
+    return roomManager->getCurrentRoomDoors();
+}
+
+std::string Modele::getCurrentRoomName() const
+{
+    // Returned by value: caller gets an independent string snapshot
+    return roomManager->getCurrentRoomName();
+}
+
+std::vector<Objective>& Modele::getCurrentRoomObjectives()
+{
+    // Return objectives by reference to allow updating them (e.g., set accomplished).
+    static std::vector<Objective> empty;
+    if (!roomManager) return empty;
+
+    auto& rooms = roomManager->getRooms();
+    int idx = roomManager->getCurrentRoomIndex();
+    auto it = rooms.find(idx);
+
+    // WHY non-const reference:
+    // - gameplay needs to modify Objective objects stored in the room
+    // - avoids copies of Objective (which includes SFML resources and custom move/copy logic)
+    if (it != rooms.end()) return it->second.objectives;
+    return empty;
+}
+
+std::vector<Objective> Modele::getAllLevelObjectives() const
+{
+    // Return a flattened copy of all objectives across all rooms.
+    // WHY return by value:
+    // - caller gets a snapshot independent of internal room storage
+    std::vector<Objective> allObjectives;
+    if (!roomManager) return allObjectives;
+
+    auto& rooms = roomManager->getRooms();
+    for (auto& [idx, room] : rooms) {
+        for (auto& obj : room.objectives) {
+            allObjectives.push_back(obj);
         }
     }
+    return allObjectives;
+}
 
-    bool Modele::isGameOver() const
+const std::vector<std::unique_ptr<Enemy>>& Modele::getEnemies() const
+{
+    // Returned as const reference to avoid copying move-only unique_ptr elements
+    return enemies;
+}
+
+sf::Vector2f Modele::getObstacleCenter(size_t idx) const
+{
+    // Compute center from the obstacle's global bounds (AABB center).
+    if (!roomManager) return sf::Vector2f();
+
+    auto& rooms = roomManager->getRooms();
+    int ridx = roomManager->getCurrentRoomIndex();
+    auto it = rooms.find(ridx);
+    if (it == rooms.end()) return sf::Vector2f();
+
+    const auto& shapes = it->second.obstacleShapes;
+    if (idx >= shapes.size() || !shapes[idx]) return sf::Vector2f();
+
+    sf::FloatRect b = shapes[idx]->getGlobalBounds();
+    return sf::Vector2f(b.left + b.width * 0.5f, b.top + b.height * 0.5f);
+}
+
+sf::Vector2f Modele::getObstacleForward(size_t /*idx*/) const
+{
+    // Obstacle facing/orientation was part of the old Agent system.
+    // Return a safe default direction (right).
+    // If you need real facing, compute/store it per obstacle (e.g., in RoomManager).
+    return sf::Vector2f(1.f, 0.f);
+}
+
+float Modele::getScreenW() const { return roomManager ? roomManager->getScreenW() : 0.f; }
+float Modele::getScreenH() const { return roomManager ? roomManager->getScreenH() : 0.f; }
+
+// Compute the current player texture rect (center-cropped) based on playerTextureZoom.
+// Sheet layout assumption:
+// - Movement frames are on rows 1..4
+// - Idle frames are on rows 5..8 (i.e., playerRow + 4), columns 0..idleFrameCount-1
+sf::IntRect Modele::computePlayerTextureRect() const
+{
+    int frameSize = playerTileSize;
+
+    // Zoom-in is implemented via smaller crop inside each tile (center crop).
+    int cropSize = static_cast<int>(std::round(frameSize / playerTextureZoom));
+    if (cropSize < 1) cropSize = 1;
+
+    // Movement frames are the first (playerFrameCount - idleFrameCount) columns.
+    int movementFramesCount = std::max(1, playerFrameCount - idleFrameCount);
+
+    int col = 0;
+    int rowIndex = std::max(0, playerRow - 1);
+
+    if (playerIsMoving)
     {
-        return currentLevel ? currentLevel->isGameOver() : false;
+        // Movement columns: 0 .. movementFramesCount-1
+        col = playerFrameIndex % movementFramesCount;
+        rowIndex = std::max(0, playerRow - 1); // 0..3
+    }
+    else
+    {
+        // Idle frames use separate rows (playerRow + 4) and only idleFrameCount columns.
+        int idleCols = std::max(1, idleFrameCount);
+        col = playerFrameIndex % idleCols;
+        rowIndex = std::max(0, playerRow - 1) + 4;
     }
 
-    int Modele::getDetectionCount() const
+    // Base tile top-left in texture.
+    int frameX = col * frameSize;
+    int frameY = rowIndex * frameSize;
+
+    // Center crop inside tile.
+    int offsetX = frameX + (frameSize - cropSize) / 2;
+    int offsetY = frameY + (frameSize - cropSize) / 2;
+
+    return sf::IntRect(offsetX, offsetY, cropSize, cropSize);
+}
+
+void Modele::setPlayerDirection(int row)
+{
+    // Clamp valid row range (1..4).
+    if (row < 1) row = 1;
+    if (row > 4) row = 4;
+
+    // If direction row changes, reset animation state.
+    if (playerRow != row) {
+        playerRow = row;
+        playerFrameIndex = 0;
+        playerClock.restart();
+
+        // Update rect immediately if texture is loaded.
+        if (playerTexture.getSize().x > 0)
+            playerSprite.setTextureRect(computePlayerTextureRect());
+    }
+}
+
+void Modele::updatePlayerAnimation(bool moving)
+{
+    // Do nothing if no texture loaded.
+    if (playerTexture.getSize().x == 0) return;
+
+    int movementFramesCount = std::max(1, playerFrameCount - idleFrameCount);
+    int idleCols = std::max(1, idleFrameCount);
+
+    // Select duration depending on moving vs idle.
+    float frameDuration = moving ? playerFrameDuration : playerIdleFrameDuration;
+    float elapsed = playerClock.getElapsedTime().asSeconds();
+
+    // If state changed, reset frame index and restart timing.
+    if (moving != playerIsMoving)
     {
-        return detectionCount;
+        playerIsMoving = moving;
+        playerFrameIndex = 0;
+        playerSprite.setTextureRect(computePlayerTextureRect());
+        playerClock.restart();
+        // Intentionally do not return: we allow an immediate tick if elapsed is large.
     }
 
-    void Modele::incrementDetectionCount()
+    if (playerIsMoving)
     {
-        detectionCount++;
+        // Movement animation cadence.
+        if (elapsed >= playerFrameDuration)
+        {
+            playerFrameIndex = (playerFrameIndex + 1) % movementFramesCount;
+            playerSprite.setTextureRect(computePlayerTextureRect());
+            playerClock.restart();
+        }
+    }
+    else // idle
+    {
+        // Idle animation cadence.
+        if (idleCols <= 0)
+        {
+            // Defensive fallback (idleCols should never be <=0 due to max(1,...)).
+            playerFrameIndex = 0;
+            playerSprite.setTextureRect(computePlayerTextureRect());
+            playerClock.restart();
+            return;
+        }
+
+        if (elapsed >= playerIdleFrameDuration)
+        {
+            playerFrameIndex = (playerFrameIndex + 1) % idleCols;
+            playerSprite.setTextureRect(computePlayerTextureRect());
+            playerClock.restart();
+        }
+    }
+}
+
+// Synchronize player sprite scale/origin/position with the player hitbox rectangle.
+void Modele::syncPlayerSprite()
+{
+    if (playerTexture.getSize().x == 0) return;
+
+    // Hitbox size (used for centering).
+    sf::Vector2f size = joueur.getSize();
+
+    // Current crop rect; crop is square.
+    sf::IntRect rect = computePlayerTextureRect();
+    int cropSize = rect.width;
+
+    // Do not scale sprite to match hitbox size; keep a fixed scale for visuals.
+    // This may result in sprite extending outside hitbox (visual-only).
+    playerSprite.setScale(2.5f, 2.5f);
+
+    // Origin at crop center (pre-scale texture space).
+    playerSprite.setOrigin(static_cast<float>(cropSize) * 0.5f,
+                           static_cast<float>(cropSize) * 0.5f);
+
+    // Center sprite on hitbox.
+    sf::Vector2f pos = joueur.getPosition();
+    playerSprite.setPosition(pos.x + size.x * 0.5f,
+                             pos.y + size.y * 0.5f);
+}
+
+// Helper declaration (implementation elsewhere or intentionally omitted).
+// The controller is expected to call syncPlayerSprite() after player movement.
+void syncPlayerSpritePosition(Modele& m);
+
+// Collision flag accessors.
+void Modele::setCollisionDetectee(bool v) { collisionDetectee = v; }
+bool Modele::isCollisionDetectee() const { return collisionDetectee; }
+void Modele::setPlayerDetecte(bool v) { PlayerDetecte = v; }
+
+bool Modele::isPlayerDetecte() const
+{
+    // Global detection is the aggregation of per-enemy detection:
+    // if any enemy has playerDetecte == true, the player is considered detected.
+    for (const auto& e : enemies)
+        if (e->playerDetecte) return true;
+    return false;
+}
+
+bool Modele::changeRoom(int newRoomIndex, const std::string& entryDirection)
+{
+    // Change room via RoomManager (also repositions player based on entry direction).
+    //
+    // WHY pass entryDirection as const ref:
+    // - avoid copying string
+    // WHY pass joueur by reference (RoomManager side):
+    // - RoomManager needs to reposition the actual player hitbox shape in-place
+    bool ok = roomManager->changeRoom(newRoomIndex, entryDirection, joueur);
+
+    // Reset collision/detection flags when entering a new room.
+    setCollisionDetectee(false);
+    setPlayerDetecte(false);
+
+    if (ok) {
+        // Load map only if it exists; otherwise clear map.
+        auto& rooms = roomManager->getRooms();
+        auto it = rooms.find(newRoomIndex);
+
+        if (it != rooms.end() && !it->second.mapFile.empty()) {
+            if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+                std::cerr << "Warning: failed to load map file '"
+                          << it->second.mapFile << "' for room "
+                          << newRoomIndex << std::endl;
+            }
+        } else {
+            // No map file => clear current map.
+            mapManager->clearMap();
+        }
+
+        // Rebuild enemies for the new room.
+        reloadEnemiesForCurrentRoom();
+    }
+    return ok;
+}
+
+int Modele::getCurrentRoomIndex() const
+{
+    if (!roomManager) return -1;
+    return roomManager->getCurrentRoomIndex();
+}
+
+std::string Modele::getCurrentRoomDialogueRef() const
+{
+    if (!roomManager) return std::string();
+    return roomManager->getCurrentRoomDialogueRef();
+}
+
+bool Modele::isCurrentRoomDialogueShown() const
+{
+    // Consider dialogue shown if either the RoomManager marks it shown
+    // or if we have recorded the room index in `shownRoomDialogues`.
+    if (!roomManager) return false;
+
+    int idx = roomManager->getCurrentRoomIndex();
+    if (roomManager->isCurrentRoomDialogueShown()) return true;
+    if (shownRoomDialogues.find(idx) != shownRoomDialogues.end()) return true;
+    return false;
+}
+
+void Modele::markCurrentRoomDialogueShown()
+{
+    if (!roomManager) return;
+
+    roomManager->markCurrentRoomDialogueShown();
+    int idx = roomManager->getCurrentRoomIndex();
+
+    // WHY store in set<int>:
+    // - prevents duplicates automatically
+    // - fast membership check for "already shown"
+    shownRoomDialogues.insert(idx);
+}
+
+// Objective contact accessors (pointer-based so original objective can be modified).
+void Modele::setObjectiveContact(Objective* obj)
+{
+    // WHY store pointer:
+    // - non-owning reference to an Objective stored in a room vector
+    // - allows modifying the original object (setAccomplished, dialogue flags) without copying
+    objectiveContact = obj;
+
+    if (objectiveContact) {
+        std::cout << "[Modele] setObjectiveContact -> " << objectiveContact->getTitle()
+                  << " cesar=" << objectiveContact->isCesar()
+                  << " code=" << objectiveContact->getCode() << std::endl;
+    }
+}
+
+void Modele::setObjectiveContactDetectee(const bool b) { objectiveContactDetectee = b; }
+Objective* Modele::getObjectiveContact() const { return objectiveContact; }
+bool Modele::getObjectiveContactDetectee() const { return objectiveContactDetectee; }
+
+bool Modele::hasDialogueTriggered() const { return dialogueTriggeredFlag; }
+void Modele::setDialogueTriggered(bool v) { dialogueTriggeredFlag = v; }
+void Modele::resetDialogueTriggered() { dialogueTriggeredFlag = false; }
+
+bool Modele::setTileTexture(int id, const std::string& path)
+{
+    // WHY const std::string&:
+    // - avoid copying a potentially long path string
+    if (!mapManager) return false;
+    return mapManager->setTileTexture(id, path);
+}
+
+// Player score API (in-memory only).
+void Modele::setPlayerScore(int levelIndex, int score)
+{
+    if (levelIndex < 0 || levelIndex >= static_cast<int>(playerScores.size())) return;
+
+    // Only store the best score achieved so far.
+    if (score > playerScores[levelIndex]) playerScores[levelIndex] = score;
+}
+
+void Modele::setCurrentMissionIndex(int idx)
+{
+    if (idx < 0) idx = 0;
+    currentMissionIndex = idx;
+}
+
+int Modele::getCurrentMissionIndex() const
+{
+    return currentMissionIndex;
+}
+
+std::vector<int> Modele::getPlayerScores() const
+{
+    // WHY return by value:
+    // - provides an independent snapshot; caller cannot mutate internal vector directly
+    return playerScores;
+}
+
+bool Modele::loadLevelFromFile(const std::string& levelJsonPath)
+{
+    if (levelJsonPath.empty()) return false;
+
+    float screenW = getScreenW();
+    float screenH = getScreenH();
+
+    // Build candidate paths for robust loading across different directory layouts.
+    std::vector<std::string> candidates;
+    candidates.push_back(levelJsonPath);
+    candidates.push_back(std::string("cmake-build-debug/") + levelJsonPath);
+    candidates.push_back(std::string("./") + levelJsonPath);
+
+    // Extract basename (file name only).
+    std::string basename = levelJsonPath;
+    size_t pos = basename.find_last_of("/\\");
+    if (pos != std::string::npos) basename = basename.substr(pos + 1);
+
+    candidates.push_back(std::string("Asset/levels/") + basename);
+    candidates.push_back(std::string("Asset/levels/tutorial/") + basename);
+    candidates.push_back(std::string("Asset/levels/OH/") + basename);
+
+    // Also try build-output variant.
+    candidates.push_back(std::string("cmake-build-debug/Asset/levels/") + basename);
+
+    // Search one directory level deep under Asset/levels for the basename.
+    try {
+        namespace fs = std::filesystem;
+        fs::path levelsDir("Asset/levels");
+        if (fs::exists(levelsDir) && fs::is_directory(levelsDir)) {
+            for (const auto &entry : fs::directory_iterator(levelsDir)) {
+                if (fs::is_directory(entry.path())) {
+                    fs::path p = entry.path() / basename;
+                    candidates.push_back(p.string());
+                }
+            }
+        }
+    } catch (...) {
+        // Ignore filesystem errors.
     }
 
-    void Modele::resetDetectionCount()
-    {
-        detectionCount = 0;
+    // Pick the first existing file from candidates.
+    std::string resolved;
+    for (const auto &c : candidates) {
+        try {
+            if (std::ifstream(c).good()) { resolved = c; break; }
+        } catch(...) {}
     }
 
-    // (old stray small reset removed — a full reset implementation is present later in this file)
-
-    int Modele::getTileSize() const
-    {
-        return mapManager ? mapManager->getTileSize() : 0;
+    if (resolved.empty()) {
+        std::cerr << "Modele::loadLevelFromFile: could not find level file for '"
+                  << levelJsonPath << "' (tried candidates)" << std::endl;
+        for (const auto &c : candidates) std::cerr << " tried: " << c << std::endl;
+        return false;
     }
 
-    const std::vector<sf::Texture>& Modele::getWallTextures() const
-    {
-        static const std::vector<sf::Texture> empty;
-        if (!mapManager) return empty;
-        return mapManager->getWallTextures();
-    }
-        // Réinitialise l'état du modèle (joueur, ennemis, objectifs, etc.)
-        void Modele::reset() {
-        objectiveContact = nullptr;
-        objectiveContactDetectee = false;
+    // Store resolved level path for future reset/reload.
+    currentLevelPath = resolved;
 
-            // Réinitialiser la position du joueur à la position de départ de la pièce 0 (ou défaut)
+    // Recreate RoomManager to ensure a clean room state.
+    //
+    // WHY reset + recreate:
+    // - guarantees no stale room data (doors/objectives/enemy definitions) remain
+    // - fresh state is important when loading a new level file
+    roomManager.reset();
+    roomManager = std::make_unique<RoomManager>(screenW, screenH);
+
+    // Load rooms and ensure room 0 exists.
+    if (!roomManager->loadRoomsFromJson(currentLevelPath) || !roomManager->getRooms().count(0)) {
+        std::cerr << "Modele::loadLevelFromFile: failed to load rooms from '"
+                  << currentLevelPath << "'" << std::endl;
+        return false;
+    }
+
+    // Enter room 0 (RoomManager positions player based on entry direction).
+    roomManager->changeRoom(0, "", joueur);
+
+    // If room 0 references an external map file, load it; otherwise clear map.
+    auto& rooms = roomManager->getRooms();
+    auto it = rooms.find(0);
+
+    if (it != rooms.end() && !it->second.mapFile.empty() && mapManager) {
+        if (!mapManager->loadMapFromFile(it->second.mapFile)) {
+            std::cerr << "Warning: failed to load map file '"
+                      << it->second.mapFile << "' for room 0" << std::endl;
+        }
+    } else {
+        if (mapManager) mapManager->clearMap();
+    }
+
+    // Reload enemies for current room.
+    reloadEnemiesForCurrentRoom();
+
+    // Ensure sprite aligns with hitbox after loading.
+    syncPlayerSprite();
+
+    return true;
+}
+
+const sf::Texture* Modele::getTileTexture(int id) const
+{
+    if (!mapManager) return nullptr;
+    return mapManager->getTileTexture(id);
+}
+
+const std::vector<std::vector<int>>& Modele::getFloorMatrix() const
+{
+    static const std::vector<std::vector<int>> empty;
+    if (!mapManager) return empty;
+    return mapManager->getFloorMatrix();
+}
+
+const sf::Texture& Modele::getFloorTexture() const
+{
+    static sf::Texture dummy;
+    if (!mapManager) return dummy;
+    return mapManager->getFloorTexture();
+}
+
+void Modele::setFloorMatrix(const std::vector<std::vector<int>>& m)
+{
+    // WHY const reference parameter:
+    // - avoids copying a potentially large matrix
+    if (mapManager) mapManager->setFloorMatrix(m);
+}
+
+int Modele::getLives() const
+{
+    return currentLevel ? currentLevel->getLives() : 0;
+}
+
+void Modele::loseLives(int amount)
+{
+    if (currentLevel) {
+        currentLevel->loseLives(amount);
+    }
+}
+
+bool Modele::isGameOver() const
+{
+    return currentLevel ? currentLevel->isGameOver() : false;
+}
+
+int Modele::getDetectionCount() const
+{
+    return detectionCount;
+}
+
+void Modele::incrementDetectionCount()
+{
+    detectionCount++;
+}
+
+void Modele::resetDetectionCount()
+{
+    detectionCount = 0;
+}
+
+int Modele::getTileSize() const
+{
+    return mapManager ? mapManager->getTileSize() : 0;
+}
+
+const std::vector<sf::Texture>& Modele::getWallTextures() const
+{
+    static const std::vector<sf::Texture> empty;
+    if (!mapManager) return empty;
+    return mapManager->getWallTextures();
+}
+
+// Reset the model state (player, enemies, objectives, etc.).
+void Modele::reset()
+{
+    objectiveContact = nullptr;
+    objectiveContactDetectee = false;
+
+    // Compute a start position for the player (room 0).
             float startX = 0.f, startY = 0.f;
             if (roomManager && roomManager->getRooms().count(0)) {
                 auto& room0 = roomManager->getRooms()[0];
-                // Si le JSON contient un champ "playerStartX/Y", utilise-le, sinon centre par défaut
+                // Optional approach: use an objective named "player_start" as spawn marker.
                 if (!room0.objectives.empty()) {
-                    // Cherche un objectif "player_start" pour la position de départ (optionnel)
                     for (const auto& obj : room0.objectives) {
                         if (obj.getTitle() == "player_start") {
                             startX = obj.getHitboxPosition().x;
@@ -686,29 +820,34 @@ namespace Modele {
                     }
                 }
                 if (startX == 0.f && startY == 0.f) {
-                    // Par défaut, centre l'écran
+                    // Fallback: center screen if no marker found.
                     float boxSize = joueur.getSize().x;
                     startX = roomManager->getScreenW() * 0.5f - boxSize * 0.5f;
                     startY = roomManager->getScreenH() * 0.5f - boxSize * 0.5f;
                 }
             }
+            // Apply start position.
             joueur.setPosition(startX, startY);
+
+            // Reset animation state.
             playerFrameIndex = 0;
             playerRow = 3;
             playerIsMoving = false;
-            // Réinitialiser tous les objectifs de toutes les rooms
+             // Reset all objectives in all rooms.
             if (roomManager) {
                 for (auto& [idx, room] : roomManager->getRooms()) {
                     for (auto& obj : room.objectives) {
                         obj.setAccomplished(false);
-                        obj.setCesar(obj.isCesar()); // conserve le flag césar
-                        obj.setCode(obj.getCode()); // conserve le code
-                        obj.setchangeValue(obj.getChangeValue()); // conserve la valeur
+                        // Preserve Cesar metadata (project-specific).
+                        obj.setCesar(obj.isCesar());
+                        obj.setCode(obj.getCode());
+                        obj.setchangeValue(obj.getChangeValue());
                     }
                 }
             }
+             // Reset flags.
             collisionDetectee = false;
-            joueurDetecte = false;
+            PlayerDetecte = false;
             objectiveContactDetectee = false;
             dialogueTriggeredFlag = false;
             // If we recreate rooms we should also reset roomManager to reload level state.
@@ -720,32 +859,38 @@ namespace Modele {
         playerClock.restart();
         playerIsMoving = false;
 
-        // Reset flags
-        collisionDetectee = false;
-        joueurDetecte = false;
-        objectiveContactDetectee = false;
-        dialogueTriggeredFlag = false;
+    // Destroy and recreate RoomManager to guarantee a fresh level state.
+    float screenW = getScreenW();
+    float screenH = getScreenH();
 
-        // Destroy and recreate the room manager / level to ensure a fresh level state
-        float screenW = getScreenW();
-        float screenH = getScreenH();
-        // Clearing the RoomManager will also reset per-room dialogue flags;
-        // ensure we clear our session-level record as well so dialogues may
-        // be shown again after a full reset.
-        shownRoomDialogues.clear();
-        // Reset detection counter when restarting the level
-        detectionCount = 0;
-        roomManager.reset();
-        roomManager = std::make_unique<RoomManager>(screenW, screenH);
-        if (!currentLevelPath.empty() && roomManager->loadRoomsFromJson(currentLevelPath) && roomManager->getRooms().count(0)) {
-            roomManager->changeRoom(0, "", joueur);
-        }
+    // Clearing the RoomManager will also reset per-room dialogue flags;
+    // ensure we clear our session-level record as well so dialogues may
+    // be shown again after a full reset.
+    shownRoomDialogues.clear();
 
-        // Clear and reload enemies for current room
-        enemies.clear();
-        reloadEnemiesForCurrentRoom();
+    // Reset detection counter when restarting the level
+    detectionCount = 0;
 
-        // Sync sprite with rectangle
-        syncPlayerSprite();
+    // WHY roomManager.reset() then make_unique:
+    // - hard reset of room/objective/enemy-definition state
+    // - ensures no stale vectors/pointers remain after a restart
+    roomManager.reset();
+    roomManager = std::make_unique<RoomManager>(screenW, screenH);
+
+    // Reload rooms from stored level path and enter room 0 if possible.
+    if (!currentLevelPath.empty()
+        && roomManager->loadRoomsFromJson(currentLevelPath)
+        && roomManager->getRooms().count(0))
+    {
+        roomManager->changeRoom(0, "", joueur);
     }
+
+    // Rebuild enemies for the current room.
+    enemies.clear();
+    reloadEnemiesForCurrentRoom();
+
+    // Align sprite with hitbox after reset.
+    syncPlayerSprite();
 }
+
+} // namespace Modele

@@ -39,7 +39,6 @@ add_executable(TestCollision
         Vue/SplashPage.cpp
         Vue/GameOverPage.cpp
         Modele/RoomManager.cpp
-        Modele/Agent.cpp
         Vue/PauseMenu.cpp
         Vue/PauseMenu.h
         Vue/CesarVue.cpp

@@ -1,83 +1,124 @@
+
 #pragma once
-
 #include <SFML/Graphics.hpp>
-
 #include "Modele.h"
 #include "Vue.h"
 #include "ScoreCalculator.h"
 
+// Forward declaration to avoid including the full header here.
+// This reduces compile-time coupling between Controller and Dialogue system.
 namespace Vue { class DialogueManager; }
 
 namespace Controleur {
 
 class ControllerLevel {
 public:
+    // The controller does NOT own the model, view, or window.
+    // They are provided from outside and must outlive this controller (aggregation).
+    //
+    // WHY references (&) instead of pointers:
+    // - expresses "non-null dependency" (controller cannot exist without these objects)
+    // - avoids ownership confusion (controller does not delete them)
+    // - avoids copying heavy objects (RenderWindow, Model, View)
     ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::RenderWindow& fenetre);
 
-    // Gère l'entrée utilisateur (lecture de l'état des touches)
+    // Read user input (keyboard state) and build the intended movement vector.
     void handleInput();
 
-    // Mettre à jour la logique du niveau (physique, collisions, objectifs)
+    // Update level logic: movement normalization, collisions, animation sync, etc.
     void update();
 
-    // Vérifier et gérer les portes / transitions de salle
+    // Check and handle doors / room transitions (including exit flow).
     void checkDoors();
 
-    // Traiter conséquences liées aux collisions (déclencher dialogues, flags)
+    // Process consequences related to collisions:
+    // - objective contact -> start dialogues / set accomplishment
+    // - detection -> life loss and detection counters
+    //
+    // WHY DialogueManager passed by non-const reference:
+    // - this function triggers dialogues (mutates dialogue manager state)
     void processCollisions(Vue::DialogueManager &dialogueManager);
 
-    // Vérifie si une fenêtre César doit s'ouvrir (après dialogue objectif César)
+    // Flag consumed by a higher-level controller to open a special "Cesar" window
+    // after an objective dialogue has finished.
     bool shouldOpenCesarWindow() const;
     Objective* getCesarObjective() const;
     void resetCesarWindowFlag();
+
+    // Used by the top-level controller / game loop to know if the level wants to exit.
     bool isExitRequested() const { return exitRequestedFlag; }
 
-    // Score API
+    // Score API (delegates to ScoreCalculator).
     Modele::ScoreDetails getScoreDetails() const;
     bool areAllPrimaryObjectivesCompleted() const;
 
-    // Level timer API
+    // Level timer API (countdown).
     int getRemainingSeconds() const;
     void resetLevelTimer();
     void drawUI(sf::RenderWindow& fenetre);
-    // Pause control for the level timer (public so Controleur can toggle it)
+
+    // Pause control for the level timer (public so upper controller can toggle it).
     void setTimerPaused(bool p);
     bool isTimerPaused() const { return timerPaused; }
 
-    // Life system API
+    // Life system API (delegates to the model).
     int getLives() const;
     void loseLivesByDetection(bool isHuman);
     bool isGameOver() const;
 
-
 private:
+    // Aggregation: references enforce "non-null" dependencies and avoid copies.
+    // Lifetime must be managed by the caller.
+    //
+    // WHY store these as references:
+    // - controller does not own these objects (no deletion)
+    // - ensures they always exist (no null checks needed)
     Modele::Modele& modele;
     Vue::Vue& vue;
     sf::RenderWindow& fenetre;
 
-    // Mouvement courant calculé à partir de l'entrée
+    // Current movement direction computed from input (not yet scaled by speed).
     sf::Vector2f mouvement;
 
-    // --- Ajouts pour la fenêtre Cesar ---
+    // --- Cesar window support ---
+    // openCesarWindow is a one-shot flag consumed by higher layers.
     bool openCesarWindow = false;
-    Objective* cesarObjective = nullptr;
-    bool exitRequestedFlag = false;
-    bool playerWasDetectedLastFrame = false;  // Track if player was detected to apply life loss only once
-    bool agentDialogueStartedForCurrentDetection = false; // prevent re-triggering agent dialog while still detected
-    // Level timer (countdown in seconds)
-    const int levelTimerStartSeconds = 300; // 5minutes
 
-    // Timer internal data
+    // Pointer used because the Cesar objective is optional (nullptr means "none").
+    // The pointed Objective is owned/stored by the model; controller only references it.
+    //
+    // WHY raw pointer here:
+    // - optional association: sometimes there is a Cesar objective, sometimes not
+    // - non-owning reference to an Objective managed by the model containers
+    // - nullptr cleanly represents "no Cesar objective"
+    Objective* cesarObjective = nullptr;
+
+    // Set when the player confirmed leaving the level (e.g. via exit door).
+    bool exitRequestedFlag = false;
+
+    // Detection guard: ensures life loss happens only once per continuous detection event.
+    bool playerWasDetectedLastFrame = false;
+
+    // Present but not used in the .cpp (could be intended for dialogue spam prevention).
+    bool agentDialogueStartedForCurrentDetection = false; // prevent re-triggering agent dialog while still detected
+
+    // Level timer (countdown start in seconds).
+    const int levelTimerStartSeconds = 300; // 5 minutes
+
+    // Timer internal data.
     sf::Clock levelTimerClock;
+
+    // HUD text resources.
     sf::Font hudFont;
     bool hudFontLoaded = false;
     sf::Text uiText;
-    // Pause support for the timer
+
+    // Pause support for the timer:
+    // - pauseStartSeconds: clock time when pause began
+    // - pausedAccumulated: total seconds spent paused
     bool timerPaused = false;
     double pauseStartSeconds = 0.0;
     double pausedAccumulated = 0.0; // total seconds paused
-
-
 };
 
 } // namespace Controleur
