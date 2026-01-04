@@ -6,7 +6,7 @@
 
 // Basic Level constructor/destructor implementations
 Level::Level(std::string n, std::string d)
-	: name(std::move(n)), description(std::move(d)), countdown(0), lives(3)
+	: name(std::move(n)), description(std::move(d)), countdown(0)
 {
 }
 

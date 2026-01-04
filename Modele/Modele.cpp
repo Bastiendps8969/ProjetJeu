@@ -712,10 +712,7 @@ namespace Modele {
             objectiveContactDetectee = false;
             dialogueTriggeredFlag = false;
             // If we recreate rooms we should also reset roomManager to reload level state.
-        // Reset lives to 3
-        if (currentLevel) {
-            currentLevel->setLives(3);
-        }
+
         // Reset player position and animation
         joueur.setPosition(0.f, 0.f);
         playerFrameIndex = 0;
