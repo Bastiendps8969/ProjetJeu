@@ -52,7 +52,7 @@
       {
         "characterName": "John Jones",
         "characterPortraitPath": "Asset/portraits/john_jones.png",
-        "text": "But if your find by the terrorist. May God help you...",
+        "text": "But if you're find by the guardsman, you will probably be arrested.\nIt's not too problematic today, it's juste a training mission.\nBut pay attention when you're on a real one.",
         "displayDuration": 2.0
       }
     ],
@@ -106,7 +106,7 @@
     ],
     "agent_detected": [
       {
-        "characterName": "Terrorist",
+        "characterName": "Guard",
         "characterPortraitPath": "Asset/portraits/ennemy_1.png",
         "text": "Hey! There is an intruder in the house",
         "displayDuration": 3.0
