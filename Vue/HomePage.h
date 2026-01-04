@@ -18,7 +18,7 @@ namespace Vue
 {
     /**
      * HomePage : menu principal du jeu
-     * - Affiche titre, boutons (Play, Scores, Credits, Sounds)
+     * - Affiche titre, boutons (Play, Scores, Credits)
      * - Permet la saisie du nom du joueur
      * - Possède un callback pour récupérer les scores (affichage dans ScoreWindow)
      *
@@ -42,15 +42,12 @@ namespace Vue
         sf::RectangleShape playButton;
         sf::Text playLabel;
 
-        // Boutons supplémentaires (Scores, Credits, Sounds)
+        // Boutons supplémentaires (Scores, Credits)
         sf::RectangleShape scoreButton;
         sf::Text scoreLabel;
         sf::RectangleShape creditsButton;
         sf::Text creditsLabel;
-        sf::RectangleShape soundsButton;
-        sf::Text soundsLabel;
 
-        bool soundsOn = true;
         bool showCredits = false;
 
         // Fenêtre de crédits (modale)
@@ -79,7 +76,7 @@ namespace Vue
         // Lance le sélecteur de niveau (LevelPage) et enregistre la sélection
         void openLevelPage(sf::RenderWindow& parent);
 
-        // Selected index for keyboard navigation: 0=Play,1=Scores,2=Credits,3=Sounds
+        // Selected index for keyboard navigation: 0=Play,1=Scores,2=Credits
         int selectedIndex = 0;
         // Indices sélectionnés après la fermeture du sélecteur (chapter, level)
         int selectedChapter = -1;

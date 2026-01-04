@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <cctype>
 
 // Constructor accepts a pointer to the objective so the original can be modified
 CesarVue::CesarVue(Objective* objective)
@@ -227,6 +228,18 @@ void CesarVue::draw(sf::RenderWindow &window) {
     instructionText.setPosition(screenRect.left + (screenRect.width - instrBounds.width)/2.f, inputBox.getPosition().y + inputBox.getSize().y + 12.f);
     window.draw(instructionText);
 
+    // Success message when validated (centered above the input box)
+    if (isValidated) {
+        sf::Text vm;
+        vm.setFont(font);
+        vm.setString(validationMessage);
+        vm.setCharacterSize(28);
+        vm.setFillColor(sf::Color(150, 255, 150));
+        sf::FloatRect vmB = vm.getLocalBounds();
+        vm.setPosition(screenRect.left + (screenRect.width - vmB.width) / 2.f, inputBox.getPosition().y - 56.f);
+        window.draw(vm);
+    }
+
     // Exit button: centered below input box
     if (exitButton.getSize().x <= 0.f) exitButton.setSize(sf::Vector2f(150.f, 48.f));
     float btnX = screenRect.left + (screenRect.width - exitButton.getSize().x) / 2.f;
@@ -270,31 +283,47 @@ void CesarVue::handleEvent(const sf::Event& event, sf::RenderWindow& window) {
         }
     }
     
+    // Small helper to validate current input
+    auto validateInput = [&]() {
+        std::string userInput = inputText.getString().toAnsiString();
+        auto trim = [](std::string &s){
+            while (!s.empty() && std::isspace((unsigned char)s.front())) s.erase(s.begin());
+            while (!s.empty() && std::isspace((unsigned char)s.back())) s.pop_back();
+        };
+        trim(userInput);
+
+        if (objective && userInput == objective->getCode()) {
+            objective->setAccomplished(true);
+            isValidated = true;
+            validationMessage = "Computer unlocked!";
+            std::cout << "✓ Correct code entered! Objective accomplished." << std::endl;
+        } else {
+            if (objective) std::cout << "✗ Wrong code. Expected: " << objective->getCode()
+                      << ", got: " << userInput << std::endl;
+            inputText.setString("");
+        }
+    };
+
     // Handle key press events (e.g., Escape to close the window)
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
             // Close CesarVue window
             std::cout << "CesarVue closed via Escape key" << std::endl;
             shouldClose = true;
-        } else if (event.key.code == sf::Keyboard::Enter && !isValidated) {
-            // Validate the input code (only if not already validated)
-            std::string userInput = inputText.getString();
-            if (objective && userInput == objective->getCode()) {
-                objective->setAccomplished(true);
-                isValidated = true;
-                validationMessage = "Computer unlocked!";
-                std::cout << "✓ Correct code entered! Objective accomplished." << std::endl;
-            } else {
-                // Wrong code
-                if (objective) std::cout << "✗ Wrong code. Expected: " << objective->getCode() 
-                          << ", got: " << userInput << std::endl;
-                inputText.setString("");  // Clear input
-            }
+        }
+        else if ((event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return) && !isValidated) {
+            validateInput();
         }
     }
-    
+
     // Handle text input for the code input field (only if not validated)
     if (event.type == sf::Event::TextEntered && !isValidated) {
+        // If Enter/Return is sent as a text event, handle it here too
+        if (event.text.unicode == '\r' || event.text.unicode == '\n') {
+            validateInput();
+            return;
+        }
+
         if (event.text.unicode < 128) {  // ASCII characters only
             char c = static_cast<char>(event.text.unicode);
 

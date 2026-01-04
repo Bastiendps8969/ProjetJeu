@@ -83,16 +83,7 @@ namespace Vue
             creditsLabel.setFillColor(sf::Color(180, 80, 80)); // texte rouge légèrement plus foncé
             creditsLabel.setStyle(sf::Text::Bold);
 
-            // Bouton SOUNDS - style rouge néon
-            soundsButton.setSize({380.f, 65.f});
-            soundsButton.setFillColor(sf::Color(180, 20, 20)); // rouge foncé
-            soundsButton.setOutlineColor(sf::Color(255, 100, 100)); // contour rouge vif
-            soundsButton.setOutlineThickness(0.f);
-            soundsLabel.setFont(font);
-            soundsLabel.setCharacterSize(32);
-            soundsLabel.setFillColor(sf::Color(180, 80, 80)); // texte rouge légèrement plus foncé
-            soundsLabel.setStyle(sf::Text::Bold);
-            soundsLabel.setString(soundsOn ? "SOUNDS : ON" : "SOUNDS : OFF");
+
         }
 
         // Tester plusieurs chemins probables pour l'image CHERUB
@@ -180,59 +171,56 @@ namespace Vue
         }
         else if (event.type == sf::Event::KeyPressed)
         {
-            // If input has focus, keep editing text as before
             if (event.key.code == sf::Keyboard::BackSpace && !playerName.empty() && inputFocused)
             {
+                // Edit name when input is focused
                 playerName.pop_back();
                 inputText.setString(playerName);
             }
-            // Navigate menu with Up/Down and activate with Enter
+            else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
+            {
+                // If the name input is focused, Enter starts the game (legacy behavior)
+                if (inputFocused)
+                {
+                    active = false; // start the game
+                    return;
+                }
+
+                // Otherwise, activate the currently selected menu item
+                if (selectedIndex == 0)
+                {
+                    openLevelPage(fenetre);
+                    return;
+                }
+                else if (selectedIndex == 1)
+                {
+                    openScoreWindow();
+                    return;
+                }
+                else if (selectedIndex == 2)
+                {
+                    if (!creditsWindow)
+                    {
+                        creditsWindow = std::make_unique<CreditsWindow>();
+                    }
+                    else
+                    {
+                        creditsWindow->setActive(true);
+                    }
+                    return;
+                }
+            }
             else if (!inputFocused)
             {
+                // Navigate menu with Up/Down (wrap around three entries)
                 if (event.key.code == sf::Keyboard::Up)
                 {
-                    selectedIndex = (selectedIndex + 3) % 4; // wrap-around
+                    selectedIndex = (selectedIndex + 2) % 3; // wrap-around for 3 items
                 }
                 else if (event.key.code == sf::Keyboard::Down)
                 {
-                    selectedIndex = (selectedIndex + 1) % 4;
+                    selectedIndex = (selectedIndex + 1) % 3;
                 }
-                else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
-                {
-                    // Activate the selected item
-                    if (selectedIndex == 0)
-                    {
-                        openLevelPage(fenetre);
-                        return;
-                    }
-                    else if (selectedIndex == 1)
-                    {
-                        openScoreWindow();
-                        return;
-                    }
-                    else if (selectedIndex == 2)
-                    {
-                        if (!creditsWindow)
-                        {
-                            creditsWindow = std::make_unique<CreditsWindow>();
-                        }
-                        else
-                        {
-                            creditsWindow->setActive(true);
-                        }
-                        return;
-                    }
-                    else if (selectedIndex == 3)
-                    {
-                        soundsOn = !soundsOn;
-                        soundsLabel.setString(soundsOn ? "SOUNDS : ON" : "SOUNDS : OFF");
-                        return;
-                    }
-                }
-            }
-            else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
-            {
-                active = false; // démarrer le jeu (comportement précédent lors de la touche Enter)
             }
         }
         else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
@@ -268,12 +256,6 @@ namespace Vue
                 return;
             }
 
-            if (soundsButton.getGlobalBounds().contains(world))
-            {
-                soundsOn = !soundsOn;
-                soundsLabel.setString(soundsOn ? "Sounds : On" : "Sounds : Off");
-                return;
-            }
 
             if (inputBox.getGlobalBounds().contains(world))
             {
@@ -352,9 +334,7 @@ namespace Vue
         centerLabel(creditsLabel, creditsButton);
         startY += buttonGap;
 
-        // Bouton SOUNDS
-        soundsButton.setPosition(buttonX, startY);
-        centerLabel(soundsLabel, soundsButton);
+
 
         if (fontLoaded)
         {
@@ -365,25 +345,21 @@ namespace Vue
             bool hoveredPlay = playButton.getGlobalBounds().contains(mousePos);
             bool hoveredScore = scoreButton.getGlobalBounds().contains(mousePos);
             bool hoveredCredits = creditsButton.getGlobalBounds().contains(mousePos);
-            bool hoveredSounds = soundsButton.getGlobalBounds().contains(mousePos);
 
             // If mouse hovers over a button, sync the keyboard selection
             if (hoveredPlay) selectedIndex = 0;
             else if (hoveredScore) selectedIndex = 1;
             else if (hoveredCredits) selectedIndex = 2;
-            else if (hoveredSounds) selectedIndex = 3;
 
             // Combine mouse hover with keyboard selection for visual feedback
             hoveredPlay = hoveredPlay || (selectedIndex == 0);
             hoveredScore = hoveredScore || (selectedIndex == 1);
             hoveredCredits = hoveredCredits || (selectedIndex == 2);
-            hoveredSounds = hoveredSounds || (selectedIndex == 3);
 
-            // Dessiner les quatre boutons en utilisant la même fonction utilitaire stylée
+            // Dessiner les trois boutons en utilisant la même fonction utilitaire stylée
             drawStyledButton(fenetre, playButton, playLabel, hoveredPlay);
             drawStyledButton(fenetre, scoreButton, scoreLabel, hoveredScore);
             drawStyledButton(fenetre, creditsButton, creditsLabel, hoveredCredits);
-            drawStyledButton(fenetre, soundsButton, soundsLabel, hoveredSounds);
 
             // Dessiner le titre (avec son ombre)
             fenetre.draw(titleShadow);

@@ -16,14 +16,14 @@ Vue::Vue(Modele::Modele& modele)
         std::cout << "[DEBUG] Police chargée : C:\\Windows\\Fonts\\arial.ttf" << std::endl;
 
         collisionText.setFont(font);
-        collisionText.setString("Collision detectee !");
+        collisionText.setString("Collision detected !");
         collisionText.setCharacterSize(24);
         collisionText.setFillColor(sf::Color::Red);
         collisionText.setStyle(sf::Text::Bold);
         collisionText.setPosition(10.f, 10.f);
 
             joueurDetecteText.setFont(font);
-            joueurDetecteText.setString("Joueur detecte !");
+            joueurDetecteText.setString("Player detected !");
             joueurDetecteText.setCharacterSize(22);
             joueurDetecteText.setFillColor(sf::Color::Yellow);
             joueurDetecteText.setStyle(sf::Text::Bold);
@@ -40,11 +40,11 @@ Vue::Vue(Modele::Modele& modele)
         else if (font.loadFromFile("arial.ttf"))
         {
             fontCharge = true;
-            std::cout << "[DEBUG] Police chargée : arial.ttf (local)" << std::endl;
+            std::cout << "[DEBUG] Font loaded : arial.ttf (local)" << std::endl;
         }
         else
         {
-            std::cerr << "[DEBUG] Erreur: Impossible de charger la police (arial.ttf)." << std::endl;
+            std::cerr << "[DEBUG] Error : Failed to load font (arial.ttf)." << std::endl;
         }
     }
 
