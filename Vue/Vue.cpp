@@ -30,7 +30,7 @@ Vue::Vue(Modele::Modele& modele)
             joueurDetecteText.setPosition(10.f, 40.f);
 
             livesText.setFont(font);
-            livesText.setString("Lives: 3");
+            livesText.setString("Lives: " + std::to_string(modele.getLives()));
             livesText.setCharacterSize(28);
             //  Change from Red cause the obstacles are red too
             livesText.setFillColor(sf::Color::White);

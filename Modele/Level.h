@@ -14,7 +14,7 @@ class Level {
         std::string description;
 
         int countdown;
-        int lives = 3;  // Nombre de vies (3 au départ)
+        int lives = 50;  // Nombre de vies (3 au départ)
 
 
     public:
