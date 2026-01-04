@@ -50,7 +50,7 @@
         "texture": "ennemy_textures1"
       },
       {
-        "x": 1600,
+        "x": 1700,
         "y": 1400,
         "type": "camera",
         "facing": "up",
