@@ -1,5 +1,6 @@
 
 #include "CreditsWindow.h"
+
 #include <sstream>
 #include <fstream>
 #include <algorithm>
@@ -10,11 +11,16 @@ namespace Vue
     CreditsWindow::CreditsWindow()
     {
         // Load font (Windows-specific path).
+        // WHY load once in constructor:
+        // - all sf::Text depend on the font, so we want a stable lifetime
+        // - avoids reloading font repeatedly
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontLoaded = true;
 
             // Load CSV data first, then build UI texts.
+            // WHY this order:
+            // - initializeTexts() builds sf::Text elements from 'credits'
             loadCreditsFromCSV();
             initializeTexts();
         }
@@ -24,6 +30,9 @@ namespace Vue
     {
         // Minimal CSV splitter supporting quoted fields.
         // Splits on commas only when not inside quotes.
+        //
+        // WHY return by value:
+        // - it creates a local vector of fields; NRVO/move makes this efficient
         std::vector<std::string> fields;
         std::string field;
         bool inQuotes = false;
@@ -53,6 +62,9 @@ namespace Vue
     void CreditsWindow::parseCSVFile(const std::string& filepath,
                                     std::map<std::string, std::vector<std::string>>& assetAuthors)
     {
+        // WHY assetAuthors by reference:
+        // - we aggregate/merge authors across multiple CSV files into the same map
+
         std::ifstream file(filepath);
         if (!file.is_open())
         {
@@ -76,11 +88,11 @@ namespace Vue
 
             auto fields = splitCSVLine(line);
 
-            // Expected columns: [0]=filename, [2]=authors (as indicated by comment).
+            // Expected columns: [0]=filename, [2]=authors
             if (fields.size() >= 3)
             {
                 std::string filename = fields[0];
-                std::string authors = fields[2];
+                std::string authors  = fields[2];
 
                 // Remove surrounding quotes if present.
                 if (!filename.empty() && filename.front() == '"')
@@ -103,7 +115,7 @@ namespace Vue
                     {
                         // Trim leading/trailing whitespace.
                         size_t start = author.find_first_not_of(" \t");
-                        size_t end = author.find_last_not_of(" \t");
+                        size_t end   = author.find_last_not_of(" \t");
                         if (start != std::string::npos)
                         {
                             author = author.substr(start, end - start + 1);
@@ -135,7 +147,11 @@ namespace Vue
     void CreditsWindow::loadCreditsFromCSV()
     {
         // Build a map filename -> authors by reading multiple CSV files.
+        // WHY use a map here:
+        // - easy merge: same filename from different files merges into one authors list
+        // - deterministic ordering (if needed for debugging)
         credits.clear();
+
         std::map<std::string, std::vector<std::string>> assetAuthors;
 
         // Load from the three CSV files (paths relative to the executable).
@@ -155,7 +171,7 @@ namespace Vue
         {
             CreditEntry entry;
             entry.filename = pair.first;
-            entry.authors = pair.second;
+            entry.authors  = pair.second;
             credits.push_back(entry);
         }
     }
@@ -196,7 +212,7 @@ namespace Vue
         }
 
         // Back/Close button.
-        backButton.setSize({220.f, 60.f});
+        backButton.setSize({ 220.f, 60.f });
         backButton.setFillColor(sf::Color(170, 30, 30));
         backButton.setOutlineColor(sf::Color(200, 80, 60));
         backButton.setOutlineThickness(2.f);
@@ -211,16 +227,13 @@ namespace Vue
     {
         // Estimate total height of credit texts (rough layout model).
         float totalHeight = 0.f;
+
         for (const auto& text : creditTexts)
         {
             if (text.getStyle() & sf::Text::Bold)
-            {
                 totalHeight += 32.f;
-            }
             else
-            {
                 totalHeight += 24.f;
-            }
         }
 
         // Available space for credits (accounting for title and button area).
@@ -234,6 +247,7 @@ namespace Vue
     {
         // Keyboard controls:
         // - Escape closes the credits
+        // - Enter/Return also closes (convenience)
         // - Up/Down scroll the list
         if (event.type == sf::Event::KeyPressed)
         {
@@ -241,9 +255,10 @@ namespace Vue
             {
                 active = false;
             }
-            else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
+            // FIXED: restored logical OR between Enter and Return.
+            else if (event.key.code == sf::Keyboard::Enter ||
+                     event.key.code == sf::Keyboard::Return)
             {
-                // Allow closing via Enter as well as Escape
                 active = false;
             }
             else if (event.key.code == sf::Keyboard::Up)
@@ -267,12 +282,14 @@ namespace Vue
         }
 
         // Close button click.
-        if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+        if (event.type == sf::Event::MouseButtonPressed &&
+            event.mouseButton.button == sf::Mouse::Left)
         {
             float mx = static_cast<float>(event.mouseButton.x);
             float my = static_cast<float>(event.mouseButton.y);
 
-            if (backButtonRect.contains(mx, my)) {
+            if (backButtonRect.contains(mx, my))
+            {
                 active = false;
             }
         }
@@ -283,7 +300,7 @@ namespace Vue
         if (!fontLoaded) return;
 
         // Update max scroll offset based on current window height (responsive layout).
-        updateMaxScrollOffset(fenetre.getSize().y);
+        updateMaxScrollOffset(static_cast<float>(fenetre.getSize().y));
 
         // Semi-transparent background overlay.
         sf::RectangleShape bg(sf::Vector2f((float)fenetre.getSize().x, (float)fenetre.getSize().y));
@@ -299,16 +316,17 @@ namespace Vue
         // Scrollable credits area (simple "scissor-like" logic by skipping offscreen items).
         float topY = 100.f;
         float maxHeight = fenetre.getSize().y - 150.f;
-        float currentY = topY - scrollOffset; // apply scroll offset
+        float currentY = topY - scrollOffset;
 
         for (size_t i = 0; i < creditTexts.size(); ++i)
         {
+            // WHY copy the sf::Text:
+            // - we set per-frame position without mutating the stored template text object
             sf::Text text = creditTexts[i];
 
             // Skip drawing if text is above the visible area.
             if (currentY + 32.f < topY)
             {
-                // Still advance Y to keep spacing consistent.
                 if (text.getStyle() & sf::Text::Bold) currentY += 32.f;
                 else currentY += 24.f;
                 continue;
@@ -323,7 +341,7 @@ namespace Vue
             text.setPosition(posX, currentY);
             fenetre.draw(text);
 
-            // Advance Y spacing (bold titles get more spacing).
+            // Advance Y spacing.
             if (text.getStyle() & sf::Text::Bold) currentY += 32.f;
             else currentY += 24.f;
         }
@@ -338,10 +356,9 @@ namespace Vue
             fenetre.draw(scrollBarBg);
 
             // Scroll bar thumb size and position.
-            float thumbHeight = std::max(20.f,
-                (maxHeight - 20.f) * ((maxHeight - 20.f) / (maxHeight - 20.f + maxScrollOffset)));
-
-            float thumbY = topY + 10.f + (scrollOffset / maxScrollOffset) * (maxHeight - 20.f - thumbHeight);
+            float trackH = (maxHeight - 20.f);
+            float thumbHeight = std::max(20.f, trackH * (trackH / (trackH + maxScrollOffset)));
+            float thumbY = topY + 10.f + (scrollOffset / maxScrollOffset) * (trackH - thumbHeight);
 
             sf::RectangleShape scrollBar(sf::Vector2f(8.f, thumbHeight));
             scrollBar.setPosition(fenetre.getSize().x - 20.f, thumbY);

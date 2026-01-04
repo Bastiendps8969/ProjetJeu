@@ -1,3 +1,4 @@
+
 #include "Controleur.h"
 #include <SFML/Window.hpp>
 #include "Modele.h"
@@ -11,7 +12,6 @@
 #include "../Vue/ConfirmationDialog.h"
 #include <cmath>
 #include <iostream>
-
 #include "ControllerLevel.h"
 #include "../Vue/PauseMenu.h"
 
@@ -19,17 +19,25 @@ namespace Controleur
 {
     // Constructor
     Controleur::Controleur(Modele::Modele& modele, Vue::Vue& vue)
-    : modele(modele), vue(vue),
-      // Create the window in fullscreen using desktop resolution.
-      fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
+        : modele(modele), vue(vue),
+          // Create the window in fullscreen using desktop resolution.
+          fenetre(sf::VideoMode::getDesktopMode(), "Déplacement du personnage", sf::Style::Fullscreen)
     {
         // Fixed framerate for smoother gameplay and deterministic-ish updates.
         fenetre.setFramerateLimit(60);
 
         // Create a per-level controller responsible for gameplay logic.
+        //
+        // WHY pass modele/vue/fenetre by reference:
+        // - ControllerLevel aggregates them; it does not own them
+        // - avoids copies of heavy objects
         niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
 
         // Pause menu managed by RAII.
+        //
+        // WHY unique_ptr:
+        // - allows recreation/reset if needed
+        // - exclusive ownership by Controleur
         pauseMenu = std::make_unique<Vue::PauseMenu>(modele);
     }
 
@@ -40,7 +48,12 @@ namespace Controleur
     void Controleur::afficherMenuAccueil()
     {
         // Lambda to retrieve player scores from the model (used by HomePage UI).
+        //
+        // WHY lambda capturing [this]:
+        // - UI can query current scores on demand without owning the model
+        // - avoids duplicating score state inside HomePage
         auto getScores = [this] -> std::vector<int> {
+            // Returned by value: provides a snapshot of the scores vector.
             return this->modele.getPlayerScores();
         };
 
@@ -84,17 +97,28 @@ namespace Controleur
         // After closing main menu, check if user selected a chapter/level.
         int selChapter = homePage.getSelectedChapter();
         int selLevel = homePage.getSelectedLevel();
+
         if (selChapter >= 0 && selLevel >= 0)
         {
             // If HomePage returned a levelData path, load that level file into the model.
+            //
+            // WHY const std::string&:
+            // - avoids copying the selected path string
             const std::string& lvlPath = homePage.getSelectedLevelData();
+
             if (!lvlPath.empty()) {
                 if (!modele.loadLevelFromFile(lvlPath)) {
                     std::cerr << "[Controleur] Échec du chargement du niveau depuis '" << lvlPath << "'\n";
                 } else {
                     std::cout << "[Controleur] Niveau chargé depuis : " << lvlPath << "\n";
+
                     // Recreate level controller so it picks up the new model state.
+                    //
+                    // WHY recreate ControllerLevel:
+                    // - ControllerLevel keeps internal timer/flags/state specific to a run
+                    // - after loading a new level, we want a fresh per-level state
                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+
                     // Map selected chapter/level to a global mission index used for score slots.
                     // Convention: 0 = tutorial, 1 = test, 2.. = main missions.
                     int missionIndex = 0;
@@ -118,6 +142,7 @@ namespace Controleur
                     else if (selLevel == 2) roomId = 2;
                     else roomId = 0;
                 }
+
                 if (roomId >= 0)
                 {
                     if (!modele.changeRoom(roomId, ""))
@@ -127,6 +152,7 @@ namespace Controleur
                     else
                     {
                         std::cout << "[Controleur] Niveau sélectionné chargé : room " << roomId << "\n";
+
                         // Recreate level controller to ensure a consistent per-level state.
                         niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                     }
@@ -151,6 +177,10 @@ namespace Controleur
         }
 
         // Dialogue manager orchestrates in-game dialogues (modal overlay).
+        //
+        // WHY local variable:
+        // - lifetime is scoped to the gameplay loop
+        // - no ownership sharing needed outside
         Vue::DialogueManager dialogueManager;
 
         int prevRoomIndex = modele.getCurrentRoomIndex();
@@ -164,6 +194,7 @@ namespace Controleur
                 modele.mettreAJourObstacles();
                 modele.updateEnemies();
                 vue.dessiner(fenetre);
+
                 dialogueManager.update(fenetre.getSize());
                 dialogueManager.draw(fenetre);
                 fenetre.display();
@@ -175,12 +206,15 @@ namespace Controleur
 
         // Guards and state flags to avoid re-triggering actions every frame (60 FPS loop).
         bool agentDialogueLaunched = false; // Ajout
-        bool cesrDialogueClosed = false; // Track si dialogue César terminé pour ouvrir CesarVue
-        bool timeDialogueLaunched = false; // guard to start time-up dialogue once
-        bool gameOverPending = false; // attente si un dialogue est actif lors du game over
-        bool gameOverRequested = false; // demande différée de retour au menu (exécuter quand aucun dialogue n'est actif)
+        bool cesrDialogueClosed = false;    // Track si dialogue César terminé pour ouvrir CesarVue
+        bool timeDialogueLaunched = false;  // guard to start time-up dialogue once
+        bool gameOverPending = false;       // attente si un dialogue est actif lors du game over
+        bool gameOverRequested = false;     // demande différée de retour au menu (exécuter quand aucun dialogue n'est actif)
 
         // Lambda to centralize Game Over handling (reset + return to menu).
+        //
+        // WHY capture by reference [&]:
+        // - this lambda manipulates local variables (flags) and members (niveauController) efficiently
         auto processGameOver = [&] {
             std::cout << "[Controleur] Game Over! No more lives." << std::endl;
 
@@ -216,7 +250,8 @@ namespace Controleur
             sf::Event evenement;
             while (fenetre.pollEvent(evenement))
             {
-                // Safety: if the level was destroyed (Game Over or Exit), wait for a new one to be created if (!niveauController) { fenetre.clear(); fenetre.display(); continue; }
+                // Safety: if the level was destroyed (Game Over or Exit), wait for a new one to be created
+                if (!niveauController) { fenetre.clear(); fenetre.display(); continue; }
 
                 if (evenement.type == sf::Event::Closed)
                 { fenetre.close(); }
@@ -227,16 +262,22 @@ namespace Controleur
                 {
                     // Show pause menu and require confirmation for destructive actions.
                     bool abortOuter = false;
-
-                    while (fenetre.isOpen()) {
+                    while (fenetre.isOpen())
+                    {
                         // Note: A local PauseMenu instance is created here (modal pause flow).
+                        //
+                        // WHY local PauseMenu:
+                        // - encapsulates a modal interaction loop
+                        // - does not require persisting pause menu state across frames
                         Vue::PauseMenu pause(modele);
                         pause.setActive(true);
 
                         // Pause loop
-                        while (fenetre.isOpen() && pause.isActive()) {
+                        while (fenetre.isOpen() && pause.isActive())
+                        {
                             sf::Event pe;
-                            while (fenetre.pollEvent(pe)) {
+                            while (fenetre.pollEvent(pe))
+                            {
                                 if (pe.type == sf::Event::Closed) fenetre.close();
                                 pause.handleEvent(pe, fenetre);
                             }
@@ -260,13 +301,14 @@ namespace Controleur
                             Vue::ConfirmationDialog confirm("Exit level? All your progress will be lost.");
 
                             // confirmation loop
-                            while (fenetre.isOpen() && confirm.isActive()) {
+                            while (fenetre.isOpen() && confirm.isActive())
+                            {
                                 sf::Event ce;
-                                while (fenetre.pollEvent(ce)) {
+                                while (fenetre.pollEvent(ce))
+                                {
                                     if (ce.type == sf::Event::Closed) fenetre.close();
                                     confirm.handleEvent(ce, fenetre);
                                 }
-
                                 fenetre.clear(sf::Color::Black);
                                 vue.dessiner(fenetre);
                                 confirm.draw(fenetre);
@@ -283,8 +325,8 @@ namespace Controleur
                                 // Return to main menu and recreate controller afterwards.
                                 afficherMenuAccueil();
                                 if (!niveauController) {
-                                        niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
-                                        timeDialogueLaunched = false;
+                                    niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
+                                    timeDialogueLaunched = false;
                                 }
                                 break; // exit pause handling
                             } else {
@@ -297,13 +339,14 @@ namespace Controleur
                             // Confirm exit game (destructive).
                             Vue::ConfirmationDialog confirm("Exit game? All your progress will be lost.");
 
-                            while (fenetre.isOpen() && confirm.isActive()) {
+                            while (fenetre.isOpen() && confirm.isActive())
+                            {
                                 sf::Event ce;
-                                while (fenetre.pollEvent(ce)) {
+                                while (fenetre.pollEvent(ce))
+                                {
                                     if (ce.type == sf::Event::Closed) fenetre.close();
                                     confirm.handleEvent(ce, fenetre);
                                 }
-
                                 fenetre.clear(sf::Color::Black);
                                 vue.dessiner(fenetre);
                                 confirm.draw(fenetre);
@@ -322,7 +365,6 @@ namespace Controleur
                             }
                         }
                     }
-
                     if (abortOuter) break;
                 }
 
@@ -359,23 +401,29 @@ namespace Controleur
             bool shouldOpen = niveauController->shouldOpenCesarWindow();
             bool dialogueNotActive = !dialogueManager.isDialogueActive();
             bool notClosedYet = !cesrDialogueClosed;
+
             if (shouldOpen && dialogueNotActive && notClosedYet)
             {
                 cesrDialogueClosed = true;
 
                 // Open Cesar window.
+                //
+                // WHY Objective* is passed here:
+                // - Cesar objective is optional (can be nullptr)
+                // - objective is owned by the model; UI only reads/modifies through that reference
                 CesarVue cesarVue(niveauController->getCesarObjective());
 
                 // Cesar window loop.
-                while (fenetre.isOpen() && !cesarVue.shouldWindowClose()) {
+                while (fenetre.isOpen() && !cesarVue.shouldWindowClose())
+                {
                     sf::Event cesarEvent;
-                    while (fenetre.pollEvent(cesarEvent)) {
+                    while (fenetre.pollEvent(cesarEvent))
+                    {
                         if (cesarEvent.type == sf::Event::Closed) {
                             fenetre.close();
                         }
                         cesarVue.handleEvent(cesarEvent, fenetre);
                     }
-
                     fenetre.clear(sf::Color::Black);
                     cesarVue.draw(fenetre);
                     fenetre.display();
@@ -399,6 +447,7 @@ namespace Controleur
             {
                 niveauController->handleInput();
                 niveauController->update();
+
                 modele.mettreAJourObstacles();
                 modele.updateEnemies(); // update enemy logic + animations (from sav)
 
@@ -412,13 +461,18 @@ namespace Controleur
                 {
                     prevRoomIndex = after;
                     std::string roomDialog = modele.getCurrentRoomDialogueRef();
-                    if (!roomDialog.empty() && !modele.isCurrentRoomDialogueShown() && dialogueManager.hasDialogueSequence(roomDialog) && !dialogueManager.isDialogueActive())
+
+                    if (!roomDialog.empty()
+                        && !modele.isCurrentRoomDialogueShown()
+                        && dialogueManager.hasDialogueSequence(roomDialog)
+                        && !dialogueManager.isDialogueActive())
                     {
                         // Update visuals once so the enemy/agent positions reflect the new room.
                         modele.syncPlayerSprite();
                         modele.mettreAJourObstacles();
                         modele.updateEnemies();
                         vue.dessiner(fenetre);
+
                         dialogueManager.update(fenetre.getSize());
                         dialogueManager.draw(fenetre);
                         fenetre.display();
@@ -471,7 +525,7 @@ namespace Controleur
                 gameOverPending = false;
                 gameOverRequested = false;
                 processGameOver();
-                continue; //  leave this frame immediately
+                continue; // leave this frame immediately
             }
 
             // If the time-up dialogue finished, return to main menu.
@@ -486,7 +540,9 @@ namespace Controleur
                     modele.reset();
                     niveauController = std::make_unique<ControllerLevel>(modele, vue, fenetre);
                 }
+
                 timeDialogueLaunched = false;
+
                 // skip rendering the rest of this frame
                 continue;
             }

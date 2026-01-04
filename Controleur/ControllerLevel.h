@@ -1,6 +1,5 @@
 
 #pragma once
-
 #include <SFML/Graphics.hpp>
 #include "Modele.h"
 #include "Vue.h"
@@ -16,6 +15,11 @@ class ControllerLevel {
 public:
     // The controller does NOT own the model, view, or window.
     // They are provided from outside and must outlive this controller (aggregation).
+    //
+    // WHY references (&) instead of pointers:
+    // - expresses "non-null dependency" (controller cannot exist without these objects)
+    // - avoids ownership confusion (controller does not delete them)
+    // - avoids copying heavy objects (RenderWindow, Model, View)
     ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::RenderWindow& fenetre);
 
     // Read user input (keyboard state) and build the intended movement vector.
@@ -30,6 +34,9 @@ public:
     // Process consequences related to collisions:
     // - objective contact -> start dialogues / set accomplishment
     // - detection -> life loss and detection counters
+    //
+    // WHY DialogueManager passed by non-const reference:
+    // - this function triggers dialogues (mutates dialogue manager state)
     void processCollisions(Vue::DialogueManager &dialogueManager);
 
     // Flag consumed by a higher-level controller to open a special "Cesar" window
@@ -62,6 +69,10 @@ public:
 private:
     // Aggregation: references enforce "non-null" dependencies and avoid copies.
     // Lifetime must be managed by the caller.
+    //
+    // WHY store these as references:
+    // - controller does not own these objects (no deletion)
+    // - ensures they always exist (no null checks needed)
     Modele::Modele& modele;
     Vue::Vue& vue;
     sf::RenderWindow& fenetre;
@@ -75,6 +86,11 @@ private:
 
     // Pointer used because the Cesar objective is optional (nullptr means "none").
     // The pointed Objective is owned/stored by the model; controller only references it.
+    //
+    // WHY raw pointer here:
+    // - optional association: sometimes there is a Cesar objective, sometimes not
+    // - non-owning reference to an Objective managed by the model containers
+    // - nullptr cleanly represents "no Cesar objective"
     Objective* cesarObjective = nullptr;
 
     // Set when the player confirmed leaving the level (e.g. via exit door).

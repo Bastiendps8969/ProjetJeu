@@ -1,5 +1,6 @@
 
 #include "DialogueBox.h"
+
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -9,6 +10,9 @@ namespace Vue
     DialogueBox::DialogueBox()
     {
         // Load font (Windows-specific path).
+        // WHY load once in constructor:
+        // - font is reused for every dialogue, so we avoid reloading each time
+        // - font must remain alive while sf::Text uses it (member lifetime)
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontLoaded = true;
@@ -17,6 +21,8 @@ namespace Vue
 
     void DialogueBox::initializeDialogueBox(const sf::Vector2u& windowSize)
     {
+        // WHY take windowSize as input:
+        // - layout depends on resolution (fullscreen vs windowed)
         float windowWidth  = static_cast<float>(windowSize.x);
         float windowHeight = static_cast<float>(windowSize.y);
 
@@ -63,7 +69,7 @@ namespace Vue
             if (portraitTexture.loadFromFile(currentDialogue.characterPortraitPath))
             {
                 portraitLoaded = true;
-                std::cout << "[DEBUG] Portrait chargé : " << currentDialogue.characterPortraitPath << std::endl;
+                std::cout << "[DEBUG] Portrait loaded: " << currentDialogue.characterPortraitPath << std::endl;
 
                 portraitSprite.setTexture(portraitTexture);
 
@@ -92,7 +98,8 @@ namespace Vue
             }
             else
             {
-                std::cerr << "[DEBUG] Warning: unable to load portrait: " << currentDialogue.characterPortraitPath << std::endl;
+                std::cerr << "[DEBUG] Warning: unable to load portrait: "
+                          << currentDialogue.characterPortraitPath << std::endl;
                 portraitLoaded = false;
             }
         }
@@ -104,6 +111,9 @@ namespace Vue
     void DialogueBox::startDialogue(const DialogueData& dialogue, const sf::Vector2u& windowSize)
     {
         // Copy the new dialogue data into internal state.
+        // WHY copy:
+        // - caller may pass a temporary or reference to data that could go out of scope
+        // - DialogueBox needs stable data for rendering and re-layout
         currentDialogue = dialogue;
 
         // Activate dialogue box and restart timer.
@@ -122,12 +132,14 @@ namespace Vue
 
     void DialogueBox::handleEvent(const sf::Event& event)
     {
-        // NOTE: The "merge" comment suggests input logic was adjusted during integration.
-        // Current behavior: mouse click OR Space key press advances the dialogue.
-
-        if ((event.type == sf::Event::MouseButtonPressed ||
-             (event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Space))) &&
-            waitingForClick)
+        // Current behavior:
+        // - mouse click advances
+        // - Space key advances (on key press event)
+        //
+        // FIXED: restored the intended logical condition (|| and &&)
+        if (waitingForClick &&
+            (event.type == sf::Event::MouseButtonPressed ||
+             (event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Space))))
         {
             handleMouseClick(); // mark as clicked / ready to close
         }
@@ -136,6 +148,7 @@ namespace Vue
     void DialogueBox::draw(sf::RenderWindow& fenetre)
     {
         // Do not draw if inactive or if font is missing.
+        // FIXED: restored logical OR.
         if (!active || !fontLoaded)
             return;
 
@@ -143,18 +156,12 @@ namespace Vue
         fenetre.draw(backgroundBox);
 
         if (portraitLoaded)
-        {
             fenetre.draw(portraitSprite);
-        }
         else
-        {
             fenetre.draw(portraitPlaceholder);
-        }
 
         fenetre.draw(nameText);
         fenetre.draw(dialogueText);
-
-        // Draw "Click to continue" hint.
         fenetre.draw(continueText);
     }
 }

@@ -1,9 +1,10 @@
+
 #include "Objective.h"
 #include <iostream>
 #include <utility>
 #include <vector>
 
-//  Constructors
+// Constructors
 Objective::Objective() {
     // valeurs neutres
     title = "Objective";
@@ -24,6 +25,10 @@ Objective::Objective() {
     // (contour magenta) au lieu d'un sprite par défaut non désiré.
     // L'affectation d'une texture doit être faite explicitement via
     // `setTexture()` lorsque le JSON en spécifie une.
+
+    // WHY no default texture here (design intent):
+    // - avoids unexpected visuals when configuration provides no texture
+    // - keeps a clear "debug hitbox only" fallback path
 }
 
 Objective::Objective(std::string t, std::string d, sf::Texture tex,
@@ -37,6 +42,10 @@ Objective::Objective(std::string t, std::string d, sf::Texture tex,
 
     // Copier la texture dans l'attribut interne
     this->texture = std::move(tex);
+
+    // WHY std::move(tex):
+    // - transfers the texture resource into Objective without an extra deep copy (when possible)
+    // - Objective becomes the owner of its internal sf::Texture instance
 
     if (this->texture.getSize().x > 0 && this->texture.getSize().y > 0)
         sprite.setTexture(this->texture);
@@ -62,9 +71,12 @@ Objective::Objective(std::string t, std::string d, sf::Texture tex,
     sprite.setPosition(x, y);
 }
 
-//  Destructor
+// Destructor
 Objective::~Objective() {
     std::cout << "Objective " << this->getTitle() << " has been destroyed" << std::endl;
+
+    // WHY destructor prints:
+    // - debugging / lifetime tracing (helps confirm moves/copies/destructions)
 }
 
 // Move constructor
@@ -74,14 +86,17 @@ Objective::~Objective() {
 // déplacée/copied ailleurs. Pour garantir la validité du sprite après
 // déplacement, on réaffecte la texture au sprite via `sprite.setTexture(texture)`.
 Objective::Objective(Objective&& other) noexcept
-        : title(std::move(other.title)), description(std::move(other.description)),
-            primary(other.primary), accomplished(other.accomplished),
-            hitbox(std::move(other.hitbox)), sprite(std::move(other.sprite)),
-            texture(std::move(other.texture)), dialogueFile(std::move(other.dialogueFile)),
-            dialogueRef(std::move(other.dialogueRef)),
-            cesar(other.cesar), code(std::move(other.code)), changeValue(other.changeValue)
+    : title(std::move(other.title)), description(std::move(other.description)),
+      primary(other.primary), accomplished(other.accomplished),
+      hitbox(std::move(other.hitbox)), sprite(std::move(other.sprite)),
+      texture(std::move(other.texture)), dialogueFile(std::move(other.dialogueFile)),
+      dialogueRef(std::move(other.dialogueRef)),
+      cesar(other.cesar), code(std::move(other.code)), changeValue(other.changeValue)
 {
-    if (texture.getSize().x > 0 || texture.getSize().y > 0) {
+    // WHY re-bind sprite texture after move:
+    // - sf::Sprite internally references texture data
+    // - after moving sf::Texture, the sprite must be pointed to this->texture again
+    if (texture.getSize().x > 0 && texture.getSize().y > 0) {
         sprite.setTexture(texture);
     }
 }
@@ -103,7 +118,9 @@ Objective& Objective::operator=(Objective&& other) noexcept
         code = std::move(other.code);
         changeValue = other.changeValue;
 
-        if (texture.getSize().x > 0 || texture.getSize().y > 0) {
+        // WHY re-bind sprite texture after move assignment:
+        // - ensures sprite references the texture stored in *this* after the move
+        if (texture.getSize().x > 0 && texture.getSize().y > 0) {
             sprite.setTexture(texture);
         }
     }
@@ -115,13 +132,15 @@ Objective& Objective::operator=(Objective&& other) noexcept
 // aussi réaffecter le sprite sur cette nouvelle texture afin d'éviter
 // que le sprite référence l'ancienne texture (ou un pointeur invalide).
 Objective::Objective(const Objective& other)
-        : title(other.title), description(other.description),
-            primary(other.primary), accomplished(other.accomplished),
-            hitbox(other.hitbox), sprite(other.sprite), texture(other.texture),
-            dialogueFile(other.dialogueFile), dialogueRef(other.dialogueRef),
-            cesar(other.cesar), code(other.code), changeValue(other.changeValue)
+    : title(other.title), description(other.description),
+      primary(other.primary), accomplished(other.accomplished),
+      hitbox(other.hitbox), sprite(other.sprite), texture(other.texture),
+      dialogueFile(other.dialogueFile), dialogueRef(other.dialogueRef),
+      cesar(other.cesar), code(other.code), changeValue(other.changeValue)
 {
-    if (texture.getSize().x > 0 || texture.getSize().y > 0) {
+    // WHY re-bind sprite texture after copy:
+    // - sprite must reference the copied texture owned by *this*
+    if (texture.getSize().x > 0 && texture.getSize().y > 0) {
         sprite.setTexture(texture);
     }
 }
@@ -143,31 +162,46 @@ Objective& Objective::operator=(const Objective& other)
         code = other.code;
         changeValue = other.changeValue;
 
-        if (texture.getSize().x > 0 || texture.getSize().y > 0) {
+        // WHY re-bind sprite texture after copy assignment:
+        // - ensures sprite points to this->texture (the copied texture)
+        if (texture.getSize().x > 0 && texture.getSize().y > 0) {
             sprite.setTexture(texture);
         }
     }
     return *this;
 }
 
-
-//  Setters
+// Setters
 void Objective::setTitle(const std::string& t) {
+    // WHY const reference:
+    // - avoids copying the string parameter
     title = t;
 }
+
 void Objective::setDescription(const std::string& d) {
+    // WHY const reference:
+    // - avoids copying the string parameter
     description = d;
 }
+
 void Objective::setAccomplished(const bool b) {
+    // WHY pass bool by value:
+    // - trivial type; simplest and most efficient
     accomplished = b;
 }
+
 void Objective::setPrimary(const bool b) {
+    // WHY pass bool by value:
+    // - trivial type; simplest and most efficient
     primary = b;
 }
 
 void Objective::setTexture(const std::string& t) {
-    if (texture.loadFromFile(t)) {
+    // WHY const std::string&:
+    // - file path can be long; avoid copy
+    // - read-only input
 
+    if (texture.loadFromFile(t)) {
         sprite.setTexture(texture);
 
         // Ajuster la taille du sprite à la hitbox
@@ -175,7 +209,6 @@ void Objective::setTexture(const std::string& t) {
             hitbox.getSize().x / texture.getSize().x,
             hitbox.getSize().y / texture.getSize().y
         );
-
         sprite.setPosition(hitbox.getPosition());
     }
     else {
@@ -184,11 +217,15 @@ void Objective::setTexture(const std::string& t) {
 }
 
 void Objective::setHitboxPosition(float x, float y) {
+    // WHY pass floats by value:
+    // - primitive types; cheap and clear
     hitbox.setPosition(sf::Vector2f(x, y));
     sprite.setPosition(sf::Vector2f(x, y));
 }
 
 void Objective::setHitboxSize(float w, float h) {
+    // WHY pass floats by value:
+    // - primitive types; cheap and clear
     hitbox.setSize(sf::Vector2f(w, h));
 
     // Recalibrer le sprite si la taille change
@@ -202,56 +239,81 @@ void Objective::setHitboxSize(float w, float h) {
 }
 
 void Objective::setDialogueFile(const std::string& df) {
+    // WHY const reference:
+    // - avoid copying a string parameter
     dialogueFile = df;
 }
+
 void Objective::setDialogueRef(const std::string& dr) {
+    // WHY const reference:
+    // - avoid copying a string parameter
     dialogueRef = dr;
 }
 
 void Objective::setCesar(bool b) {
+    // WHY pass bool by value:
+    // - trivial type
     cesar = b;
 }
+
 void Objective::setCode(const std::string& c) {
+    // WHY const reference:
+    // - avoid copying code string
     code = c;
 }
+
 void Objective::setchangeValue(int v) {
+    // WHY pass int by value:
+    // - trivial type
     changeValue = v;
 }
 
-
-
-
-//  Getters
+// Getters
 std::string Objective::getTitle() const {
+    // Returned by value: provides a safe copy of internal state.
     return title;
 }
+
 std::string Objective::getDescription() const {
+    // Returned by value: provides a safe copy of internal state.
     return description;
 }
+
 bool Objective::isAccomplished() const {
     return accomplished;
 }
+
 bool Objective::isPrimary() const {
     return primary;
 }
+
 sf::Texture Objective::getTexture() const {
+    // Returned by value: caller receives a copy of the texture.
     return texture;
 }
+
 sf::Sprite Objective::getSprite() const {
+    // Returned by value: caller receives a copy of the sprite.
     return sprite;
 }
+
 sf::Vector2f Objective::getHitboxPosition() const {
     return hitbox.getPosition();
 }
+
 sf::Vector2f Objective::getHitboxSize() const {
     return hitbox.getSize();
 }
+
 sf::RectangleShape Objective::getHitbox() const {
+    // Returned by value: caller receives a copy of the hitbox shape.
     return hitbox;
 }
+
 std::string Objective::getDialogueFile() const {
     return dialogueFile;
 }
+
 std::string Objective::getDialogueRef() const {
     return dialogueRef;
 }
@@ -259,40 +321,39 @@ std::string Objective::getDialogueRef() const {
 bool Objective::isCesar() const {
     return cesar;
 }
+
 std::string Objective::getCode() const {
     return code;
 }
+
 int Objective::getChangeValue() const {
     return changeValue;
 }
 
-//  Calculate the value of the altered code
-//  Only use letters, no numbers or symbols
+// Calculate the value of the altered code
+// Only use letters, no numbers or symbols
 std::string Objective::calculateAlteredCode() const {
+    // WHY return by value:
+    // - produces a new computed string result (does not modify original code)
     std::string altered = code;
     int base = 0;
     int newLetter;
+
     for (int i = 0; i < code.size(); i++) {
-        //  Between A and Z
+        // Between A and Z
         if (static_cast<int>(code[i]) >= 65 && static_cast<int>(code[i]) <= 90) {
             base = 65;
         } else {
             base = 97;
         }
-
-        //  Value between 0 and 25
+        // Value between 0 and 25
         newLetter = int(code[i]) - base;
-
-        //  Value between 0 and 25
+        // Value between 0 and 25
         newLetter = (newLetter + changeValue) % 26;
-
-        //  Get the correct ASCII value
+        // Get the correct ASCII value
         newLetter = newLetter + base;
-
-        //  Change the letter
+        // Change the letter
         altered[i] = char(newLetter);
     }
-
     return altered;
 }
-

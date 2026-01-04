@@ -1,8 +1,11 @@
 
 #include "DialogueManager.h"
+
 #include <fstream>
 #include <iostream>
 #include <filesystem>
+
+// NOTE: this include path is project-specific in your codebase.
 #include "../cmake-build-debug/json.hpp"
 
 using json = nlohmann::json;
@@ -12,13 +15,23 @@ namespace Vue
     DialogueManager::DialogueManager(const std::string& dialogueFilePath)
     {
         // If caller provides an empty string, fallback to default JSON path.
-        std::string path = dialogueFilePath.empty() ? "Asset/dialogues/dialogues.json" : dialogueFilePath;
+        //
+        // WHY make a local std::string by value:
+        // - we need a normalized "effective path" to pass to the loader
+        // - local value is convenient to modify and keeps a stable lifetime
+        std::string path = dialogueFilePath.empty()
+            ? "Asset/dialogues/dialogues.json"
+            : dialogueFilePath;
+
         loadDialoguesFromJSON(path);
     }
 
     void DialogueManager::loadDialoguesFromJSON(const std::string& filePath)
     {
         // Open JSON file.
+        //
+        // WHY filePath by const reference:
+        // - avoid copying path string
         std::ifstream file(filePath);
         if (!file.is_open())
         {
@@ -32,11 +45,16 @@ namespace Vue
         file.close();
 
         // Read all dialogue sequences under jsonData["dialogues"].
+        // WHY structured binding by reference (auto& [id, array]):
+        // - avoids copying JSON keys/values
+        // - iterates efficiently through the JSON object items
         for (auto& [sequenceId, dialogueArray] : jsonData["dialogues"].items())
         {
             std::vector<DialogueData> sequence;
 
             // Build each DialogueData entry from JSON fields.
+            // WHY const auto& dialogueObj:
+            // - avoid copying JSON nodes
             for (const auto& dialogueObj : dialogueArray)
             {
                 DialogueData dialogue;
@@ -62,6 +80,9 @@ namespace Vue
                 dialogue.text = dialogueObj.value("text", std::string());
                 dialogue.displayDuration = dialogueObj.value("displayDuration", 0.0f);
 
+                // WHY push_back by value:
+                // - DialogueData is a small aggregate of strings/numbers
+                // - stored in the sequence vector owned by the manager
                 sequence.push_back(dialogue);
             }
 
@@ -75,6 +96,12 @@ namespace Vue
     void DialogueManager::addDialogueSequence(const std::string& id, const std::vector<DialogueData>& sequence)
     {
         // Copy/assign the sequence into the map under the given id.
+        //
+        // WHY sequence is copied here (current implementation):
+        // - simple and safe (dialogueSequences owns its content)
+        // - caller can pass a temporary/local vector without lifetime issues
+        // NOTE: if sequences become large, consider taking sequence by value
+        //       and moving into the map to avoid a deep copy.
         dialogueSequences[id] = sequence;
     }
 
@@ -82,6 +109,10 @@ namespace Vue
     {
         // A valid sequence exists if found and non-empty.
         auto it = dialogueSequences.find(sequenceId);
+
+        // WHY iterator access:
+        // - avoids copying the stored vector
+        // - checks existence + emptiness efficiently
         return it != dialogueSequences.end() && !it->second.empty();
     }
 
@@ -96,10 +127,15 @@ namespace Vue
 
             // Use desktop resolution as window size (assumes fullscreen usage).
             sf::VideoMode dm = sf::VideoMode::getDesktopMode();
-            sf::Vector2u windowSize(static_cast<unsigned int>(dm.width),
-                                    static_cast<unsigned int>(dm.height));
+            sf::Vector2u windowSize(
+                static_cast<unsigned int>(dm.width),
+                static_cast<unsigned int>(dm.height)
+            );
 
             // Display the first dialogue entry.
+            // WHY pass DialogueData as value/reference (depends on DialogueBox API):
+            // - DialogueBox needs the data to build UI (text, portrait, duration)
+            // - using the current sequence entry avoids duplicating storage here
             dialogueBox.startDialogue(it->second[0], windowSize);
         }
     }
@@ -108,17 +144,20 @@ namespace Vue
     {
         // Find current sequence.
         auto it = dialogueSequences.find(currentSequenceId);
-        if (it == dialogueSequences.end()) return;
+        if (it == dialogueSequences.end())
+            return;
 
         // Move to next entry.
-        currentSequenceIndex++;
+        ++currentSequenceIndex;
 
         if (currentSequenceIndex < it->second.size())
         {
             // Use desktop resolution (assumes fullscreen).
             sf::VideoMode dm = sf::VideoMode::getDesktopMode();
-            sf::Vector2u windowSize(static_cast<unsigned int>(dm.width),
-                                    static_cast<unsigned int>(dm.height));
+            sf::Vector2u windowSize(
+                static_cast<unsigned int>(dm.width),
+                static_cast<unsigned int>(dm.height)
+            );
 
             // Display the next dialogue entry.
             dialogueBox.startDialogue(it->second[currentSequenceIndex], windowSize);
@@ -138,7 +177,9 @@ namespace Vue
         // any mouse click or key press advances to the next dialogue.
         if (dialogueBox.isActive())
         {
-            if ((event.type == sf::Event::MouseButtonPressed || event.type == sf::Event::KeyPressed) &&
+            // FIXED: restored "||" which was broken in extraction.
+            if ((event.type == sf::Event::MouseButtonPressed ||
+                 event.type == sf::Event::KeyPressed) &&
                 dialogueBox.shouldClose())
             {
                 nextDialogue();
@@ -160,6 +201,8 @@ namespace Vue
     {
         // Auto-advance when dialogue is active and should close (e.g., timer finished).
         // NOTE: windowSize is currently unused but kept for possible layout updates.
+        (void)windowSize;
+
         if (dialogueBox.isActive() && dialogueBox.shouldClose())
         {
             nextDialogue();

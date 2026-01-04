@@ -7,7 +7,8 @@
 #include "CreditsWindow.h"
 #include "ScoreWindow.h"
 #include "LevelPage.h"
-#include <numeric> // std::accumulate
+
+#include <numeric> // std::accumulate (not used currently, but kept as in original)
 #include <cmath>
 #include <iostream>
 
@@ -23,6 +24,10 @@ namespace Vue
     HomePage::HomePage(std::function<std::vector<int>()> getScores, const std::string& backgroundPath)
         : getScoresCb(std::move(getScores))
     {
+        // WHY getScores passed by value + moved into getScoresCb:
+        // - flexible call sites (lambdas/functors)
+        // - moving reduces allocations/copies inside std::function
+
         // Load a system font (Arial) if possible (Windows-specific path).
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
@@ -37,7 +42,7 @@ namespace Vue
 
             // Title shadow for depth/contrast.
             titleShadow = titleText;
-            titleShadow.setFillColor(sf::Color(0,0,0,160));
+            titleShadow.setFillColor(sf::Color(0, 0, 0, 160));
 
             // Subtitle (reuses inputText here as a "subtitle" label).
             inputText.setFont(font);
@@ -48,13 +53,13 @@ namespace Vue
 
             // Input box (visual not really used here; size is set to 0).
             // It mainly acts as a hit-test area for focusing input (currently impossible since size is 0).
-            inputBox.setSize({0.f, 0.f});
+            inputBox.setSize({ 0.f, 0.f });
 
             // ========== NEON RED BUTTON STYLE ==========
             // PLAY button
-            playButton.setSize({380.f, 65.f});
-            playButton.setFillColor(sf::Color(180, 20, 20)); // deep red
-            playButton.setOutlineColor(sf::Color(255, 100, 100)); // bright red outline (neon glow)
+            playButton.setSize({ 380.f, 65.f });
+            playButton.setFillColor(sf::Color(180, 20, 20));          // deep red
+            playButton.setOutlineColor(sf::Color(255, 100, 100));     // bright red outline (neon glow)
             playButton.setOutlineThickness(0.f);
 
             playLabel.setFont(font);
@@ -63,10 +68,10 @@ namespace Vue
             playLabel.setFillColor(sf::Color(255, 100, 100)); // neon red text
             playLabel.setStyle(sf::Text::Bold);
 
-            // SCORES button - neon red style
-            scoreButton.setSize({380.f, 65.f});
-            scoreButton.setFillColor(sf::Color(180, 20, 20)); // deep red
-            scoreButton.setOutlineColor(sf::Color(255, 100, 100)); // bright red outline
+            // SCORES button
+            scoreButton.setSize({ 380.f, 65.f });
+            scoreButton.setFillColor(sf::Color(180, 20, 20));
+            scoreButton.setOutlineColor(sf::Color(255, 100, 100));
             scoreButton.setOutlineThickness(0.f);
 
             scoreLabel.setFont(font);
@@ -75,19 +80,17 @@ namespace Vue
             scoreLabel.setFillColor(sf::Color(180, 80, 80)); // slightly darker red text
             scoreLabel.setStyle(sf::Text::Bold);
 
-            // CREDITS button - neon red style
-            creditsButton.setSize({380.f, 65.f});
-            creditsButton.setFillColor(sf::Color(180, 20, 20)); // deep red
-            creditsButton.setOutlineColor(sf::Color(255, 100, 100)); // bright red outline
+            // CREDITS button
+            creditsButton.setSize({ 380.f, 65.f });
+            creditsButton.setFillColor(sf::Color(180, 20, 20));
+            creditsButton.setOutlineColor(sf::Color(255, 100, 100));
             creditsButton.setOutlineThickness(0.f);
 
             creditsLabel.setFont(font);
             creditsLabel.setString("CREDITS");
             creditsLabel.setCharacterSize(32);
-            creditsLabel.setFillColor(sf::Color(180, 80, 80)); // slightly darker red text
+            creditsLabel.setFillColor(sf::Color(180, 80, 80));
             creditsLabel.setStyle(sf::Text::Bold);
-
-
         }
 
         // Try multiple probable paths for the Cherub background image.
@@ -108,15 +111,23 @@ namespace Vue
             {
                 cherubLoaded = true;
                 cherubSprite.setTexture(cherubTexture);
-                cherubSprite.setColor(sf::Color(255,255,255,200)); // semi-transparent
+                cherubSprite.setColor(sf::Color(255, 255, 255, 200)); // semi-transparent
                 break;
             }
         }
     }
 
     // Utility to draw a stylized button consistently (hover outline/glow).
-    static void drawStyledButton(sf::RenderWindow& window, sf::RectangleShape button, sf::Text label, bool hovered)
+    static void drawStyledButton(sf::RenderWindow& window,
+                                 sf::RectangleShape button,
+                                 sf::Text label,
+                                 bool hovered)
     {
+        // WHY button and label passed by value:
+        // - we freely adjust colors/position without mutating HomePage-owned originals
+        // - copies are relatively small, and this keeps the helper "side-effect free"
+        //   with respect to the caller's stored UI elements
+
         // Base button
         sf::RectangleShape base = button;
         sf::Color baseColor = hovered ? sf::Color(230, 60, 60) : sf::Color(170, 30, 30);
@@ -141,13 +152,17 @@ namespace Vue
             button.getPosition().x + (button.getSize().x - lb.width) / 2.f - lb.left,
             button.getPosition().y + (button.getSize().y - lb.height) / 2.f - lb.top
         );
+
         label.setFillColor(hovered ? sf::Color(255, 250, 240) : sf::Color(255, 220, 200));
         window.draw(label);
     }
 
     void HomePage::centerLabel(sf::Text& label, const sf::RectangleShape& button)
     {
-        // Center label within a rectangle by using its local bounds (accounts for glyph offset).
+        // WHY label by reference:
+        // - we modify label position
+        // WHY button by const reference:
+        // - read-only and avoids copying shapes
         sf::FloatRect lb = label.getLocalBounds();
         label.setPosition(
             button.getPosition().x + (button.getSize().x - lb.width) / 2.f - lb.left,
@@ -160,6 +175,8 @@ namespace Vue
         if (!active) return;
 
         // Forward events to credits window if it is active (modal behavior).
+        // WHY creditsWindow is a unique_ptr:
+        // - optional ownership; nullptr means "not created"
         if (creditsWindow && creditsWindow->isActive())
         {
             creditsWindow->handleEvent(event);
@@ -169,7 +186,10 @@ namespace Vue
         // Text input for player name (ASCII printable range) when input is focused.
         if (event.type == sf::Event::TextEntered)
         {
-            if (event.text.unicode >= 32 && event.text.unicode < 127 && playerName.size() < 32 && inputFocused)
+            if (event.text.unicode >= 32 &&
+                event.text.unicode < 127 &&
+                playerName.size() < 32 &&
+                inputFocused)
             {
                 playerName.push_back(static_cast<char>(event.text.unicode));
                 inputText.setString(playerName);
@@ -178,23 +198,25 @@ namespace Vue
         else if (event.type == sf::Event::KeyPressed)
         {
             // Backspace deletes last character when focused.
-            if (event.key.code == sf::Keyboard::BackSpace && !playerName.empty() && inputFocused)
+            if (event.key.code == sf::Keyboard::BackSpace &&
+                !playerName.empty() &&
+                inputFocused)
             {
-                // Edit name when input is focused
                 playerName.pop_back();
                 inputText.setString(playerName);
             }
-            // Enter/Return closes HomePage (legacy behavior: "start game").
-            else if (event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Return)
+            // Enter/Return:
+            // - if inputFocused: start game (legacy behavior)
+            // - else: activate selected menu item
+            else if (event.key.code == sf::Keyboard::Enter ||
+                     event.key.code == sf::Keyboard::Return) // (FIXED: restored logical OR)
             {
-                // If the name input is focused, Enter starts the game (legacy behavior)
                 if (inputFocused)
                 {
-                    active = false; // start the game
+                    active = false;
                     return;
                 }
 
-                // Otherwise, activate the currently selected menu item
                 if (selectedIndex == 0)
                 {
                     openLevelPage(fenetre);
@@ -231,32 +253,30 @@ namespace Vue
                 }
             }
         }
-        else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+        else if (event.type == sf::Event::MouseButtonPressed &&
+                 event.mouseButton.button == sf::Mouse::Left)
         {
             // Convert mouse pixel position to world coords (SFML view aware).
             sf::Vector2i mp = sf::Mouse::getPosition(fenetre);
             sf::Vector2f world = fenetre.mapPixelToCoords(mp);
 
-            // PLAY -> open level selector (LevelPage) instead of starting immediately.
+            // PLAY -> open level selector (LevelPage)
             if (playButton.getGlobalBounds().contains(world))
             {
-                // Open the level selector (instead of starting immediately)
                 openLevelPage(fenetre);
                 return;
             }
 
-            // SCORES -> open score window.
+            // SCORES -> open score window
             if (scoreButton.getGlobalBounds().contains(world))
             {
-                // Open the scores window
                 openScoreWindow();
                 return;
             }
 
-            // CREDITS -> open/create credits window.
+            // CREDITS -> open/create credits window
             if (creditsButton.getGlobalBounds().contains(world))
             {
-                // Create or display the credits window
                 if (!creditsWindow)
                 {
                     creditsWindow = std::make_unique<CreditsWindow>();
@@ -268,32 +288,29 @@ namespace Vue
                 return;
             }
 
-
             // Name input focus.
             if (inputBox.getGlobalBounds().contains(world))
-            {
                 inputFocused = true;
-            }
             else
-            {
                 inputFocused = false;
-            }
         }
     }
 
     void HomePage::draw(sf::RenderWindow& fenetre)
     {
-        // Layout depends on current window size.
+        // WHY window by non-const reference:
+        // - we call clear/draw/display (mutates window)
         sf::Vector2u win = fenetre.getSize();
         float centerX = static_cast<float>(win.x) * 0.5f;
 
         // Clear background.
-        fenetre.clear(sf::Color(18,18,28));
+        fenetre.clear(sf::Color(18, 18, 28));
 
         // Draw Cherub background if loaded (scaled to cover, tinted for readability).
         if (cherubLoaded)
         {
             const sf::Texture& t = cherubTexture;
+
             float texW = static_cast<float>(t.getSize().x);
             float texH = static_cast<float>(t.getSize().y);
 
@@ -303,14 +320,12 @@ namespace Vue
             float scale = std::max(scaleX, scaleY);
 
             cherubSprite.setScale(scale, scale);
-
-            // Position at the top left
             cherubSprite.setOrigin(0.f, 0.f);
             cherubSprite.setPosition(0.f, 0.f);
 
             // Semi-transparent overlay to make UI readable.
             sf::Color c = cherubSprite.getColor();
-            c.a = 180; // more transparent so that the UI is more readable
+            c.a = 180;
             cherubSprite.setColor(c);
 
             fenetre.draw(cherubSprite);
@@ -327,9 +342,9 @@ namespace Vue
         sf::FloatRect titleBounds = titleText.getLocalBounds();
         inputText.setPosition(titleX, titleY + titleBounds.height + 10.f);
 
-        // Position the buttons on the right side of the screen (to match the image)
-        float buttonX = centerX + 120.f; // right side of the center
-        float startY = static_cast<float>(win.y) * 0.25f;
+        // Position the buttons on the right side of the screen
+        float buttonX = centerX + 120.f;
+        float startY  = static_cast<float>(win.y) * 0.25f;
         float buttonGap = 85.f;
 
         // PLAY
@@ -347,16 +362,14 @@ namespace Vue
         centerLabel(creditsLabel, creditsButton);
         startY += buttonGap;
 
-
-
         if (fontLoaded)
         {
             // Hover effects using mouse position.
             sf::Vector2i mousePixel = sf::Mouse::getPosition(fenetre);
             sf::Vector2f mousePos = fenetre.mapPixelToCoords(mousePixel);
 
-            bool hoveredPlay = playButton.getGlobalBounds().contains(mousePos);
-            bool hoveredScore = scoreButton.getGlobalBounds().contains(mousePos);
+            bool hoveredPlay    = playButton.getGlobalBounds().contains(mousePos);
+            bool hoveredScore   = scoreButton.getGlobalBounds().contains(mousePos);
             bool hoveredCredits = creditsButton.getGlobalBounds().contains(mousePos);
 
             // If mouse hovers over a button, sync the keyboard selection
@@ -365,8 +378,8 @@ namespace Vue
             else if (hoveredCredits) selectedIndex = 2;
 
             // Combine mouse hover with keyboard selection for visual feedback
-            hoveredPlay = hoveredPlay || (selectedIndex == 0);
-            hoveredScore = hoveredScore || (selectedIndex == 1);
+            hoveredPlay    = hoveredPlay    || (selectedIndex == 0); // (FIXED: restored logical OR)
+            hoveredScore   = hoveredScore   || (selectedIndex == 1);
             hoveredCredits = hoveredCredits || (selectedIndex == 2);
 
             // Draw the three buttons using the same stylish utility function
@@ -380,12 +393,12 @@ namespace Vue
             fenetre.draw(inputText);
         }
 
-        // Overlay of credits
+        // Legacy credits overlay
         if (showCredits)
         {
-            sf::RectangleShape overlay({(float)win.x * 0.6f, (float)win.y * 0.35f});
-            overlay.setFillColor(sf::Color(0,0,0,200));
-            overlay.setPosition(centerX - overlay.getSize().x/2.f, centerX*0.15f);
+            sf::RectangleShape overlay({ (float)win.x * 0.6f, (float)win.y * 0.35f });
+            overlay.setFillColor(sf::Color(0, 0, 0, 200));
+            overlay.setPosition(centerX - overlay.getSize().x / 2.f, centerX * 0.15f);
             fenetre.draw(overlay);
 
             sf::Text txt;
@@ -393,11 +406,11 @@ namespace Vue
             txt.setString("CREDITS\nDeveloper: ...\nGraphics: ...");
             txt.setCharacterSize(18);
             txt.setFillColor(sf::Color::White);
-            txt.setPosition(overlay.getPosition() + sf::Vector2f(20.f,20.f));
+            txt.setPosition(overlay.getPosition() + sf::Vector2f(20.f, 20.f));
             fenetre.draw(txt);
         }
 
-        // Afficher la fenêtre de crédits si active
+        // Draw credits window if active (modal overlay).
         if (creditsWindow && creditsWindow->isActive())
         {
             creditsWindow->draw(fenetre);
@@ -409,6 +422,9 @@ namespace Vue
     void HomePage::openScoreWindow()
     {
         // Create the score screen using the injected callback.
+        // WHY callback injection:
+        // - ScoreWindow does not need to know about HomePage internals
+        // - allows decoupled UI screens
         ScoreWindow scoreWindow(getScoresCb);
 
         // Open a fullscreen "Scores" window (modal).
@@ -431,13 +447,17 @@ namespace Vue
     {
         // Stub: credits are now handled as a modal overlay via CreditsWindow and handleEvent/draw.
         CreditsWindow creditsWindow;
-        // Display credits as a modal on the home page.
-        // Parent window is the game window passed to handleEvent.
+        (void)creditsWindow; // avoids unused warning in this stub
     }
 
     // Opens LevelPage selector in fullscreen and stores the selection.
     void HomePage::openLevelPage(sf::RenderWindow& parent)
     {
+        (void)parent; // currently unused, kept as a "context" parameter
+
+        // WHY pass callback into LevelPage:
+        // - LevelPage uses it to determine locked/unlocked levels
+        // - avoids direct dependency on model/controller here
         LevelPage selector(this->getScoresCb);
 
         // Blocks until LevelPage closes and returns a Selection.

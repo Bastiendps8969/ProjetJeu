@@ -4,71 +4,80 @@
 namespace Modele
 {
     ScoreDetails ScoreCalculator::calculateScore(
-        const std::vector<Objective>& objectives,
-        int secondsRemaining,
-        int numberOfDetections
+        const std::vector<Objective>& objectives, // const ref: avoid copying a potentially large container
+        int secondsRemaining,                     // by value: primitive type, trivial/cheap copy
+        int numberOfDetections                    // by value: primitive type, trivial/cheap copy
     )
     {
-        // Create and populate the result structure.
+        // details is a local "aggregated result" object.
+        // WHY local value object:
+        // - clear lifetime (stack)
+        // - easy to fill step-by-step
+        // - returned by value as a complete computed result
         ScoreDetails details;
 
-        // Store raw inputs for reporting/debug/UI usage.
+        // Store raw inputs into the aggregated result.
+        // WHY: keeping inputs in the result helps reporting/debugging/UI without needing extra parameters later.
         details.secondsRemaining = secondsRemaining;
         details.numberOfDetections = numberOfDetections;
 
-        // Count completed objectives by type.
+        // These helper functions also take the container by const reference.
+        // WHY: consistent API, avoids copies across multiple computations.
         details.primaryObjectivesCompleted = countCompletedPrimaryObjectives(objectives);
         details.secondaryObjectivesCompleted = countCompletedSecondaryObjectives(objectives);
 
-        // Compute each score component.
-        // Time reward: more remaining time => higher score.
+        // Compute each component.
+        // WHY: keeping separate components makes scoring rules transparent and easy to tune later.
         details.timeScore = 50 * secondsRemaining;
-
-        // Main mission reward.
         details.primaryScore = 10000 * details.primaryObjectivesCompleted;
-
-        // Optional/bonus reward.
         details.secondaryScore = 5000 * details.secondaryObjectivesCompleted;
 
-        // Detection penalty: each detection reduces the score.
+        // Malus stored as a negative number.
+        // WHY: it allows totalScore to be computed by a simple sum of all components.
         details.detectionMalus = -2000 * details.numberOfDetections;
 
-        // Compute total score (malus is negative, so it can be added).
+        // Aggregate final score.
         details.totalScore =
             details.timeScore +
             details.primaryScore +
             details.secondaryScore +
             details.detectionMalus;
 
+        // Return the aggregated breakdown by value.
+        // WHY: the caller gets a complete snapshot of scoring components in one object.
         return details;
     }
 
     int ScoreCalculator::countCompletedPrimaryObjectives(
-        const std::vector<Objective>& objectives
+        const std::vector<Objective>& objectives // const ref: read-only + avoid container copy
     )
     {
         int count = 0;
 
-        // Count objectives that are both primary AND accomplished.
+        // Range-based loop with const auto&
+        // WHY const reference here:
+        // - avoids copying each Objective (could be heavier than an int)
+        // - ensures we don't modify objectives while iterating
         for (const auto& obj : objectives)
         {
+            // Using Objective's public interface (isPrimary / isAccomplished)
+            // WHY: encapsulation — ScoreCalculator depends on Objective behavior, not its internal fields.
             if (obj.isPrimary() && obj.isAccomplished())
             {
                 count++;
             }
         }
 
-        return count;
+        return count; // return by value: int is cheap and clear
     }
 
     int ScoreCalculator::countCompletedSecondaryObjectives(
-        const std::vector<Objective>& objectives
+        const std::vector<Objective>& objectives // const ref: read-only + avoid container copy
     )
     {
         int count = 0;
 
-        // Secondary objectives are those that are NOT primary.
-        // Count those that are accomplished.
+        // const auto& for the same reasons: no per-item copy + read-only traversal.
         for (const auto& obj : objectives)
         {
             if (!obj.isPrimary() && obj.isAccomplished())
@@ -81,25 +90,21 @@ namespace Modele
     }
 
     bool ScoreCalculator::areAllPrimaryObjectivesCompleted(
-        const std::vector<Objective>& objectives
+        const std::vector<Objective>& objectives // const ref: read-only traversal, no copy
     )
     {
-        // Track whether the level actually contains any primary objectives.
-        bool hasPrimary = false;
-
-        // If any primary objective is not accomplished, return false immediately.
+        // const auto& avoids copying each Objective.
         for (const auto& obj : objectives)
         {
             if (obj.isPrimary())
             {
-                hasPrimary = true;
+                // Early return pattern
+                // WHY: as soon as one required objective fails, the answer is known (faster on average).
                 if (!obj.isAccomplished())
                     return false;
             }
         }
 
-        // If no primary objectives are present, this implementation treats the condition as satisfied.
-        (void)hasPrimary; // kept for clarity; indicates an intentional design choice
-        return true;
+        return true; // return by value: bool is cheap and clear
     }
 }

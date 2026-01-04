@@ -1,14 +1,14 @@
-#pragma once
 
+#pragma once
 #ifndef TESTCOLLISION_HOMEPAGE_H
 #define TESTCOLLISION_HOMEPAGE_H
-
 
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <functional>
 #include <vector>
 #include <memory>
+
 #include "CreditsWindow.h"
 
 namespace Vue
@@ -24,11 +24,11 @@ namespace Vue
     class HomePage
     {
     private:
-        bool active = true;            ///< Bool : la page est-elle active (affichée) ?
-        bool inputFocused = false;     ///< Focus d'entrée pour la saisie du nom du joueur
-        std::string playerName;        ///< Nom saisi du joueur (max 32 caractères)
+        bool active = true;           ///< Whether this page is currently active (displayed)
+        bool inputFocused = false;    ///< Focus flag for typing the player name
+        std::string playerName;       ///< Typed player name (max 32 chars)
 
-        // Font and graphic elements
+        // Font and graphic elements (owned by HomePage = composition).
         sf::Font font;
         bool fontLoaded = false;
 
@@ -37,7 +37,7 @@ namespace Vue
         sf::Text titleShadow;
 
         // Input box + text.
-        // Note: in the current implementation, inputBox is size (0,0) and mainly used for hit-testing.
+        // NOTE: In current implementation, inputBox is size (0,0) and mainly used for hit-testing.
         sf::RectangleShape inputBox;
         sf::Text inputText;
 
@@ -54,10 +54,14 @@ namespace Vue
 
         bool showCredits = false;
 
-        // Legacy credits overlay flag (separate from CreditsWindow).
+        // Credits window owned by HomePage.
+        // WHY unique_ptr:
+        // - expresses unique ownership (HomePage controls lifetime)
+        // - allows "optional" existence (nullptr when not created yet)
+        // - automatic destruction (no manual delete)
         std::unique_ptr<CreditsWindow> creditsWindow;
 
-        // Cherub background image (semi-transparent if present).
+        // Background image (owned by HomePage = composition).
         sf::Texture cherubTexture;
         sf::Sprite cherubSprite;
         bool cherubLoaded = false;
@@ -65,10 +69,18 @@ namespace Vue
         // Basic animation clock (available if needed).
         sf::Clock animClock;
 
-        // Callback to query current player scores (used by ScoreWindow and LevelPage locks).
+        // Callback to query current player scores.
+        // WHY std::function stored by value:
+        // - can hold any callable (lambda, bind, functor)
+        // - HomePage does NOT own the score system; it owns only the callable wrapper
+        //   (aggregation-like dependency injection)
         std::function<std::vector<int>()> getScoresCb;
 
         // Utility: center a label inside a rectangle button.
+        // WHY label by non-const reference:
+        // - we modify its position
+        // WHY button by const reference:
+        // - read-only and avoids copying shapes
         void centerLabel(sf::Text& label, const sf::RectangleShape& button);
 
         // Open a dedicated score window (ScoreWindow).
@@ -78,12 +90,14 @@ namespace Vue
         void openCreditsWindow();
 
         // Launch LevelPage selector and store the chosen chapter/level indices.
+        // WHY parent window by reference:
+        // - caller owns the window; we only use it as context (non-owning)
         void openLevelPage(sf::RenderWindow& parent);
 
-        // Selected indices after closing LevelPage.
         // Selected index for keyboard navigation: 0=Play,1=Scores,2=Credits
         int selectedIndex = 0;
-        // Indices sélectionnés après la fermeture du sélecteur (chapter, level)
+
+        // Selected indices after closing the selector (chapter, level)
         int selectedChapter = -1;
         int selectedLevel = -1;
         std::string selectedLevelData;
@@ -93,6 +107,13 @@ namespace Vue
          * Constructor
          * @param getScores Callback returning a vector of scores
          * @param backgroundPath Optional path to background image (fallback paths are tried)
+         *
+         * WHY getScores passed by value:
+         * - allows easy passing of temporary lambdas/functors
+         * - we can std::move() it into the member to avoid extra copies
+         *
+         * WHY backgroundPath by const reference:
+         * - avoids copying the string when caller already has one
          */
         HomePage(std::function<std::vector<int>()> getScores, const std::string& backgroundPath = "");
 
@@ -107,9 +128,13 @@ namespace Vue
         const std::string& getSelectedLevelData() const { return selectedLevelData; }
 
         // Input handling and rendering.
+        // WHY event by const reference:
+        // - event is read-only, avoids copying
+        // WHY window by non-const reference:
+        // - coordinate mapping and (in draw) rendering mutate window state
         void handleEvent(const sf::Event& event, sf::RenderWindow& fenetre);
         void draw(sf::RenderWindow& fenetre);
     };
 }
 
-#endif //TESTCOLLISION_HOMEPAGE_H
+#endif // TESTCOLLISION_HOMEPAGE_H

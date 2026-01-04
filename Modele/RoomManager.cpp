@@ -1,13 +1,12 @@
 
 #include "RoomManager.h"
-
-#include <fstream>        // std::ifstream
-#include <iostream>       // std::cout, std::cerr
+#include <fstream>      // std::ifstream
+#include <iostream>     // std::cout, std::cerr
 #include "../cmake-build-debug/json.hpp" // nlohmann::json (project-local include path)
-#include <cmath>          // std::sqrt
-#include <unordered_map>  // obstacle texture cache
-#include <memory>         // std::unique_ptr, std::shared_ptr
-#include <filesystem>     // to test candidate paths
+#include <cmath>        // std::sqrt
+#include <unordered_map>// obstacle texture cache
+#include <memory>       // std::unique_ptr, std::shared_ptr
+#include <filesystem>   // to test candidate paths
 
 using json = nlohmann::json;
 
@@ -33,12 +32,16 @@ RoomManager::RoomManager(float w, float h)
     : screenW(w), screenH(h)
 {
     // Store screen dimensions for later scaling and door placement.
+    // WHY member-initializer list:
+    // - initializes screenW/screenH directly (no default init then assignment)
 }
 
 // Load rooms from JSON configuration file.
 bool RoomManager::loadRoomsFromJson(const std::string& filename)
 {
     // Clear previous content so reload starts from a clean state.
+    // WHY clear:
+    // - prevents mixing old rooms with newly loaded rooms
     rooms_.clear();
 
     // Open JSON file.
@@ -55,7 +58,6 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
 
     // Parse JSON and populate rooms_ map.
     json j;
-
     try
     {
         // Read file into JSON object.
@@ -73,9 +75,9 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
             // Using at() throws if missing -> helps catch config errors early.
             newRoom.name = roomJson.at("name").get<std::string>();
 
-            // ----------------------------
+            // -----------------------------
             // Doors: direction -> target id
-            // ----------------------------
+            // -----------------------------
             if (roomJson.contains("doors"))
             {
                 for (auto doorIt = roomJson.at("doors").begin();
@@ -91,13 +93,16 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                     door.targetRoomIndex = doorIt.value().get<int>();
 
                     // Store the minimal door descriptor (shape will be created later).
+                    // WHY emplace_back + move:
+                    // - avoids an extra copy of Door
+                    // - transfers ownership of unique_ptr later safely (Door is movable)
                     newRoom.doors.emplace_back(std::move(door));
                 }
             }
 
-            // ----------------------------
+            // -----------------------------
             // Obstacles: rectangles from JSON
-            // ----------------------------
+            // -----------------------------
             if (roomJson.contains("obstacles"))
             {
                 // Scaling approach:
@@ -108,6 +113,8 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                 const float scaleW = screenW / refW;
                 const float scaleH = screenH / refH;
 
+                // WHY "const auto&" in range loop:
+                // - avoids copying each JSON object during iteration
                 for (const auto& obsJson : roomJson.at("obstacles"))
                 {
                     ObstacleDefinition def;
@@ -118,12 +125,14 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                     // Scale position and size.
                     def.position.x = obsJson.value("x", 0.f) * scaleW;
                     def.position.y = obsJson.value("y", 0.f) * scaleH;
-                    def.size.x     = obsJson.value("w", 64.f) * scaleW;
-                    def.size.y     = obsJson.value("h", 64.f) * scaleH;
+                    def.size.x = obsJson.value("w", 64.f) * scaleW;
+                    def.size.y = obsJson.value("h", 64.f) * scaleH;
 
                     // Optional texture name to apply to the obstacle rectangle.
                     def.textureName = obsJson.value("textureName", "");
 
+                    // WHY emplace_back + move:
+                    // - avoids copying the definition object
                     newRoom.obstacleDefs.emplace_back(std::move(def));
                 }
             }
@@ -142,9 +151,9 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                 catch (...) { newRoom.dialogueRef = std::string(); }
             }
 
-            // ----------------------------
+            // -----------------------------
             // Objectives: parse JSON
-            // ----------------------------
+            // -----------------------------
             if (roomJson.contains("objectives"))
             {
                 // Use the same reference scaling as obstacles/enemies.
@@ -181,13 +190,15 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
                     objective.setCode(objJson.value("code", std::string("")));
                     objective.setchangeValue(objJson.value("changeValue", 0));
 
+                    // WHY emplace_back + move:
+                    // - allows Objective to be moved into the vector efficiently
                     newRoom.objectives.emplace_back(std::move(objective));
                 }
             }
 
-            // ----------------------------
+            // -----------------------------
             // Enemies: parse EnemyDefinition (data-only)
-            // ----------------------------
+            // -----------------------------
             if (roomJson.contains("enemies"))
             {
                 for (const auto& enemyJson : roomJson.at("enemies"))
@@ -254,17 +265,23 @@ bool RoomManager::loadRoomsFromJson(const std::string& filename)
 
                     // Store the enemy definition in the room.
                     // Actual Enemy objects are created later by the runtime model/factory.
+                    // WHY store by value:
+                    // - definition is lightweight configuration data, owned by the room
                     newRoom.enemyDefs.push_back(ed);
                 }
             }
 
             // Store room in the map (move to avoid copies).
+            // WHY move newRoom into rooms_:
+            // - Room contains vectors and unique_ptr shapes later; move is the safe/efficient transfer
             rooms_[roomId] = std::move(newRoom);
         }
 
         // Create basic visual shapes for doors/obstacles based on current screen size.
         for (auto& pair : rooms_)
         {
+            // WHY pair.second (Room&) passed:
+            // - initializeRoomShapes mutates Room by building shapes and updating bounds
             initializeRoomShapes(pair.second);
         }
 
@@ -289,6 +306,10 @@ void RoomManager::initializeRoomShapes(Room& room)
 
     // Texture cache (static => shared across calls/rooms):
     // Rationale: avoids reloading the same texture file multiple times.
+    //
+    // WHY shared_ptr in the cache:
+    // - multiple shapes can reference the same texture safely
+    // - the cache keeps textures alive as long as needed
     static std::unordered_map<std::string, std::shared_ptr<sf::Texture>> texCache;
 
     namespace fs = std::filesystem;
@@ -298,6 +319,8 @@ void RoomManager::initializeRoomShapes(Room& room)
         if (def.type == "rect")
         {
             // Create rectangle shape with size from definition.
+            // WHY make_unique:
+            // - creates the object and wraps it in unique_ptr in one step (exception-safe)
             auto rect = std::make_unique<sf::RectangleShape>(def.size);
 
             // Position it.
@@ -375,9 +398,15 @@ void RoomManager::initializeRoomShapes(Room& room)
 
                 // Apply texture if available; otherwise fill red as fallback.
                 if (tex)
+                {
+                    // WHY tex.get():
+                    // - SFML expects a raw pointer; shared_ptr manages lifetime via the cache
                     rect->setTexture(tex.get());
+                }
                 else
+                {
                     rect->setFillColor(sf::Color::Red);
+                }
             }
             else
             {
@@ -385,6 +414,9 @@ void RoomManager::initializeRoomShapes(Room& room)
                 rect->setFillColor(sf::Color::Red);
             }
 
+            // Store shape in the room.
+            // WHY move unique_ptr into vector:
+            // - transfers ownership (unique_ptr cannot be copied)
             room.obstacleShapes.emplace_back(std::move(rect));
         }
     }
@@ -432,6 +464,9 @@ void RoomManager::initializeRoomShapes(Room& room)
             else
                 door.visualShape->setFillColor(sf::Color(0, 150, 255, 128)); // bluish translucent
 
+            // Cache bounds for collision checks.
+            // WHY cache:
+            // - avoids recomputing bounds repeatedly if used frequently
             door.bounds = door.visualShape->getGlobalBounds();
         }
     }
@@ -441,6 +476,10 @@ const std::vector<Door>& RoomManager::getCurrentRoomDoors() const
 {
     // Return a const reference to avoid copying.
     // Provide a static empty vector if room not found.
+    //
+    // WHY static empty fallback:
+    // - avoids returning a dangling reference
+    // - keeps return type consistent (always returns a reference)
     static const std::vector<Door> emptyDoors;
 
     auto it = rooms_.find(currentRoomIndex_);
@@ -464,6 +503,7 @@ const std::vector<EnemyDefinition>& RoomManager::getCurrentRoomEnemies() const
 
 std::string RoomManager::getCurrentRoomDialogueRef() const
 {
+    // Returned by value to give the caller an independent string object.
     auto it = rooms_.find(currentRoomIndex_);
     if (it != rooms_.end()) return it->second.dialogueRef;
     return std::string();
@@ -478,6 +518,7 @@ bool RoomManager::isCurrentRoomDialogueShown() const
 
 void RoomManager::markCurrentRoomDialogueShown()
 {
+    // Mutates internal state: marks the room's dialogue as shown.
     auto it = rooms_.find(currentRoomIndex_);
     if (it != rooms_.end()) it->second.dialogueShown = true;
 }
@@ -510,21 +551,26 @@ bool RoomManager::changeRoom(int newRoomIndex,
     currentRoomIndex_ = newRoomIndex;
 
     // Player size used to place player fully inside screen.
+    // WHY read size once:
+    // - avoids repeated calls and keeps the computation consistent
     float playerW = joueur.getSize().x;
     float playerH = joueur.getSize().y;
-
     float halfW = playerW * 0.5f;
     float halfH = playerH * 0.5f;
 
     // Reposition player based on entry direction so it appears to come from that door.
     // Small offset avoids spawning inside the wall/edge.
+    //
+    // WHY joueur passed by non-const reference:
+    // - we must call setPosition() to update the caller's player object
     if (entryDirection == "up")
     {
         joueur.setPosition(screenW / 2.f - halfW, DOOR_THICKNESS + 20.f);
     }
     else if (entryDirection == "down")
     {
-        joueur.setPosition(screenW / 2.f - halfW, screenH - DOOR_THICKNESS - 20.f - playerH);
+        joueur.setPosition(screenW / 2.f - halfW,
+                           screenH - DOOR_THICKNESS - 20.f - playerH);
     }
     else if (entryDirection == "left")
     {
@@ -532,7 +578,8 @@ bool RoomManager::changeRoom(int newRoomIndex,
     }
     else if (entryDirection == "right")
     {
-        joueur.setPosition(screenW - DOOR_THICKNESS - 20.f - playerW, screenH / 2.f - halfH);
+        joueur.setPosition(screenW - DOOR_THICKNESS - 20.f - playerW,
+                           screenH / 2.f - halfH);
     }
     else
     {
@@ -544,3 +591,4 @@ bool RoomManager::changeRoom(int newRoomIndex,
 }
 
 } // namespace Modele
+

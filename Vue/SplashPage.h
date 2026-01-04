@@ -1,6 +1,5 @@
 
 #pragma once
-
 #include <SFML/Graphics.hpp>
 
 namespace Vue
@@ -34,6 +33,11 @@ namespace Vue
         // Implemented as a helper that returns a vector of possible file locations.
         std::vector<std::string> defaultPaths();
 
+        // WHY SFML resources are stored by value (composition):
+        // - RAII: resources are released automatically when SplashPage is destroyed
+        // - clear lifetime: texture must outlive sprite; keeping both as members ensures that
+        // - avoids manual memory management (no new/delete)
+
     public:
         // Constructor initializes font, text styling, and tries to load a background image.
         SplashPage();
@@ -44,11 +48,19 @@ namespace Vue
         // Handles input events:
         // - Enter/Return/Space or left click -> deactivate splash (continue)
         // - Escape or window close -> close the window
+        //
+        // WHY parameters are references:
+        // - event is const ref: read-only and avoids copying event data
+        // - fenetre is non-const ref: we need to call fenetre.close() on the real window instance
         void handleEvent(const sf::Event& event, sf::RenderWindow& fenetre);
 
         // Draws the splash screen:
         // - background scaled to cover the window (if loaded)
         // - blinking "START GAME" label near the bottom
+        //
+        // WHY sf::RenderWindow&:
+        // - RenderWindow is not meant to be copied
+        // - drawing must affect the actual window provided by the caller
         void draw(sf::RenderWindow& fenetre);
     };
 }

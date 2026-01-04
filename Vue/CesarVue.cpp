@@ -271,7 +271,7 @@ void CesarVue::handleEvent(const sf::Event& event, sf::RenderWindow& window) {
         window.close();
         shouldClose = true;
     }
-    
+
     // Handle mouse click on exit button (always clickable)
     if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
@@ -282,7 +282,7 @@ void CesarVue::handleEvent(const sf::Event& event, sf::RenderWindow& window) {
             }
         }
     }
-    
+
     // Small helper to validate current input
     auto validateInput = [&]() {
         std::string userInput = inputText.getString().toAnsiString();

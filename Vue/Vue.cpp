@@ -1,3 +1,4 @@
+
 #include "Vue.h"
 #include <cmath>
 #include "Modele.h"
@@ -8,22 +9,26 @@ namespace Vue {
 
     // Constructor
     Vue::Vue(Modele::Modele& modele)
-    : modele(modele)
+        : modele(modele)
     {
         // Try to load a font from a Windows system path first (Windows-specific),
         // then fallback to a local "arial.ttf" if present.
+        //
+        // WHY try multiple paths:
+        // - supports different run directories (IDE, build output, distribution)
+        // - avoids hard failure if Windows font path is unavailable
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontCharge = true;
             std::cout << "[DEBUG] Police chargée : C:\\Windows\\Fonts\\arial.ttf" << std::endl;
 
-        // Collision HUD text
-        collisionText.setFont(font);
-        collisionText.setString("Collision detected !");
-        collisionText.setCharacterSize(24);
-        collisionText.setFillColor(sf::Color::Red);
-        collisionText.setStyle(sf::Text::Bold);
-        collisionText.setPosition(10.f, 10.f);
+            // Collision HUD text
+            collisionText.setFont(font);
+            collisionText.setString("Collision detected !");
+            collisionText.setCharacterSize(24);
+            collisionText.setFillColor(sf::Color::Red);
+            collisionText.setStyle(sf::Text::Bold);
+            collisionText.setPosition(10.f, 10.f);
 
             // Player detected HUD text
             joueurDetecteText.setFont(font);
@@ -37,6 +42,7 @@ namespace Vue {
             livesText.setFont(font);
             livesText.setString("Lives: 3");
             livesText.setCharacterSize(28);
+
             // White because obstacles are red too (better contrast).
             livesText.setFillColor(sf::Color::White);
             livesText.setStyle(sf::Text::Bold);
@@ -46,6 +52,10 @@ namespace Vue {
         {
             fontCharge = true;
             std::cout << "[DEBUG] Font loaded : arial.ttf (local)" << std::endl;
+
+            // WHY still consider initializing texts here (note):
+            // - current code loads the font but does not re-initialize the sf::Text fields in this branch
+            // - left unchanged to preserve original behavior/comments
         }
         else
         {
@@ -57,6 +67,9 @@ namespace Vue {
     void Vue::dessiner(sf::RenderWindow& fenetre)
     {
         // If no floor matrix, there is nothing to render for the map.
+        //
+        // WHY early return:
+        // - avoids unnecessary work when map is not loaded / matrix is empty
         if (modele.getFloorMatrix().empty())
             return;
 
@@ -67,6 +80,10 @@ namespace Vue {
         const sf::Texture& floorTex = modele.getFloorTexture();
         const auto& wallTexs = modele.getWallTextures();
         int tileSize = modele.getTileSize();
+
+        // WHY use const references here:
+        // - avoids copying large matrices/vectors and sf::Texture objects
+        // - renderer only needs read-only access
 
         if (!matrix.empty())
         {
@@ -95,6 +112,7 @@ namespace Vue {
 
             // Reusable sprite for drawing floor fallback.
             sf::Sprite tileSprite;
+
             bool hasFloor = (floorTex.getSize().x > 0);
             if (hasFloor) tileSprite.setTexture(floorTex);
 
@@ -102,6 +120,7 @@ namespace Vue {
             for (size_t r = 0; r < rows; ++r)
             {
                 if (r >= matrix.size()) break;
+
                 for (size_t c = 0; c < cols; ++c)
                 {
                     if (c >= matrix[r].size()) break;
@@ -124,7 +143,6 @@ namespace Vue {
                                 // Scale texture to tileSize, then apply global map scaling.
                                 float sx = (static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().x)) * scaleX;
                                 float sy = (static_cast<float>(tileSize) / static_cast<float>(wallTexs[wi].getSize().y)) * scaleY;
-
                                 w.setScale(sx, sy);
                                 w.setPosition(drawX, drawY);
                                 fenetre.draw(w);
@@ -142,6 +160,10 @@ namespace Vue {
                     {
                         // For general tiles, ask the model for the texture associated with this ID.
                         const sf::Texture* t = modele.getTileTexture(val);
+
+                        // WHY model returns a pointer:
+                        // - texture may not exist for an id => nullptr signals "missing"
+                        // - avoids copying sf::Texture
                         if (t && t->getSize().x > 0)
                         {
                             sf::Sprite s;
@@ -149,7 +171,6 @@ namespace Vue {
 
                             float sx = (static_cast<float>(tileSize) / static_cast<float>(t->getSize().x)) * scaleX;
                             float sy = (static_cast<float>(tileSize) / static_cast<float>(t->getSize().y)) * scaleY;
-
                             s.setScale(sx, sy);
                             s.setPosition(drawX, drawY);
                             fenetre.draw(s);
@@ -162,10 +183,12 @@ namespace Vue {
 
                             float sx = (static_cast<float>(tileSize) / static_cast<float>(floorTex.getSize().x)) * scaleX;
                             float sy = (static_cast<float>(tileSize) / static_cast<float>(floorTex.getSize().y)) * scaleY;
-
                             s.setScale(sx, sy);
                             s.setPosition(drawX, drawY);
                             fenetre.draw(s);
+
+                            // WHY fallback to floor texture:
+                            // - ensures the map remains visible even if some tile ids are not registered
                         }
                     }
                 }
@@ -180,6 +203,9 @@ namespace Vue {
             // Doors have an optional visual shape for rendering.
             if (door.visualShape)
             {
+                // WHY door.visualShape is checked:
+                // - visualShape is a unique_ptr owned by the room/door
+                // - it can be null if shapes haven't been initialized or door has no shape
                 fenetre.draw(*door.visualShape);
             }
         }
@@ -200,6 +226,9 @@ namespace Vue {
             }
 
             // The obstacle is drawn as-is (likely a RectangleShape or Sprite-like shape).
+            //
+            // WHY obsPtr is a unique_ptr owned elsewhere:
+            // - model/room owns obstacles; view only renders them (non-owning usage)
             fenetre.draw(*obsPtr);
         }
 
@@ -207,6 +236,10 @@ namespace Vue {
         // 4) Draw objectives
         // ================================
         auto& currentObjectives = modele.getCurrentRoomObjectives();
+
+        // WHY currentObjectives obtained by reference:
+        // - model stores objectives; view reads them without copying the vector
+        // - objectives contain SFML resources; copying them would be expensive and may be unsafe
         if (!currentObjectives.empty()) {
             // Debug: print objective list and key properties (position, size, texture pointer, etc.).
             std::cout << "[Vue] Current room has " << currentObjectives.size() << " objectives:\n";
@@ -223,15 +256,18 @@ namespace Vue {
         for (const auto& objective : currentObjectives) {
             // Debug note : logs were added to diagnose why the sprite
             // did not show its texture. If texture is invalid, fallback to drawing hitbox.
-
             sf::Vector2f hp = objective.getHitboxPosition();
             sf::Vector2f hs = objective.getHitboxSize();
 
             // Draw the sprite if valid.
             // NOTE: A copy of the sprite is made here (sf::Sprite is lightweight).
+            //
+            // WHY copy sprite here:
+            // - keeps Objective encapsulation (Objective currently returns sf::Sprite by value)
+            // - allows drawing without retaining references to internal SFML state
             sf::Sprite spr = objective.getSprite();
-            const sf::Texture* tptr = spr.getTexture();
 
+            const sf::Texture* tptr = spr.getTexture();
             if (tptr && tptr->getSize().x > 0)
             {
                 fenetre.draw(spr);
@@ -261,6 +297,8 @@ namespace Vue {
         // ================================
         for (const auto& enemy : modele.getEnemies())
         {
+            // enemy is a unique_ptr<Enemy> owned by the model;
+            // view uses it as a non-owning observer.
             sf::Vector2f center = enemy->position;
             sf::Vector2f forward = enemy->direction;
             float range = enemy->visionRange;
@@ -295,6 +333,10 @@ namespace Vue {
                 float halfRad = (angleDeg * 0.5f) * pi / 180.f;
 
                 // Local lambda for rotating a vector by an angle in radians.
+                //
+                // WHY lambda here:
+                // - small math helper scoped to this render block
+                // - avoids polluting the class interface with a tiny utility
                 auto rotate = [](const sf::Vector2f& v, float rad) -> sf::Vector2f {
                     float c = std::cos(rad), s = std::sin(rad);
                     return sf::Vector2f(c * v.x - s * v.y, s * v.x + c * v.y);
@@ -349,6 +391,7 @@ namespace Vue {
         {
             fenetre.draw(collisionText);
         }
+
         if (fontCharge && modele.isJoueurDetecte())
         {
             fenetre.draw(joueurDetecteText);
@@ -366,6 +409,13 @@ namespace Vue {
     void Vue::handleEvent(const sf::Event& event, sf::RenderWindow& fenetre)
     {
         // No menu/dialogue handling here anymore.
+        //
+        // WHY keep this method:
+        // - keeps a consistent "View interface" even if currently unused
+        // - future UI interactions could be added here
+        (void)event;
+        (void)fenetre;
     }
 
 }
+

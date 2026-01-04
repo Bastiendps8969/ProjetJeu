@@ -12,7 +12,7 @@ namespace Vue
     // - characterName: name displayed in the dialogue box
     // - characterPortraitPath: path to portrait image (optional)
     // - text: dialogue content
-    // - displayDuration: duration (seconds) intended for auto-advance (currently not used by shouldClose()).
+    // - displayDuration: duration (seconds) intended for auto-advance
     struct DialogueData
     {
         std::string characterName;
@@ -51,6 +51,10 @@ namespace Vue
         // Visual elements (background panel, portrait, texts).
         sf::RectangleShape backgroundBox;
 
+        // Portrait resources owned by the DialogueBox (composition).
+        // WHY store sf::Texture as a member:
+        // - sf::Sprite references a texture; the texture must outlive the sprite
+        // - keeping texture as a member guarantees correct lifetime
         sf::Texture portraitTexture;
         sf::Sprite portraitSprite;
         bool portraitLoaded = false;
@@ -67,9 +71,14 @@ namespace Vue
         sf::Text continueText;
 
         // Current dialogue data being displayed.
+        // WHY store a copy:
+        // - keeps DialogueBox independent from the caller's data lifetime
+        // - allows rebuilding layout at any time without external references
         DialogueData currentDialogue;
 
         // Initialize UI layout based on current window size.
+        // WHY windowSize by const reference:
+        // - read-only and avoids copying
         void initializeDialogueBox(const sf::Vector2u& windowSize);
 
         // Declared but not implemented in the provided .cpp:
@@ -83,6 +92,9 @@ namespace Vue
         bool isActive() const { return active; }
 
         // Start displaying a new dialogue entry (copies data into internal state).
+        // WHY dialogue by const reference:
+        // - avoids copying on function entry
+        // - internal copy still happens to own the data safely
         void startDialogue(const DialogueData& dialogue, const sf::Vector2u& windowSize);
 
         // End the dialogue immediately.
@@ -99,9 +111,13 @@ namespace Vue
         void handleMouseClick() { waitingForClick = false; }
 
         // Handle SFML events (mouse click / key press).
+        // WHY event by const reference:
+        // - read-only and avoids copying
         void handleEvent(const sf::Event& event);
 
         // Draw the dialogue box overlay.
+        // WHY RenderWindow by non-const reference:
+        // - drawing modifies the render target state
         void draw(sf::RenderWindow& fenetre);
     };
 }

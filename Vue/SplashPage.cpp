@@ -9,6 +9,10 @@ namespace Vue
     {
         // Load a font (fallback to local Arial if Windows path fails).
         // NOTE: "C:\\Windows\\Fonts\\arial.ttf" is Windows-specific.
+        //
+        // WHY try Windows path then local path:
+        // - supports running on Windows without shipping a font file
+        // - supports running from project directory where "arial.ttf" may exist
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf") == false)
             font.loadFromFile("arial.ttf");
 
@@ -20,6 +24,10 @@ namespace Vue
         startText.setStyle(sf::Text::Bold);
 
         // Try a few likely paths for the background image (CherubMenu.png).
+        //
+        // WHY iterate over candidates:
+        // - working directory may differ (IDE vs build folder)
+        // - first successful path wins; avoids hardcoding a single fragile location
         for (const auto& p : defaultPaths())
         {
             if (backgroundTexture.loadFromFile(p))
@@ -41,6 +49,9 @@ namespace Vue
     // This helps when the working directory differs (IDE vs build folder).
     std::vector<std::string> SplashPage::defaultPaths()
     {
+        // WHY return by value:
+        // - returns a fresh list of candidates (small vector)
+        // - modern C++ will optimize with RVO/move
         return {
             "Asset/Menu/CherubMenu.png",
             "CherubMenu.png",
@@ -53,18 +64,22 @@ namespace Vue
         // If already inactive, ignore events.
         if (!active) return;
 
+        // WHY active guard:
+        // - prevents handling input twice after the splash has been dismissed
         if (event.type == sf::Event::KeyPressed)
         {
             // Proceed on Enter/Return/Space.
-            if (event.key.code == sf::Keyboard::Enter ||
-                event.key.code == sf::Keyboard::Return ||
-                event.key.code == sf::Keyboard::Space)
+            if (event.key.code == sf::Keyboard::Enter
+                || event.key.code == sf::Keyboard::Return
+                || event.key.code == sf::Keyboard::Space)
             {
-                active = false;
+                active = false; // one-shot transition to the next screen
             }
             // Quit on Escape.
             else if (event.key.code == sf::Keyboard::Escape)
             {
+                // WHY close the window here:
+                // - splash is the first screen; ESC is treated as "quit"
                 fenetre.close();
             }
         }
@@ -89,6 +104,7 @@ namespace Vue
         if (backgroundLoaded)
         {
             const sf::Texture& t = backgroundTexture;
+
             float texW = static_cast<float>(t.getSize().x);
             float texH = static_cast<float>(t.getSize().y);
 
@@ -96,6 +112,9 @@ namespace Vue
             float scaleY = static_cast<float>(win.y) / texH;
             float scale = std::max(scaleX, scaleY);
 
+            // WHY use a single "max" scale factor:
+            // - guarantees the image covers the full window without borders
+            // - trade-off: image may be cropped on one axis
             backgroundSprite.setScale(scale, scale);
             backgroundSprite.setPosition(0.f, 0.f);
 
@@ -116,8 +135,13 @@ namespace Vue
         else
             startText.setFillColor(sf::Color(255,255,255,60));
 
+        // WHY blinking via clock + fmod:
+        // - time-based animation independent of framerate
+        // - simple periodic behavior without storing extra state
+
         // Center the text horizontally and place it near the bottom (93% height).
         sf::FloatRect tb = startText.getLocalBounds();
+
         // y had been changed for better visual
         startText.setPosition((float)win.x * 0.5f - tb.width / 2.f - tb.left,
                               (float)win.y * 0.93f - tb.height / 2.f - tb.top);
@@ -125,6 +149,9 @@ namespace Vue
         fenetre.draw(startText);
 
         // Present the splash frame.
+        //
+        // NOTE: display() is called here, meaning SplashPage owns the full frame presentation.
+        // This is a "modal screen" pattern where the splash draws and presents itself.
         fenetre.display();
     }
 }

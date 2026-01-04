@@ -14,7 +14,7 @@
 namespace Controleur {
 
 ControllerLevel::ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::RenderWindow& fenetre)
- : modele(modele), vue(vue), fenetre(fenetre), mouvement(0.f, 0.f)
+    : modele(modele), vue(vue), fenetre(fenetre), mouvement(0.f, 0.f)
 {
     // Start (or restart) the level timer at construction.
     levelTimerClock.restart();
@@ -27,6 +27,10 @@ ControllerLevel::ControllerLevel(Modele::Modele& modele, Vue::Vue& vue, sf::Rend
         uiText.setCharacterSize(28);
         uiText.setFillColor(sf::Color::White);
     }
+
+    // WHY store references in constructor initializer list:
+    // - references must be bound at construction time
+    // - avoids copying large objects (Modele/Vue/RenderWindow)
 }
 
 // --- Cesar window support ---
@@ -40,6 +44,10 @@ Objective* ControllerLevel::getCesarObjective() const {
 
 void ControllerLevel::resetCesarWindowFlag() {
     // One-shot consumption: reset flag and pointer after the upper layer used them.
+    //
+    // WHY reset pointer to nullptr:
+    // - avoids holding a stale non-owning pointer
+    // - makes "no pending Cesar objective" explicit
     openCesarWindow = false;
     cesarObjective = nullptr;
 }
@@ -59,6 +67,9 @@ void ControllerLevel::handleInput()
         mouvement.x -= 1.0f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
         mouvement.x += 1.0f;
+
+    // WHY store movement intent as a vector:
+    // - separates input collection from physics/collision resolution (done in update)
 }
 
 void ControllerLevel::update()
@@ -89,10 +100,14 @@ void ControllerLevel::update()
     // Axis-separated collision resolution is simple and stable.
     // ------------------------------------------------------------
     modele.getJoueur().move(deplacement.x, 0.f);
+
     sf::FloatRect joueurBounds = modele.getJoueur().getGlobalBounds();
 
     for (const auto& obsPtr : modele.getObstacleShapes())
     {
+        // WHY obsPtr is a const reference to a unique_ptr:
+        // - obstacles are owned by the model/room (unique_ptr)
+        // - controller only reads bounds; does not take ownership
         if (modele.getJoueur().getGlobalBounds().intersects(obsPtr->getGlobalBounds()))
         {
             sf::FloatRect obstacleBounds = obsPtr->getGlobalBounds();
@@ -122,6 +137,7 @@ void ControllerLevel::update()
     // 2) Move on Y axis and resolve collisions with obstacles (AABB).
     // ------------------------------------------------------------
     modele.getJoueur().move(0.f, deplacement.y);
+
     joueurBounds = modele.getJoueur().getGlobalBounds();
 
     for (const auto& obsPtr : modele.getObstacleShapes())
@@ -147,7 +163,11 @@ void ControllerLevel::update()
     // so another stage (processCollisions) can handle dialogues & rewards.
     // ------------------------------------------------------------
     for (auto& objectiveRef : modele.getCurrentRoomObjectives()) {
-        if (modele.getJoueur().getGlobalBounds().intersects(objectiveRef.getHitbox().getGlobalBounds())) {
+        // WHY objectiveRef is a reference:
+        // - objectives are stored inside the model (vector<Objective>)
+        // - we need to keep a link to the actual Objective so we can pass its address (&objectiveRef)
+        if (modele.getJoueur().getGlobalBounds().intersects(objectiveRef.getHitbox().getGlobalBounds()))
+        {
             // NOTE: These moves look unusual: they move the player again using deplacement,
             // likely intended to adjust resolution ordering; not changed here.
             modele.getJoueur().move(deplacement.x, 0.f);
@@ -156,12 +176,17 @@ void ControllerLevel::update()
             const sf::FloatRect objectiveBounds = objectiveRef.getHitbox().getGlobalBounds();
 
             // Store contact state in the model (objective pointer used because it's optional and mutable).
+            //
+            // WHY store Objective* in the model:
+            // - allows processCollisions() to modify the same Objective object (no copies)
+            // - pointer communicates optional presence (nullptr when none)
             modele.setObjectiveContactDetectee(true);
             modele.setObjectiveContact(&objectiveRef);
 
             std::cout << "[ControllerLevel] Collision with objective: '" << objectiveRef.getTitle()
                       << "' cesar=" << objectiveRef.isCesar()
                       << " dialogueRef=" << objectiveRef.getDialogueRef() << std::endl;
+
             std::cout << "deplacement x :" << deplacement.x << std::endl;
             std::cout << "deplacement y :" << deplacement.y << std::endl;
 
@@ -229,6 +254,9 @@ void ControllerLevel::update()
     // Delegate animation updates to the model.
     modele.updatePlayerAnimation(isMoving);
     modele.syncPlayerSprite();
+
+    // WHY controller delegates animation to the model:
+    // - keeps responsibilities separated (controller: input/collisions; model: animation state)
 }
 
 int ControllerLevel::getRemainingSeconds() const
@@ -256,6 +284,9 @@ void ControllerLevel::resetLevelTimer()
     timerPaused = false;
     pauseStartSeconds = 0.0;
     pausedAccumulated = 0.0;
+
+    // WHY reset bookkeeping:
+    // - ensures pause does not affect the next level run
 }
 
 void ControllerLevel::drawUI(sf::RenderWindow& fenetre)
@@ -276,6 +307,10 @@ void ControllerLevel::drawUI(sf::RenderWindow& fenetre)
     uiText.setPosition(x - tb.left, y - tb.top);
 
     fenetre.draw(uiText);
+
+    // WHY fenetre passed by reference:
+    // - RenderWindow is non-trivial; copying is not intended
+    // - drawing must affect the actual window
 }
 
 void ControllerLevel::setTimerPaused(bool p)
@@ -295,6 +330,9 @@ void ControllerLevel::setTimerPaused(bool p)
         pauseStartSeconds = 0.0;
         timerPaused = false;
     }
+
+    // WHY bool parameter by value:
+    // - trivial type, simplest and fastest
 }
 
 Modele::ScoreDetails ControllerLevel::getScoreDetails() const
@@ -303,6 +341,9 @@ Modele::ScoreDetails ControllerLevel::getScoreDetails() const
     const std::vector<Objective>& objectives = modele.getAllLevelObjectives();
     int remainingSeconds = getRemainingSeconds();
 
+    // WHY objectives passed by const reference to ScoreCalculator:
+    // - avoids copying the objective list
+    // - controller only needs read-only scoring data
     return Modele::ScoreCalculator::calculateScore(objectives, remainingSeconds, modele.getDetectionCount());
 }
 
@@ -310,6 +351,7 @@ bool ControllerLevel::areAllPrimaryObjectivesCompleted() const
 {
     // Delegation to ScoreCalculator (keeps controller thin).
     const std::vector<Objective>& objectives = modele.getAllLevelObjectives();
+
     return Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(objectives);
 }
 
@@ -345,13 +387,13 @@ void ControllerLevel::checkDoors()
             {
                 // Ask confirmation to quit the level (modal UI loop).
                 Vue::ConfirmationDialog confirm("Exit level?\nYour progress will be save if you've completed\nall the primary objectives.");
+
                 while (fenetre.isOpen() && confirm.isActive()) {
                     sf::Event ce;
                     while (fenetre.pollEvent(ce)) {
                         if (ce.type == sf::Event::Closed) fenetre.close();
                         confirm.handleEvent(ce, fenetre);
                     }
-
                     fenetre.clear(sf::Color::Black);
                     vue.dessiner(fenetre);
                     confirm.draw(fenetre);
@@ -361,13 +403,19 @@ void ControllerLevel::checkDoors()
                 if (!fenetre.isOpen()) break;
 
                 if (confirm.isConfirmed()) {
+
                     // If confirmed, we optionally show the score window (only if primary objectives are done).
-                    if (areAllPrimaryObjectivesCompleted() && Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getAllLevelObjectives()))
+                    if (areAllPrimaryObjectivesCompleted() &&
+                        Modele::ScoreCalculator::areAllPrimaryObjectivesCompleted(modele.getAllLevelObjectives()))
                     {
                         // Show score screen (modal). Lambda provides dynamic score computation.
+                        //
+                        // WHY lambda capturing [this]:
+                        // - ScoreWindow can request score details at draw time (fresh values)
+                        // - avoids storing duplicated score state inside the UI layer
                         Vue::ScoreWindow scoreWindow([this]() -> Modele::ScoreDetails {
                            return this->getScoreDetails();
-                       });
+                        });
 
                         while (fenetre.isOpen() && scoreWindow.isActive())
                         {
@@ -426,7 +474,12 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
     // The model sets a flag + pointer; controller resolves consequences here.
     // ------------------------------------------------------------
     if (modele.getObjectiveContactDetectee()) {
+
         Objective* contactObj = modele.getObjectiveContact();
+
+        // WHY pointer check:
+        // - Objective contact is optional (nullptr means "no objective")
+        // - avoids dereferencing invalid pointer
         if (!contactObj) return;
 
         std::cout << "[ControllerLevel] Objective contact detected: " << contactObj->getTitle() << std::endl;
@@ -445,10 +498,15 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
             // after the dialogue ends.
             if (contactObj->isCesar()) {
                 std::cout << "[ControllerLevel] Detected Cesar objective: " << contactObj->getTitle() << std::endl;
+
+                // WHY store Objective* for Cesar:
+                // - upper UI needs to read code/changeValue from the same Objective instance
+                // - pointer is non-owning: Objective stays stored in the model/room
                 cesarObjective = contactObj;
                 openCesarWindow = true; // Flag for upper controller (consumed after dialogue)
             }
-            else {
+            else
+            {
                 // Standard objective: mark as accomplished immediately.
                 contactObj->setAccomplished(true);
             }
@@ -466,7 +524,6 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
         // Do not start the dialogue here (would be called every frame and restart it).
         // Just set the model flag; the top-level `Controleur` will start the dialogue
         // once using its `agentDialogueLaunched` guard.
-
         // Apply life loss only once per detection (not every frame).
         if (!playerWasDetectedLastFrame)
         {
@@ -477,6 +534,7 @@ void ControllerLevel::processCollisions(Vue::DialogueManager& dialogueManager)
             const auto& enemies = modele.getEnemies();
             for (const auto& enemy : enemies)
             {
+                // enemy is a unique_ptr<Enemy>; check pointer validity and state
                 if (enemy && enemy->joueurDetecte)
                 {
                     // GenericEnemy is the "human" type.

@@ -1,6 +1,5 @@
 
 #include "ChapterLoader.h"
-
 #include "../cmake-build-debug/json.hpp"
 #include <fstream>
 #include <iostream>
@@ -15,11 +14,14 @@ namespace Modele
                                     const std::string& key,
                                     const std::string& defaultValue = "")
     {
+        // WHY const json& and const std::string&:
+        // - avoids copying JSON objects and keys
+        // - function is read-only and purely extracts data
         if (j.contains(key) && j[key].is_string())
         {
             return j[key].get<std::string>();
         }
-        return defaultValue;
+        return defaultValue; // returned by value: new string result (safe)
     }
 
     // Safely read an integer field from a JSON object.
@@ -31,6 +33,8 @@ namespace Modele
                           const std::string& key,
                           int defaultValue = 0)
     {
+        // WHY defaultValue by value:
+        // - int is trivial, and we return a value result anyway
         if (j.contains(key))
         {
             if (j[key].is_number_integer())
@@ -58,10 +62,11 @@ namespace Modele
 
         // Open the chapters JSON file.
         std::ifstream ifs(chaptersJsonPath);
+
         if (!ifs.is_open())
         {
             std::cerr << "Error: Could not open " << chaptersJsonPath << std::endl;
-            return chapters;
+            return chapters; // return empty vector by value
         }
 
         try
@@ -73,7 +78,7 @@ namespace Modele
             // The file format appears to be an object with numeric string keys: "0", "1", "2", ...
             for (auto it = j.begin(); it != j.end(); ++it)
             {
-                const auto& obj = it.value();
+                const auto& obj = it.value(); // const ref avoids copying sub-json object
 
                 ChapterInfo chapter;
 
@@ -89,6 +94,10 @@ namespace Modele
                 chapter.levelsFile = safeGetString(obj, "levels");
 
                 // Note: chapter.levels is intentionally left empty here (lazy loading).
+
+                // WHY push_back(std::move(chapter)):
+                // - ChapterInfo contains multiple std::string and a vector
+                // - moving avoids unnecessary copies when inserting into chapters
                 chapters.push_back(std::move(chapter));
             }
         }
@@ -97,6 +106,8 @@ namespace Modele
             std::cerr << "Error parsing " << chaptersJsonPath << ": " << e.what() << std::endl;
         }
 
+        // WHY return vector by value:
+        // - modern C++ optimizes this via RVO/move (efficient)
         return chapters;
     }
 
@@ -106,6 +117,7 @@ namespace Modele
 
         // Open the levels JSON file.
         std::ifstream ifs(levelsJsonPath);
+
         if (!ifs.is_open())
         {
             std::cerr << "Error: Could not open " << levelsJsonPath << std::endl;
@@ -139,6 +151,8 @@ namespace Modele
                 // levelData points to the level's main data file (e.g., rooms JSON).
                 level.levelData = safeGetString(obj, "levelData");
 
+                // WHY push_back(std::move(level)):
+                // - LevelInfo owns strings; moving avoids repeated allocations/copies
                 levels.push_back(std::move(level));
             }
         }
@@ -164,6 +178,10 @@ namespace Modele
             chapter.levels = loadLevels(chapter.levelsFile);
 
             // Return the fully populated chapter (with levels loaded).
+            //
+            // WHY return by value:
+            // - returns a self-contained ChapterInfo object to the caller
+            // - modern compilers will move/RVO this efficiently
             return chapter;
         }
 

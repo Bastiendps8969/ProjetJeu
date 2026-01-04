@@ -1,6 +1,5 @@
 
 #pragma once
-
 #include <string>
 #include <vector>
 
@@ -10,12 +9,16 @@ namespace Modele
     // It is a pure data container (no runtime gameplay logic).
     struct LevelInfo
     {
-        std::string id;           // JSON key (often "0", "1", "2", ...)
-        std::string name;         // Display name of the level
-        std::string description;  // Short description used in UI
-        std::string picture;      // Path to a preview image (UI thumbnail)
-        int neededScore;          // Minimum score required to unlock this level
-        std::string levelData;    // Path to the level data file (e.g., rooms/level JSON)
+        std::string id;          // JSON key (often "0", "1", "2", ...)
+        std::string name;        // Display name of the level
+        std::string description; // Short description used in UI
+        std::string picture;     // Path to a preview image (UI thumbnail)
+        int neededScore;         // Minimum score required to unlock this level
+        std::string levelData;   // Path to the level data file (e.g., rooms/level JSON)
+
+        // WHY store fields by value:
+        // - LevelInfo is meant as a self-contained metadata record
+        // - value semantics avoid lifetime issues (no dangling references)
     };
 
     // ChapterInfo represents a chapter (story arc) containing multiple levels.
@@ -27,7 +30,13 @@ namespace Modele
         std::string description;  // Chapter description (UI text)
         std::string picture;      // Path to a chapter preview image
         std::string levelsFile;   // Path to the JSON file describing levels of this chapter
+
+        // Composition/aggregation: a chapter owns a list of level metadata records.
         std::vector<LevelInfo> levels; // Loaded levels (optional/lazy)
+
+        // WHY vector<LevelInfo> by value:
+        // - ChapterInfo owns the loaded level metadata
+        // - easy to return/transfer chapters as value objects (RVO/move)
     };
 
     // ChapterLoader is a small utility responsible for loading chapter/level metadata from JSON files.
@@ -38,13 +47,23 @@ namespace Modele
     {
     public:
         // Loads all chapters from a chapters.json-like file.
+        //
+        // WHY const std::string&:
+        // - avoids copying the path string (could be long)
+        // - expresses read-only usage
         static std::vector<ChapterInfo> loadChapters(const std::string& chaptersJsonPath);
 
         // Loads all levels from a levels.json-like file.
+        //
+        // WHY const std::string&:
+        // - avoid copying the path
         static std::vector<LevelInfo> loadLevels(const std::string& levelsJsonPath);
 
         // Loads the chapter at the given index and also loads its levels from chapter.levelsFile.
         // If index is invalid, returns a default-constructed ChapterInfo.
+        //
+        // WHY int by value:
+        // - primitive type, cheap to copy
         static ChapterInfo loadChapterWithLevels(const std::string& chaptersJsonPath, int chapterIndex);
     };
 }

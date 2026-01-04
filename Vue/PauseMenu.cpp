@@ -2,6 +2,7 @@
 //
 // Pause menu implementation
 //
+
 #include "PauseMenu.h"
 #include <iostream>
 
@@ -57,6 +58,10 @@ PauseMenu::PauseMenu(Modele::Modele& modele)
     exitGameLabel.setCharacterSize(28);
     exitGameLabel.setFillColor(textColor);
     exitGameLabel.setStyle(sf::Text::Bold);
+
+    // WHY store modelePtr as pointer:
+    // - PauseMenu does not own Modele; it just queries it (objectives list)
+    // - pointer keeps dependency non-owning and allows null checks
 }
 
 void PauseMenu::initUI(sf::RenderWindow& fenetre)
@@ -86,15 +91,21 @@ void PauseMenu::centerLabel(sf::Text& label, const sf::RectangleShape& button)
     // Center a text label inside a rectangle by using bounds.
     sf::FloatRect tb = label.getLocalBounds();
     sf::FloatRect bb = button.getGlobalBounds();
+
     label.setPosition(
         bb.left + (bb.width - tb.width)/2.f - tb.left,
-        bb.top  + (bb.height - tb.height)/2.f - tb.top
+        bb.top + (bb.height - tb.height)/2.f - tb.top
     );
 }
 
 // Reuse the same stylized button rendering used on HomePage to keep visual consistency.
 static void drawStyledButton(sf::RenderWindow& window, sf::RectangleShape button, sf::Text label, bool hovered)
 {
+    // WHY button/label are passed by value:
+    // - the function applies style modifications (colors/outlines/label position)
+    // - passing by value avoids mutating the original objects owned by PauseMenu
+    // - keeps the caller's "base" button geometry/labels unchanged across frames
+
     // Button base (color/outline depend on hover state).
     sf::RectangleShape base = button;
     sf::Color baseColor = hovered ? sf::Color(230, 60, 60) : sf::Color(170, 30, 30);
@@ -169,6 +180,8 @@ void PauseMenu::handleEvent(const sf::Event& event, sf::RenderWindow& fenetre)
     // Mouse click: clicking a button selects it and closes the menu.
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
     {
+        // WHY mapPixelToCoords:
+        // - converts mouse pixel position to world coordinates (supports views/transforms)
         sf::Vector2f mousePos = fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre));
 
         if (resumeButton.getGlobalBounds().contains(mousePos)) {
@@ -188,6 +201,7 @@ void PauseMenu::handleEvent(const sf::Event& event, sf::RenderWindow& fenetre)
     {
         // Mouse hover: update selection to match hovered button.
         sf::Vector2f mousePos = fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre));
+
         if (resumeButton.getGlobalBounds().contains(mousePos)) selectedOption = Option::Resume;
         else if (exitLevelButton.getGlobalBounds().contains(mousePos)) selectedOption = Option::ExitLevel;
         else if (exitGameButton.getGlobalBounds().contains(mousePos)) selectedOption = Option::ExitGame;
@@ -212,6 +226,10 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
     // Objectives list on the left (read-only from the model).
     if (modelePtr)
     {
+        // NOTE: getAllLevelObjectives() returns a vector by value (copy/snapshot).
+        // WHY this is acceptable here:
+        // - pause menu is not a per-frame hot path during gameplay
+        // - it simplifies rendering (no lifetime concerns if room/objectives change)
         auto objs = modelePtr->getAllLevelObjectives();
 
         float x = 40.f;
@@ -221,13 +239,14 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
         primHeader.setFillColor(sf::Color::White);
         primHeader.setPosition(x, y);
         fenetre.draw(primHeader);
-
         y += 36.f;
+
         for (auto& o : objs) {
             if (!o.isPrimary()) continue;
 
             sf::Text t(o.getTitle(), font, 20);
             t.setPosition(x, y);
+
             // Green if accomplished, red otherwise (clear status feedback).
             t.setFillColor(o.isAccomplished() ? sf::Color(0,200,0) : sf::Color(200,0,0));
             fenetre.draw(t);
@@ -235,12 +254,13 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
         }
 
         y += 12.f;
+
         sf::Text secHeader("Secondary objectives", font, 24);
         secHeader.setFillColor(sf::Color::White);
         secHeader.setPosition(x, y);
         fenetre.draw(secHeader);
-
         y += 36.f;
+
         for (auto& o : objs) {
             if (o.isPrimary()) continue;
 
@@ -264,17 +284,14 @@ void PauseMenu::draw(sf::RenderWindow& fenetre)
 
     bool hoveredResume =
         resumeButton.getGlobalBounds().contains(mousePos)
-
         || selectedOption == Option::Resume;
 
     bool hoveredExitLevel =
         exitLevelButton.getGlobalBounds().contains(mousePos)
-
         || selectedOption == Option::ExitLevel;
 
     bool hoveredExitGame =
         exitGameButton.getGlobalBounds().contains(mousePos)
-
         || selectedOption == Option::ExitGame;
 
     // Draw buttons using the shared styled function for consistent look.

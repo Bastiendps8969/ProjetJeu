@@ -11,6 +11,9 @@ namespace Vue
     // so this helper is not used yet (could be intended for future refactoring).
     static void drawStyledButton(sf::RenderWindow& window, const sf::RectangleShape& button, sf::Text label, bool hovered)
     {
+        // WHY label is passed by value:
+        // - the function modifies label position and fill color for drawing
+        // - passing by value avoids mutating the caller's original sf::Text object
         sf::RectangleShape base = button;
 
         // Basic palette with hover variation.
@@ -50,8 +53,12 @@ namespace Vue
 
     // Legacy constructor: fetches a vector of scores (one per level) and builds UI.
     ScoreWindow::ScoreWindow(std::function<std::vector<int>()> getScores)
-    : getScoresCb(std::move(getScores))
+        : getScoresCb(std::move(getScores))
     {
+        // WHY std::move(getScores):
+        // - std::function may hold captured state (lambda captures)
+        // - moving avoids duplicating that state and is the idiomatic way to store callbacks
+
         // Load font (Windows-specific path).
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
@@ -59,20 +66,27 @@ namespace Vue
 
             // Fetch score data via callback and initialize texts.
             std::vector<int> scores = getScoresCb();
+
+            // WHY scores stored in a local variable:
+            // - initializeTexts expects a const reference; local keeps data alive for the call
             initializeTexts(scores);
         }
     }
 
     // New constructor: fetches detailed breakdown for a completed level.
     ScoreWindow::ScoreWindow(std::function<Modele::ScoreDetails()> getDetails)
-    : getDetailsCb(std::move(getDetails))
+        : getDetailsCb(std::move(getDetails))
     {
+        // Load font (Windows-specific path).
         if (font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
             fontLoaded = true;
 
             // Fetch score details via callback and initialize breakdown texts.
             Modele::ScoreDetails details = getDetailsCb();
+
+            // WHY details in a local variable:
+            // - initializeDetailedTexts takes const ref; local extends lifetime for the call
             initializeDetailedTexts(details);
         }
     }
@@ -102,6 +116,10 @@ namespace Vue
         timeScoreText.setString(str1.str());
         timeScoreText.setCharacterSize(22);
         timeScoreText.setFillColor(sf::Color(100, 200, 255));
+
+        // WHY push member sf::Text into a vector:
+        // - ScoreWindow keeps "template" Text members so font/color remain configured
+        // - vector holds copies used for layout in draw()
         levelScores.push_back(timeScoreText);
 
         // Primary objectives score line
@@ -151,6 +169,7 @@ namespace Vue
 
         // Build one text line per level (positions are assigned in draw()).
         levelScores.clear();
+
         for (size_t i = 0; i < scores.size(); ++i)
         {
             sf::Text levelText;
@@ -165,6 +184,10 @@ namespace Vue
             levelText.setString(str.str());
             levelText.setCharacterSize(20);
             levelText.setFillColor(sf::Color(200, 200, 200));
+
+            // WHY store sf::Text by value in the vector:
+            // - each line is an independent drawable object (position assigned later)
+            // - sf::Text is lightweight to copy compared to textures
             levelScores.push_back(levelText);
         }
     }
@@ -174,8 +197,8 @@ namespace Vue
         // Close on keyboard keys (Escape / Return).
         if (event.type == sf::Event::KeyPressed)
         {
-            if (event.key.code == sf::Keyboard::Escape ||
-                event.key.code == sf::Keyboard::Return)
+            if (event.key.code == sf::Keyboard::Escape
+                || event.key.code == sf::Keyboard::Return)
             {
                 active = false;
             }
@@ -185,6 +208,10 @@ namespace Vue
         if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
         {
             // Use the backButtonRect computed in the last draw().
+            //
+            // WHY reuse backButtonRect:
+            // - separates layout computation (draw) from input hit-testing (handleEvent)
+            // - avoids recomputing bounds multiple times per frame
             if (backButtonRect.contains(static_cast<float>(event.mouseButton.x),
                                         static_cast<float>(event.mouseButton.y)))
             {
@@ -203,6 +230,7 @@ namespace Vue
     {
         // Layout base values.
         sf::Vector2u win = fenetre.getSize();
+
         fenetre.clear(sf::Color(18, 18, 18)); // dark background matching other menus
 
         // If font was not loaded, just display the cleared background.
@@ -215,7 +243,6 @@ namespace Vue
         // Title & basic positions.
         float leftX = 40.f;
         float topY = 30.f;
-
         titleText.setPosition(leftX, topY);
         fenetre.draw(titleText);
 
@@ -251,6 +278,10 @@ namespace Vue
             sf::Text text = levelScores[i];
             text.setPosition(cardX + 26.f, y + 8.f);
             fenetre.draw(text);
+
+            // WHY copy levelScores[i] into a local sf::Text:
+            // - allows per-draw positioning without mutating the stored template text
+            // - keeps vector entries reusable across frames
         }
 
         // If no scores exist, show a placeholder message.
